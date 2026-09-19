@@ -1,7 +1,5 @@
 # SafeSpace
 
-# SafeSpace
-
 - Project: `safespace` 
 - Team: 9
 - Members: Em Bensinger, Koey Huang, Nicholas Rondon, Yu-Chen (Ilona) Tung 
