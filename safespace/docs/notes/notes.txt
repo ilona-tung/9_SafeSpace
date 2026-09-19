@@ -3,6 +3,7 @@ The Push Shortcut: Ctrl + Shift + K (Windows/Linux) or Cmd + Shift + K (macOS)
 The Pull Shortcut: Ctrl + T (Windows/Linux) or Cmd + T (macOS)
 
 
+
 ________________________________________________________________________________________________________________________
 A2 Section 2
 Add a short section in docs/notes/notes.txt:
