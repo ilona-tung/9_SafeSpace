@@ -1,0 +1,3 @@
+Our branching strategy is quite simple at this time.
+At first, we uploaded our files from the previous assignment up to the main branch.
+And each member had their own branch for future updates, so that we won’t mess with each other’s codes.
