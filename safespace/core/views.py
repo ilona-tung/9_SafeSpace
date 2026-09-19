@@ -1,3 +1,4 @@
+# http
 from django.http import HttpResponse
 from django.template import loader
 from .models import Quest
@@ -10,9 +11,29 @@ def quest_list_manual(request):
     return HttpResponse(output)
 
 
-
+# render
 from django.shortcuts import render
 
 def quest_list_render(request):
     quests = Quest.objects.all()
     return render(request, "core/quest_list.html", {"quests": quests})
+
+
+# base cbv
+from django.views import View
+from django.views.generic import ListView
+
+class QuestListBaseView(View):
+    def get(self, request):
+        return render(
+            request,
+            'core/quest_list.html',
+            context={'quests': Quest.objects.all()}
+        )
+
+# generic cbv
+class QuestListGenericView(ListView):
+    model = Quest
+    template_name = 'core/quest_list.html'
+    context_object_name = 'quests'
+

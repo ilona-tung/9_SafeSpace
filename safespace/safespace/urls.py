@@ -22,4 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('quests/', views.quest_list_manual, name='quest_list_manual'),
     path('quests/render/', views.quest_list_render, name='quest_list_render'),
+    path('quests/cbv-base/', views.QuestListBaseView.as_view(), name='quest_cbv_base'),
+    path('quests/cbv-generic/', views.QuestListGenericView.as_view(), name='quest_cbv_generic'),
 ]
