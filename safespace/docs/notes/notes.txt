@@ -1,0 +1,3 @@
+Create your new branch: git switch -c <your-new-branch-name>
+The Push Shortcut: Ctrl + Shift + K (Windows/Linux) or Cmd + Shift + K (macOS)
+The Pull Shortcut: Ctrl + T (Windows/Linux) or Cmd + T (macOS)
