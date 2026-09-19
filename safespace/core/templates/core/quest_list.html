@@ -1,0 +1,11 @@
+
+<h1>Quests</h1>
+
+<ul>
+{% for quest in quests %}
+    <p>{{ quest.title }}</p>
+{% empty %}
+    <p>No quests yet!</p>
+{% endfor %}
+
+</ul>
