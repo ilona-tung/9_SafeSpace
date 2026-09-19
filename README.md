@@ -2,7 +2,7 @@
 
 - Project: `safespace` 
 - Team: 9
-- Members: Em Bensinger, Koey Huang, Nicholas Rondon, Yu-Chen (Ilona) Tung 
+- Members: Em Bensinger, Koey Huang, Nicholas Rondon, Yu-Chen (Ilona) Tung
 
 ## Design principle
 SafeSpace is a self-care app designed to combat burnout by transforming daily life into a personal archive. 
