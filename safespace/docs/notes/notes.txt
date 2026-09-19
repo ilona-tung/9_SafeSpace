@@ -1,3 +1,30 @@
 Create your new branch: git switch -c <your-new-branch-name>
 The Push Shortcut: Ctrl + Shift + K (Windows/Linux) or Cmd + Shift + K (macOS)
 The Pull Shortcut: Ctrl + T (Windows/Linux) or Cmd + T (macOS)
+
+
+________________________________________________________________________________________________________________________
+A2 Section 2
+Add a short section in docs/notes/notes.txt:
+   Your experience about when you felt each of these were useful in the project:
+       - HttpResponse vs Render
+       - Base CBV vs Generic CBV
+
+
+HttpResponse vs Render
+   The difference is immediately glaringly obvious.
+   In HttpResponse, you need to manually load the template, build the context, and render it into 3 separate steps.
+   This does make it easier to understand the separate steps it takes to wrap the result, but compared to Rendering, it's long.
+   Rendering has cleaner code and is less bulky, making it straightforward and easy to understand.
+   The way the slides explain it matches really well;
+   an HttpResponse is akin to mailing a handwritten letter, while a Render takes a premade template/format and just fills in the name & message before sending.
+
+
+Base CBV vs Generic CBV
+	For the two CBV’s, there was not much difference in them, especially for a task like this that only asks for us to show all quests (our choice).
+	The CBV’s produced identical output, and the only difference is in the code.
+	For the Base View class, we used the get method to fetch every quest and called Quest.objects.all() because Base View does not understand what a Quest and database is at all.
+	For the List View class, the only thing we did was to declare model=Quest, and from there, django automatically fetched the necessary data.
+	In the Base View class, you write out every step yourself, so you understand and can control everything; however, it takes more code.
+	While for the List View Class, django automatically handles the data fetching job for you, so you write less code and get a shortcut.
+________________________________________________________________________________________________________________________
