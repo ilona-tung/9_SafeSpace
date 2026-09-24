@@ -3,6 +3,15 @@ from django.http import HttpResponse
 from django.template import loader
 from .models import Quest, Reward
 
+
+# Home page
+from django.shortcuts import render
+
+def home(request):
+    return render(request, "core/home.html")
+
+
+# Manual template loading
 def quest_list_manual(request):
     quests = Quest.objects.all()
     template = loader.get_template("core/quest_list.html")
@@ -11,19 +20,18 @@ def quest_list_manual(request):
     return HttpResponse(output)
 
 
-# render
-from django.shortcuts import render
-
+# Render
 def quest_list_render(request):
     quests = Quest.objects.all()
     return render(request, "core/quest_list.html", {"quests": quests})
+
 
 def reward_list_render(request):
     rewards = Reward.objects.all()
     return render(request, "core/reward_list.html", {"rewards": rewards})
 
 
-# base cbv
+# Base CBV
 from django.views import View
 
 class QuestListBaseView(View):
@@ -34,11 +42,11 @@ class QuestListBaseView(View):
             context={'quests': Quest.objects.all()}
         )
 
-# generic cbv
+
+# Generic CBV
 from django.views.generic import ListView
 
 class QuestListGenericView(ListView):
     model = Quest
     template_name = 'core/quest_list.html'
     context_object_name = 'quests'
-
