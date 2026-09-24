@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 
 class Quest(models.Model):
@@ -44,6 +45,9 @@ class Quest(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse("quest_detail", kwargs={"pk": self.pk})
 
     def display_category(self):
         if self.category == "other" and self.custom_category:
@@ -120,6 +124,7 @@ class QuestCompletion(models.Model):
                 }
             )
 
+
 class Reward(models.Model):
     """
     Rewards such as a sticker, font, frame, or background, can be associated
@@ -164,7 +169,7 @@ class Reward(models.Model):
 
 class UserReward(models.Model):
     """
-    The uesr's reward collection when they completed the quests.
+    The user's reward collection when they completed the quests.
     """
 
     user = models.ForeignKey(
@@ -238,6 +243,7 @@ class UserReward(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
 
 class Journal(models.Model):
     """

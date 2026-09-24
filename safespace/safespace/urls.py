@@ -19,15 +19,51 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
 
     # Home page
-    path('', views.home, name='home'),
+    path("", views.home, name="home"),
 
-    path('quests/', views.quest_list_manual, name='quest_list_manual'),
-    path('quests/render/', views.quest_list_render, name='quest_list_render'),
-    path('rewards/', views.reward_list_render, name='reward_list'),
-    path('rewards/render/', views.reward_list_render, name='reward_list_render'),
-    path('quests/cbv-base/', views.QuestListBaseView.as_view(), name='quest_cbv_base'),
-    path('quests/cbv-generic/', views.QuestListGenericView.as_view(), name='quest_cbv_generic'),
+    path(
+        "quests/",
+        views.quest_list_manual,
+        name="quest_list_manual"
+    ),
+
+    path(
+        "quests/render/",
+        views.quest_list_render,
+        name="quest_list_render"
+    ),
+
+    path(
+        "quests/cbv-base/",
+        views.QuestListBaseView.as_view(),
+        name="quest_cbv_base"
+    ),
+
+    path(
+        "quests/cbv-generic/",
+        views.QuestListGenericView.as_view(),
+        name="quest_cbv_generic"
+    ),
+
+    path(
+        "quests/<int:pk>/",
+        views.quest_detail,
+        name="quest_detail"
+    ),
+
+    # Reward pages
+    path(
+        "rewards/",
+        views.reward_list_render,
+        name="reward_list"
+    ),
+
+    path(
+        "rewards/render/",
+        views.reward_list_render,
+        name="reward_list_render"
+    ),
 ]

@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    {{ quest.title }}
+{% endblock %}
+
+{% block content %}
+
+<h1>{{ quest.title }}</h1>
+
+<p>
+    <strong>Description:</strong>
+    {% if quest.description %}
+        {{ quest.description }}
+    {% else %}
+        No description provided.
+    {% endif %}
+</p>
+
+<p>
+    <strong>Category:</strong>
+    {{ quest.display_category }}
+</p>
+
+<p>
+    <strong>Quest ID:</strong>
+    {{ quest.pk }}
+</p>
+
+<a href="{% url 'quest_list_manual' %}">
+    Back to Quests
+</a>
+
+{% endblock %}
