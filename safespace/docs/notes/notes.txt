@@ -29,3 +29,8 @@ Base CBV vs Generic CBV
 	In the Base View class, you write out every step yourself, so you understand and can control everything; however, it takes more code.
 	While for the List View Class, django automatically handles the data fetching job for you, so you write less code and get a shortcut.
 ________________________________________________________________________________________________________________________
+
+get_absolute_url()
+We implemented get_absolute_url() for the Quest model.
+This is useful for creating links to individual Quest detail pages using the Quest's primary key.
+This allows each Quest in the list to link to its own detail page without manually building the URL in the template.
