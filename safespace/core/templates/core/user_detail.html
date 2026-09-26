@@ -45,11 +45,9 @@
     {% for quest in completed_quests %}
 
         <li>
-
-
+            <a href="{% url 'quest_detail' quest.pk %}">
                 {{ quest.title }}
-
-
+            </a>
         </li>
 
     {% empty %}
