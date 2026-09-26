@@ -45,8 +45,17 @@ Base CBV vs Generic CBV
 	In the Base View class, you write out every step yourself, so you understand and can control everything; however, it takes more code.
 	While for the List View Class, django automatically handles the data fetching job for you, so you write less code and get a shortcut.
 ________________________________________________________________________________________________________________________
-
+A3 Section 1
 get_absolute_url()
 We implemented get_absolute_url() for the Quest model.
 This is useful for creating links to individual Quest detail pages using the Quest's primary key.
 This allows each Quest in the list to link to its own detail page without manually building the URL in the template.
+
+A3 Section 3
+Static file organization choice
+We followed a directory similar to the in class zip where the static files are stored in a ui-ux file located alongside our settings in our SafeSpace directory as a project file rather than an app file.
+This static file can be found using:
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'safespace/ui-ux/static',
+]
