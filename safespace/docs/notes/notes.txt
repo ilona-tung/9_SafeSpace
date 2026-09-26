@@ -55,3 +55,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'safespace/ui-ux/static',
 ]
+
+API usage and applications
+We used GET and POST endpoints to access the sqlite3 database when needed. The current functions are:
+	GET quest information, display the quest type and amount of users who completed it
+	GET user information by searching, use the query to find matching usernames
+	POST new user info to the database, registering a new account
