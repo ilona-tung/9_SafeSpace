@@ -1,0 +1,36 @@
+A3: Section 1_URL Linking & Navigation Goal
+Home Page & Navigation
+The home page (127.0.0.1:8000/) now loads correctly instead of showing the 404 error page shown in A2. Above the main text on the homepage (default page), there is a navigation bar added to base.html with links to: Home, Quests, Users, and Rewards. This is done using {% url %} tags instead of hardcoded links because if the URL changes, hardcoded links would break, while {% url %} links will update automatically.
+
+Detailed Pages Using Primary Keys
+Each respective Quest and User now have their own detail page. They are reachable by clicking on their name/title in the User tab list view (i.e., /users/1, /quests/1). These pages are built by using get_object_or_404(), which fetches a specific row/object by its primary key(pk) or shows a 404 not found page if that pk does not exist.
+
+Model-Driven URLs: get_absolute_url()
+We implemented get_absolute_url() for the Quest model. This method sits inside models.py and returns reverse() to automatically create a URL for a specific quest’s page via its pk. This allows each Quest in the list to link to its own detail page without manually building the URL in the template.
+This is useful because the template can just call {{ quest.get_absolute_url }} and the model would automatically figure out its correct URL. So if the URL structure was to ever update (i.e., from /quests/ to /tasks/), we would only need to update one area inside the model rather than having to fix it everywhere where this URL is linked across the templates. This is similar to the concept of using CBV, where having less code will make it so that there are less places to make mistakes.
+
+End-to-End Flow
+This full request cycle can be observed across our Quest and User pages. Models.py defines the data and the url (get_absolute_url()). urls.py connects these named routes to views.py, and then views.py fetches the right object using the pk from the URL. Lastly, the template displays all of this with functioning navigation links back to the lists and homepages.
+
+
+A3: Section 2_ORM Queries & Data Presentation
+Search (GET + POST)
+We used two separate search forms to demonstrate the difference between the HTTP GET and POST method.
+- The Quest search uses the GET method, which reads data directly from the website link via the request.GET.get() line. When a user types in the search bar for a term, Django would filter the database for quests where the title contains that text, using title__icontains. Because it uses the GET function, the URL displays what you search as well, (i.e., /quests/?q=take). This also means that users can share this link to get the same search results later as well.
+- The User list search uses the POST method, which sends the search data invisibly in the background rather than placing it in the URL, keeping the URL clean (request.POST.get()). Instead of filtering just one field, it searches all 3 categories at once: first name, last name, and username by using the OR condition or Q in Django. So the search data, unlike the Quest one where it appears in the search bar, will not be added to the URL. So this search result/link cannot be bookmarked.
+
+Relationship-spanning Query
+We used Django’s double underscore syntax (__) to do a field look-up across related models.
+For example, we used it here in users_with_completions = User.objects.filter(quest_completions__quest__isnull=False)
+This here finds users who have completed at least one quest, following the “User → QuestCompletion → Quest” relationship chain rather than just filtering on fields that belong in the User’s model. So Django is told to look at the User model, go to the quest_completions relation, then to the Quest model, and check if a valid quest exists. By doing so, the database only returns User objects that have at least one matching record to that path.
+
+Aggregations
+We implemented two types of aggregation:
+- Total Count: Quest.objects.count() to count the total amount of quests
+- Grouped Summary: Quest.objects.annotate(user_count=Count(...)) to count how many distinct users have completed a certain quest. It calculates a count for each row, i.e., the quest: “Drink 2000 c.c. of water – 12 users completed this quest”, this .annotate aggregation is the count/number here (it separates the count instead of combining all completions and count it as one number).
+
+Template Clarity & {% empty %}
+The {% empty %} code was used across multiple html templates (i.e., quest_list, journal_list, reward_list, user_detail, and users) so that each section has a fallback message (i.e., “No quests found”, “No users found”, etc.) instead of a blank page when there is no data for that section to display. To keep the page readable, the templates are organized into labeled sections (i.e., Search Quests, Quest List, etc.).
+
+
+

@@ -1,3 +1,5 @@
+<!-- templates/base.html -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,32 +10,38 @@
     </title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 1. Browser normalization defaults -->
+  <link rel="stylesheet" href="{% static 'css/normalize.css' %}?v={{ ts }}">
+  <link rel="stylesheet" href="{% static 'css/skeleton.css' %}?v={{ ts }}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v={{ ts }}">
 </head>
 
 <body>
 
-    <!-- Navigation Bar -->
-    <nav>
-    <a href="{% url 'home' %}">Home</a>
+    <!-- Header & Branded Navigation Bar -->
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'home' %}" class="brand">
+                <span class="brand__title">SafeSpace</span>
+            </a>
 
-    <a href="{% url 'quest_list' %}">
-        Quests
-    </a>
+            <nav class="nav">
+                <a href="{% url 'home' %}">Home</a>
+                <a href="{% url 'quest_list' %}">Quests</a>
+                <a href="{% url 'user_list' %}">Users</a>
+                <a href="{% url 'reward_list' %}">Rewards</a>
+                <a href="{% url 'register' %}">Register</a>
+            </nav>
+        </div>
+    </header>
 
-    <a href="{% url 'user_list' %}">
-        Users
-    </a>
+    <hr class="hr">
 
-    <a href="{% url 'reward_list' %}">
-        Rewards
-    </a>
-</nav>
-
-    <hr>
-
-    <main>
+    <!-- Main Content Area -->
+    <main class="container section">
         {% block content %}
-            <p class="text-muted">This is default content.</p>
+            <p class="muted">This is default content.</p>
         {% endblock %}
     </main>
 
