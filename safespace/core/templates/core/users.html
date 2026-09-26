@@ -63,28 +63,6 @@
 </ul>
 
 
-<!-- ============================== -->
-<!-- RELATIONSHIP-SPANNING QUERY -->
-<!-- ============================== -->
 
-<h2>Users Who Have Completed a Quest</h2>
-
-<ul>
-
-    {% for user in users_with_completions %}
-
-        <li>
-            {{ user.username }}
-        </li>
-
-    {% empty %}
-
-        <li>
-            No users have completed any quests yet.
-        </li>
-
-    {% endfor %}
-
-</ul>
 
 {% endblock %}
