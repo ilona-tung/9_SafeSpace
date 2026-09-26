@@ -114,11 +114,7 @@ def quest_completion_chart(request):
     )
 
     # Rotate long quest names
-    plt.xticks(
-        rotation=35,
-        ha="right",
-        fontsize=8
-    )
+    plt.xticks(rotation=35, ha="right",fontsize=8)
 
     # Remove unnecessary borders
     ax.spines["top"].set_visible(False)
@@ -173,13 +169,7 @@ def user_list(request):
 
     # POST search
     query = request.POST.get("q", "")
-
-    # Alphabetical ordering
-    users = User.objects.all().order_by(
-        "first_name",
-        "last_name",
-        "username"
-    )
+    users = User.objects.all().order_by("first_name", "last_name", "username")
 
     if query:
         users = users.filter(
@@ -192,11 +182,7 @@ def user_list(request):
     # Find users who have completed at least one quest
     users_with_completions = User.objects.filter(
         quest_completions__quest__isnull=False
-    ).distinct().order_by(
-        "first_name",
-        "last_name",
-        "username"
-    )
+    ).distinct().order_by("first_name","last_name","username")
 
     return render(
         request,
