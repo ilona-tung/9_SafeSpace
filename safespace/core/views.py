@@ -8,23 +8,14 @@ from django.contrib.auth.models import User
 
 from .models import Quest, Reward
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from io import BytesIO
+
 
 def home(request):
     return render(request, "core/home.html")
-
-
-def quest_list_manual(request):
-    quests = Quest.objects.all()
-
-    template = loader.get_template("core/quest_list.html")
-
-    context = {
-        "quests": quests
-    }
-
-    output = template.render(context, request)
-
-    return HttpResponse(output)
 
 
 def quest_list_render(request):
@@ -64,6 +55,89 @@ def quest_list_render(request):
     )
 
 
+def quest_completion_chart(request):
+    """
+    Generate a vertical bar chart showing how many
+    distinct users have completed each quest.
+    """
+
+    # ORM aggregation
+    quest_summary = Quest.objects.annotate(
+        user_count=Count(
+            "completions__user",
+            distinct=True
+        )
+    )
+
+    # Prepare chart data
+    quest_names = [
+        quest.title
+        for quest in quest_summary
+    ]
+
+    user_counts = [
+        quest.user_count
+        for quest in quest_summary
+    ]
+
+    # Create a small vertical bar chart
+    fig, ax = plt.subplots(
+        figsize=(7, 4.5)
+    )
+
+    # One consistent color
+    ax.bar(
+        quest_names,
+        user_counts,
+        color="#324841"
+    )
+
+    # Title and labels
+    ax.set_title(
+        "Users Who Completed Each Quest"
+    )
+
+    ax.set_xlabel(
+        "Quest"
+    )
+
+    ax.set_ylabel(
+        "Number of Users"
+    )
+
+    # Rotate long quest names
+    plt.xticks(
+        rotation=35,
+        ha="right",
+        fontsize=8
+    )
+
+    # Remove unnecessary borders
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Make sure everything fits
+    plt.tight_layout()
+
+    # Store image in memory
+    buffer = BytesIO()
+
+    plt.savefig(
+        buffer,
+        format="png",
+        bbox_inches="tight"
+    )
+
+    # Close figure to release memory
+    plt.close(fig)
+
+    # Return PNG
+    buffer.seek(0)
+
+    return HttpResponse(
+        buffer.getvalue(),
+        content_type="image/png"
+    )
 def reward_list_render(request):
     rewards = Reward.objects.all()
 
@@ -87,10 +161,6 @@ def quest_detail(request, pk):
     )
 
 
-# ==============================
-# USER LIST
-# ==============================
-
 def user_list(request):
 
     # POST search
@@ -110,7 +180,8 @@ def user_list(request):
             | Q(username__icontains=query)
         )
 
-    # Users who have completed at least one quest
+    # Relationship-spanning query:
+    # Find users who have completed at least one quest
     users_with_completions = User.objects.filter(
         quest_completions__quest__isnull=False
     ).distinct().order_by(
@@ -129,10 +200,6 @@ def user_list(request):
         }
     )
 
-
-# ==============================
-# USER DETAIL
-# ==============================
 
 def user_detail(request, pk):
 

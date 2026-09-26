@@ -26,7 +26,7 @@
         id="quest-search"
         name="q"
         value="{{ query }}"
-        placeholder="e.g. Python"
+        placeholder="e.g. water"
     >
 
     <button type="submit">
@@ -64,7 +64,7 @@
 
 
 <!-- ============================== -->
-<!-- TOTAL -->
+<!-- QUEST STATISTICS -->
 <!-- ============================== -->
 
 <h2>Quest Statistics</h2>
@@ -75,35 +75,86 @@
 
 
 <!-- ============================== -->
-<!-- GROUPED AGGREGATION -->
+<!-- COMPLETION SUMMARY + CHART -->
 <!-- ============================== -->
 
-<h3>Users Who Completed Each Quest</h3>
+<div style="
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+">
 
-<ul>
 
-    {% for quest in quest_summary %}
+    <!-- ========================== -->
+    <!-- LEFT COLUMN -->
+    <!-- ========================== -->
 
-        <li>
-            <strong>
-                {{ quest.title }}
-            </strong>
+    <div style="
+        flex: 1;
+        min-width: 300px;
+    ">
 
-            —
+        <h3>
+            Users Who Completed Each Quest
+        </h3>
 
-            {{ quest.user_count }}
-            user{{ quest.user_count|pluralize }}
-            completed this quest.
-        </li>
+        <ul>
 
-    {% empty %}
+            {% for quest in quest_summary %}
 
-        <li>
-            No quest data available.
-        </li>
+                <li>
+                    <strong>
+                        {{ quest.title }}
+                    </strong>
 
-    {% endfor %}
+                    —
 
-</ul>
+                    {{ quest.user_count }}
+                    user{{ quest.user_count|pluralize }}
+                    completed this quest.
+                </li>
+
+            {% empty %}
+
+                <li>
+                    No quest data available.
+                </li>
+
+            {% endfor %}
+
+        </ul>
+
+    </div>
+
+
+    <!-- ========================== -->
+    <!-- RIGHT COLUMN -->
+    <!-- ========================== -->
+
+    <div style="
+        flex: 1;
+        min-width: 300px;
+    ">
+
+        <h3>
+            Quest Completion Overview
+        </h3>
+
+        <img
+            src="{% url 'quest_completion_chart' %}"
+            alt="Bar chart showing the number of users who completed each quest"
+            style="
+                width: 100%;
+                max-width: 600px;
+                height: auto;
+            "
+        >
+
+    </div>
+
+</div>
+
 
 {% endblock %}
