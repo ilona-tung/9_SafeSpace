@@ -61,3 +61,15 @@ We used GET and POST endpoints to access the sqlite3 database when needed. The c
 	GET quest information, display the quest type and amount of users who completed it
 	GET user information by searching, use the query to find matching usernames
 	POST new user info to the database, registering a new account
+
+Future API plans
+We will expand the API as more features are added to the app. This will primarily revolve around quests and quest completion.
+We will use more calls in the future to handle:
+	Rewards for completed quests
+	Events and participants
+	Friends and messaging
+We will serve the following data:
+	Account information, such as usernames and passcode hashes.
+	Quest rewards upon completion, a set amount that is claimed and added to the user's account every time one is finished.
+	Event information, such as locations and times.
+	Friend lists attached to each account.
