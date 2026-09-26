@@ -1,0 +1,104 @@
+/* Links */
+a { color: var(--dark-slate); text-decoration: none; }
+a:hover { text-decoration: underline; color: var(--shadow-grey); }
+
+/* Buttons */
+.button,
+button,
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  background-color: var(--ash-grey);
+  border: 1px solid var(--ash-grey);
+  color: var(--dark-slate);
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: opacity 0.2s ease, transform 0.02s ease;
+}
+
+.button:focus, .button:hover,
+button:focus, button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+  opacity: 0.85;
+}
+
+.button:active, button:active { transform: translateY(1px); }
+
+.button.button-outline {
+  background: transparent;
+  color: var(--dark-slate);
+  border-color: var(--dark-slate);
+}
+
+.button.button-outline:hover {
+  background: var(--dark-slate);
+  color: var(--white);
+}
+
+/* Forms */
+input[type="text"], input[type="search"], input[type="email"],
+select, textarea {
+  border: 1px solid var(--lavender);
+  background-color: var(--white);
+  color: var(--shadow-grey);
+  border-radius: 10px;
+  padding: .55rem .75rem;
+  width: 100%;
+}
+
+input[type="text"]:focus, input[type="search"]:focus, input[type="email"]:focus {
+  outline: none;
+  border-color: var(--dark-slate);
+}
+
+input::placeholder { color: #8c868d; }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--lavender);
+}
+
+th, td {
+  padding: .6rem .8rem;
+  border-bottom: 1px solid var(--lavender);
+}
+
+thead th {
+  background: var(--ghost-white);
+  color: var(--dark-slate);
+  font-weight: 600;
+}
+
+tbody tr:hover { background: var(--ghost-white); }
+
+/* Grid Niceties */
+.container {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.row + .row { margin-top: 1rem; }
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: .25rem .5rem;
+  border-radius: .5rem;
+  font-size: .85rem;
+  line-height: 1;
+  background: var(--lavender);
+  color: var(--shadow-grey);
+}
+
+.badge.primary { background: var(--ash-grey); color: var(--dark-slate); }
+.badge.secondary { background: var(--dark-slate); color: var(--white); }
