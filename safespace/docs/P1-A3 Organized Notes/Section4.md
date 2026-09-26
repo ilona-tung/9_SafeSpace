@@ -1,7 +1,7 @@
 # P1-A3 Section 4 — Matplotlib Visualization
 
 ## 1. ORM-based aggregation
-`views.py` line 73
+`views.py` line 73<br>
 Used Django ORM aggregation to count the distinct users who completed each quest:
 
 ```python
@@ -18,7 +18,7 @@ user_counts = [quest.user_count for quest in quest_summary]
 ```
 
 ## 2. Matplotlib Bar Chart
-`views.py` line 92
+`views.py` line 92<br>
 We created a vertical bar chart using Matplotlib:
 
 ```python
@@ -43,7 +43,7 @@ plt.tight_layout()
 ```
 
 ## 3. Image Endpoint
-`urls.py` line 15
+`urls.py` line 15<br>
 The chart is called quest-completion-chart.png, and can also be seen in http://127.0.0.1:8000/quests/quest-completion-chart.png
 
 ```python
@@ -55,7 +55,7 @@ path(
 ```
 
 ## 4. BytesIO Efficient Implementation
-`views.py` line 131
+`views.py` line 131 <br>
 ```python
 buffer = BytesIO()
 
