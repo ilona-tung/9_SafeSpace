@@ -14,10 +14,20 @@
 
     <!-- Navigation Bar -->
     <nav>
-        <a href="{% url 'home' %}">Home</a>
-        <a href="{% url 'quest_list_manual' %}">Quests</a>
-        <a href="{% url 'reward_list' %}">Rewards</a>
-    </nav>
+    <a href="{% url 'home' %}">Home</a>
+
+    <a href="{% url 'quest_list' %}">
+        Quests
+    </a>
+
+    <a href="{% url 'user_list' %}">
+        Users
+    </a>
+
+    <a href="{% url 'reward_list' %}">
+        Rewards
+    </a>
+</nav>
 
     <hr>
 

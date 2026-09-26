@@ -8,16 +8,102 @@
 
 <h1>Quests</h1>
 
+
+<!-- ============================== -->
+<!-- GET SEARCH -->
+<!-- ============================== -->
+
+<h2>Search Quests</h2>
+
+<form method="get">
+
+    <label for="quest-search">
+        Search by quest title:
+    </label>
+
+    <input
+        type="text"
+        id="quest-search"
+        name="q"
+        value="{{ query }}"
+        placeholder="e.g. Python"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+
+<!-- ============================== -->
+<!-- QUEST LIST -->
+<!-- ============================== -->
+
+<h2>Quest List</h2>
+
 <ul>
+
     {% for quest in quests %}
+
         <li>
             <a href="{{ quest.get_absolute_url }}">
                 {{ quest.title }}
             </a>
         </li>
+
     {% empty %}
-        <li>No quests yet!</li>
+
+        <li>
+            No quests found.
+        </li>
+
     {% endfor %}
+
+</ul>
+
+
+<!-- ============================== -->
+<!-- TOTAL -->
+<!-- ============================== -->
+
+<h2>Quest Statistics</h2>
+
+<p>
+    Total quests: {{ total_quests }}
+</p>
+
+
+<!-- ============================== -->
+<!-- GROUPED AGGREGATION -->
+<!-- ============================== -->
+
+<h3>Users Who Completed Each Quest</h3>
+
+<ul>
+
+    {% for quest in quest_summary %}
+
+        <li>
+            <strong>
+                {{ quest.title }}
+            </strong>
+
+            —
+
+            {{ quest.user_count }}
+            user{{ quest.user_count|pluralize }}
+            completed this quest.
+        </li>
+
+    {% empty %}
+
+        <li>
+            No quest data available.
+        </li>
+
+    {% endfor %}
+
 </ul>
 
 {% endblock %}

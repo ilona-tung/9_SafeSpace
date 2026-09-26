@@ -1,0 +1,90 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Users
+{% endblock %}
+
+{% block content %}
+
+<h1>Users</h1>
+
+
+<!-- ============================== -->
+<!-- POST SEARCH -->
+<!-- ============================== -->
+
+<h2>Search Users</h2>
+
+<form method="post">
+
+    {% csrf_token %}
+
+    <label for="user-search">
+        Search by username:
+    </label>
+
+    <input
+        type="text"
+        id="user-search"
+        name="q"
+        value="{{ query }}"
+        placeholder="e.g. alice"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+
+<!-- ============================== -->
+<!-- USER SEARCH RESULTS -->
+<!-- ============================== -->
+
+<h2>User List</h2>
+
+<ul>
+
+    {% for user in users %}
+
+        <li>
+            {{ user.username }}
+        </li>
+
+    {% empty %}
+
+        <li>
+            No users found.
+        </li>
+
+    {% endfor %}
+
+</ul>
+
+
+<!-- ============================== -->
+<!-- RELATIONSHIP-SPANNING QUERY -->
+<!-- ============================== -->
+
+<h2>Users Who Have Completed a Quest</h2>
+
+<ul>
+
+    {% for user in users_with_completions %}
+
+        <li>
+            {{ user.username }}
+        </li>
+
+    {% empty %}
+
+        <li>
+            No users have completed any quests yet.
+        </li>
+
+    {% endfor %}
+
+</ul>
+
+{% endblock %}

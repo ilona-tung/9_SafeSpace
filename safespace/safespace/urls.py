@@ -18,16 +18,27 @@ from django.contrib import admin
 from django.urls import path
 from core import views
 
+
 urlpatterns = [
-    path("admin/", admin.site.urls),
 
-    # Home page
-    path("", views.home, name="home"),
+    # Admin
+    path(
+        "admin/",
+        admin.site.urls
+    ),
 
+    # Home
+    path(
+        "",
+        views.home,
+        name="home"
+    ),
+
+    # Quests
     path(
         "quests/",
-        views.quest_list_manual,
-        name="quest_list_manual"
+        views.quest_list_render,
+        name="quest_list"
     ),
 
     path(
@@ -54,7 +65,14 @@ urlpatterns = [
         name="quest_detail"
     ),
 
-    # Reward pages
+    # Users
+    path(
+        "users/",
+        views.user_list,
+        name="user_list"
+    ),
+
+    # Rewards
     path(
         "rewards/",
         views.reward_list_render,
