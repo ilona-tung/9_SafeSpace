@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+
+{%  block title %}
+Rewards
+{%  endblock %}
+
+{% block content %}
+    <h1>Rewards</h1>
+
+<ul>
+{% for reward in rewards %}
+    <li>{{ reward.name }} ({{ reward.get_item_type_display }})</li>
+{% empty %}
+    <li>No rewards yet!</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

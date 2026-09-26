@@ -1,0 +1,72 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Users
+{% endblock %}
+
+{% block content %}
+
+<h1>Users</h1>
+
+
+<!-- ============================== -->
+<!-- POST SEARCH -->
+<!-- ============================== -->
+
+<h2>Search Users</h2>
+
+<form method="post">
+
+    {% csrf_token %}
+
+    <label for="user-search">
+        Search by first name, last name, or username:
+    </label>
+
+    <input
+        type="text"
+        id="user-search"
+        name="q"
+        value="{{ query }}"
+        placeholder="e.g. Alice or Smith"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+
+<!-- ============================== -->
+<!-- USER LIST -->
+<!-- ============================== -->
+
+<h2>User List (First Name, Last name, @username)</h2>
+
+<ul>
+
+    {% for user in users %}
+
+        <li>
+
+            <a href="{% url 'user_detail' user.pk %}">
+                {{ user.first_name }}
+                {{ user.last_name }}
+                @{{ user.username }}
+            </a>
+
+        </li>
+
+    {% empty %}
+
+        <li>
+            No users found.
+        </li>
+
+    {% endfor %}
+
+</ul>
+
+
+{% endblock %}
