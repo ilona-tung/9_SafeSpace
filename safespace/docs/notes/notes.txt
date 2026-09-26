@@ -1,9 +1,25 @@
 Create your new branch: git switch -c <your-new-branch-name>
 The Push Shortcut: Ctrl + Shift + K (Windows/Linux) or Cmd + Shift + K (macOS)
 The Pull Shortcut: Ctrl + T (Windows/Linux) or Cmd + T (macOS)
+________________________________________________________________________________________________________________________
+If we enter git status, and get a bunch of things like this:
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   core/__pycache__/__init__.cpython-311.pyc
+        modified:   core/__pycache__/admin.cpython-311.pyc
+        modified:   core/__pycache__/apps.cpython-311.pyc
+        modified:   core/__pycache__/forms.cpython-311.pyc
+        modified:   core/__pycache__/models.cpython-311.pyc
+        modified:   core/migrations/__pycache__/0001_initial.cpython-311.pyc
+        modified:   core/migrations/__pycache__/0002_alter_journal_decorations_and_more.cpython-311.pyc
+        modified:   core/migrations/__pycache__/0003_remove_quest_location_delete_location.cpython-311.pyc
+        modified:   core/migrations/__pycache__/__init__.cpython-311.pyc
+        modified:   safespace/__pycache__/__init__.cpython-311.pyc
+        modified:   safespace/__pycache__/urls.cpython-311.pyc
+        modified:   safespace/__pycache__/wsgi.cpython-311.pyc
 
-
-
+We can use git restore core/__pycache__ core/migrations/__pycache__ safespace/__pycache__  to clear them
 ________________________________________________________________________________________________________________________
 A2 Section 2
 Add a short section in docs/notes/notes.txt:
