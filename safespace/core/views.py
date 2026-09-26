@@ -6,7 +6,7 @@ from django.views.generic import ListView
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
 
-from .models import Quest, Reward
+from .models import Quest, Reward, Journal
 
 import matplotlib
 matplotlib.use("Agg")
@@ -54,6 +54,14 @@ def quest_list_render(request):
         context
     )
 
+def journal_list(request):
+    journals = Journal.objects.all()
+
+    return render(
+        request,
+        "core/journal_list.html",
+        {"journals": journals}
+    )
 
 def quest_completion_chart(request):
     """

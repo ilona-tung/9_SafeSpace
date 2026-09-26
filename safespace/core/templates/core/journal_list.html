@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Journal
+{% endblock %}
+
+
+{% block content %}
+   <h1>Journal</h1>
+
+
+<ul>
+{% for journal in journals %}
+   <li>{{ journal.content }}</li>
+{% empty %}
+   <li>No journals yet!</li>
+{% endfor %}
+</ul>
+
+
+{% endblock %}
