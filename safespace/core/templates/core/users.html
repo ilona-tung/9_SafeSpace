@@ -10,14 +10,12 @@
 
 
 <!-- ============================== -->
-<!-- POST SEARCH -->
+<!-- GET SEARCH -->
 <!-- ============================== -->
 
 <h2>Search Users</h2>
 
-<form method="post">
-
-    {% csrf_token %}
+<form method="get">
 
     <label for="user-search">
         Search by first name, last name, or username:

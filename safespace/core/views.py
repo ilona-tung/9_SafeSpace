@@ -1,10 +1,13 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template import loader
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import ListView
+from django.views.generic.edit import FormView
+from django.urls import reverse_lazy
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
 
 from .models import Quest, Reward, Journal
 
@@ -18,6 +21,67 @@ def home(request):
     return render(request, "core/home.html")
 
 
+def http_response_example(request):
+    return HttpResponse(
+        "SafeSpace response example\n"
+        "message: Hello from SafeSpace\n"
+        "quest_count: 3\n",
+        content_type="text/plain",
+    )
+
+
+def json_response_example(request):
+    return JsonResponse({
+        "message": "Hello from SafeSpace",
+        "quest_count": 3,
+    })
+
+
+class RegisterView(FormView):
+    template_name = "core/register.html"
+    form_class = UserCreationForm
+    success_url = reverse_lazy("home")
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        return self.form_invalid(form)
+
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
+
+
+def quest_list_manual(request):
+    quests = Quest.objects.all()
+
+    template = loader.get_template("core/quest_list.html")
+
+    context = {
+        "quests": quests
+    }
+
+    output = template.render(context, request)
+
+    return HttpResponse(output)
+
+
+def quest_list_context(query, quests):
+    return {
+        "quests": quests,
+        "query": query,
+        "total_quests": Quest.objects.count(),
+        "quest_summary": Quest.objects.annotate(
+            user_count=Count(
+                "completions__user",
+                filter=Q(completions__completed_status=True),
+                distinct=True,
+            )
+        ),
+    }
+
+
 def quest_list_render(request):
     # GET search
     query = request.GET.get("q", "")
@@ -29,29 +93,10 @@ def quest_list_render(request):
             title__icontains=query
         )
 
-    # Total number of quests
-    total_quests = Quest.objects.count()
-
-    # Grouped aggregation:
-    # Count how many distinct users have completed each quest
-    quest_summary = Quest.objects.annotate(
-        user_count=Count(
-            "completions__user",
-            distinct=True
-        )
-    )
-
-    context = {
-        "quests": quests,
-        "query": query,
-        "total_quests": total_quests,
-        "quest_summary": quest_summary,
-    }
-
     return render(
         request,
         "core/quest_list.html",
-        context
+        quest_list_context(query, quests)
     )
 
 def journal_list(request):
@@ -167,9 +212,11 @@ def quest_detail(request, pk):
 
 def user_list(request):
 
-    # POST search
-    query = request.POST.get("q", "")
-    users = User.objects.all().order_by("first_name", "last_name", "username")
+    # GET search
+    query = request.GET.get("q", "")
+
+    # Alphabetical ordering
+    users = User.objects.all().order_by("first_name","last_name","username")
 
     if query:
         users = users.filter(
@@ -223,12 +270,15 @@ def user_detail(request, pk):
 
 class QuestListBaseView(View):
     def get(self, request):
+        query = request.GET.get("q", "")
+        quests = Quest.objects.all()
+        if query:
+            quests = quests.filter(title__icontains=query)
+
         return render(
             request,
             "core/quest_list.html",
-            context={
-                "quests": Quest.objects.all()
-            }
+            quest_list_context(query, quests)
         )
 
 
@@ -236,3 +286,16 @@ class QuestListGenericView(ListView):
     model = Quest
     template_name = "core/quest_list.html"
     context_object_name = "quests"
+
+    def get_queryset(self):
+        query = self.request.GET.get("q", "")
+        quests = super().get_queryset()
+        if query:
+            quests = quests.filter(title__icontains=query)
+        return quests
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get("q", "")
+        context.update(quest_list_context(query, context["quests"]))
+        return context
