@@ -1,0 +1,74 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    {{ user.first_name }} {{ user.last_name }}
+{% endblock %}
+
+{% block content %}
+
+<h1>
+    {{ user.first_name }}
+    {{ user.last_name }}
+</h1>
+
+
+<!-- ============================== -->
+<!-- USER INFORMATION -->
+<!-- ============================== -->
+
+<h2>User Information</h2>
+
+<p>
+    <strong>First Name:</strong>
+    {{ user.first_name }}
+</p>
+
+<p>
+    <strong>Last Name:</strong>
+    {{ user.last_name }}
+</p>
+
+<p>
+    <strong>Username:</strong>
+    @{{ user.username }}
+</p>
+
+
+<!-- ============================== -->
+<!-- COMPLETED QUESTS -->
+<!-- ============================== -->
+
+<h2>Completed Quests</h2>
+
+<ul>
+
+    {% for quest in completed_quests %}
+
+        <li>
+
+            <a href="{{ quest.get_absolute_url }}">
+                {{ quest.title }}
+            </a>
+
+        </li>
+
+    {% empty %}
+
+        <li>
+            This user has not completed any quests yet.
+        </li>
+
+    {% endfor %}
+
+</ul>
+
+
+<!-- ============================== -->
+<!-- BACK -->
+<!-- ============================== -->
+
+<a href="{% url 'user_list' %}">
+    Back to Users
+</a>
+
+{% endblock %}

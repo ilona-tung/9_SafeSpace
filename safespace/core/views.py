@@ -3,7 +3,7 @@ from django.template import loader
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.generic import ListView
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.contrib.auth.models import User
 
 from .models import Quest, Reward
@@ -86,23 +86,38 @@ def quest_detail(request, pk):
         {"quest": quest}
     )
 
-# user_list
+
+# ==============================
+# USER LIST
+# ==============================
+
 def user_list(request):
+
     # POST search
     query = request.POST.get("q", "")
 
-    users = User.objects.all()
+    # Alphabetical ordering
+    users = User.objects.all().order_by(
+        "first_name",
+        "last_name",
+        "username"
+    )
 
     if query:
         users = users.filter(
-            username__icontains=query
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(username__icontains=query)
         )
 
-    # Relationship-spanning query:
-    # Find users who have completed at least one quest
+    # Users who have completed at least one quest
     users_with_completions = User.objects.filter(
         quest_completions__quest__isnull=False
-    ).distinct()
+    ).distinct().order_by(
+        "first_name",
+        "last_name",
+        "username"
+    )
 
     return render(
         request,
@@ -111,6 +126,36 @@ def user_list(request):
             "users": users,
             "query": query,
             "users_with_completions": users_with_completions,
+        }
+    )
+
+
+# ==============================
+# USER DETAIL
+# ==============================
+
+def user_detail(request, pk):
+
+    user = get_object_or_404(
+        User,
+        pk=pk
+    )
+
+    # Only show completed quests
+    completed_quests = Quest.objects.filter(
+        completions__user=user,
+        completions__completed_status=True
+    ).distinct().order_by(
+        "category",
+        "title"
+    )
+
+    return render(
+        request,
+        "core/user_detail.html",
+        {
+            "user": user,
+            "completed_quests": completed_quests,
         }
     )
 
