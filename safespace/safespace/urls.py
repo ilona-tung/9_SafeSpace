@@ -22,4 +22,6 @@ urlpatterns = [
     path("journals/",views.journal_list,name="journal_list"),
     path("responses/http/", views.http_response_example,name="http_response_example"),
     path("responses/json/", views.json_response_example,name="json_response_example"),
+    path("api/quest-summary/",views.quest_summary_api,name="quest_summary_api",
+),
 ]

@@ -35,7 +35,30 @@ def json_response_example(request):
         "message": "Hello from SafeSpace",
         "quest_count": 3,
     })
+def quest_summary_api(request):
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "GET requests only."},
+            status=405
+        )
 
+    quest_summary = Quest.objects.annotate(
+        user_count=Count(
+            "completions__user",
+            filter=Q(completions__completed_status=True),
+            distinct=True
+        )
+    )
+
+    data = [
+        {
+            "quest": quest.title,
+            "user_count": quest.user_count,
+        }
+        for quest in quest_summary
+    ]
+
+    return JsonResponse(data, safe=False)
 
 class RegisterView(FormView):
     template_name = "core/register.html"
