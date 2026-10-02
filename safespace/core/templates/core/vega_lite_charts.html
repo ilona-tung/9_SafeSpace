@@ -1,0 +1,113 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- ================================================== -->
+    <!-- Page Title -->
+    <!-- ================================================== -->
+
+    <h1 class="mb-4">
+        SafeSpace Data Visualizations
+    </h1>
+
+
+    <!-- ================================================== -->
+    <!-- Bar Chart -->
+    <!-- ================================================== -->
+
+    <div class="mb-5">
+
+        <h2>
+            Quest Completion Summary
+        </h2>
+
+        <p class="text-muted">
+            Number of users who have completed each quest.
+        </p>
+
+        <div id="bar-chart"></div>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- Line Chart -->
+    <!-- ================================================== -->
+
+    <div class="mb-5">
+
+        <h2>
+            Quest Completion Over Time
+        </h2>
+
+        <p class="text-muted">
+            Number of users completing each quest over time.
+            Click a quest in the legend to highlight it.
+        </p>
+
+        <div id="line-chart"></div>
+
+    </div>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- Vega Libraries -->
+<!-- ====================================================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@6"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+
+
+<!-- ====================================================== -->
+<!-- Render Vega-Lite Charts -->
+<!-- ====================================================== -->
+
+<script>
+
+    // Vega-Lite specification for the bar chart
+    const barSpec = {{ bar_spec|safe }};
+
+
+    // Vega-Lite specification for the line chart
+    const lineSpec = {{ line_spec|safe }};
+
+
+    // ------------------------------------------------------
+    // Render Bar Chart
+    // ------------------------------------------------------
+
+    vegaEmbed(
+        "#bar-chart",
+        barSpec,
+        {
+            actions: true
+        }
+    ).catch(function(error) {
+        console.error("Bar chart error:", error);
+    });
+
+
+    // ------------------------------------------------------
+    // Render Line Chart
+    // ------------------------------------------------------
+
+    vegaEmbed(
+        "#line-chart",
+        lineSpec,
+        {
+            actions: true
+        }
+    ).catch(function(error) {
+        console.error("Line chart error:", error);
+    });
+
+</script>
+
+{% endblock %}
