@@ -24,6 +24,7 @@ urlpatterns = [
     path("responses/json/", views.json_response_example,name="json_response_example"),
     path("api/quest-summary/",views.quest_summary_api,name="quest_summary_api"),
     path("api/completion-timeline/",views.completion_timeline_api,name="completion_timeline_api"),
+    path("api/location/", views.location_search, name = "location_search"),
     path("vega-lite/",views.vega_lite_charts,name="vega_lite_charts"),
     path("vega-lite/bar.png",views.vega_bar_png,name="vega_bar_png"),
     path("vega-lite/completion-timeline.png",views.vega_line_png,name="vega_line_png"),

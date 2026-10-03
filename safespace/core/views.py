@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 
 import vl_convert as vlc
-
+import requests
 
 # ============================================================
 # Home
@@ -811,3 +811,29 @@ class QuestListGenericView(ListView):
         )
 
         return context
+
+def location_search(request):
+    query = request.GET.get("q", "")
+
+    if not query:
+        return JsonResponse({"error": "No location provided"}, status=400)
+
+    r = requests.get(
+        "https://nominatim.openstreetmap.org/search",
+        params={"q": query, "format": "json", "limit": 1},
+        headers={"User-Agent": "SafeSpace-UIUC-Project (student project, INFO490)"},
+        timeout=5,
+    )
+    r.raise_for_status()
+    output_full = r.json()
+    if not output_full:
+        return JsonResponse({"error": "Location not found"}, status=404)
+
+    place = output_full[0]
+    output_polished = {
+        "query": query,
+        "display_name": place.get("display_name"),
+        "lat": place.get("lat"),
+        "lon": place.get("lon"),
+    }
+    return JsonResponse(output_polished)
