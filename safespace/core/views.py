@@ -1,5 +1,6 @@
 from datetime import date
 import json
+import csv
 
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
@@ -18,6 +19,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from io import BytesIO
+from datetime import datetime
 
 import vl_convert as vlc
 import requests
@@ -837,3 +839,102 @@ def location_search(request):
         "lon": place.get("lon"),
     }
     return JsonResponse(output_polished)
+
+# ============================================================
+# Reports & Data Exports
+# ============================================================
+
+def reports_view(request):
+    """
+    Renders the summary reports page with totals and grouped summaries.
+    """
+    total_users = User.objects.count()
+
+    # Active completers: Users who have completed at least one quest
+    active_completers = User.objects.filter(
+        quest_completions__completed_status=True
+    ).distinct().count()
+
+    inactive_completers = total_users - active_completers
+
+    # Quests completed per user (ordered from highest to lowest)
+    quests_per_user = (
+        User.objects.annotate(
+            completed_count=Count(
+                "quest_completions",
+                filter=Q(quest_completions__completed_status=True),
+                distinct=True
+            )
+        )
+        .order_by("-completed_count", "username")
+    )
+
+    context = {
+        "total_users": total_users,
+        "active_completers": active_completers,
+        "inactive_completers": inactive_completers,
+        "quests_per_user": quests_per_user,
+    }
+    return render(request, "core/reports.html", context)
+
+
+def export_users_csv(request):
+    """
+    Generates and returns a downloadable CSV export of users (ordered).
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"users_{timestamp}.csv"
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    # First row = column headers
+    writer.writerow(["ID", "Username", "Email", "Date Joined", "Quests Completed"])
+
+    users = User.objects.all().order_by("id")
+    for user in users:
+        completed_count = user.quest_completions.filter(completed_status=True).count()
+        writer.writerow([
+            user.id,
+            user.username,
+            user.email,
+            user.date_joined.strftime("%Y-%m-%d %H:%M:%S") if user.date_joined else "",
+            completed_count
+        ])
+
+    return response
+
+
+def export_users_json(request):
+    """
+    Generates and returns pretty JSON with metadata and all records.
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    filename = f"users_{timestamp}.json"
+
+    users_qs = User.objects.all().order_by("id")
+
+    users_data = []
+    for user in users_qs:
+        completed_quests = list(
+            user.quest_completions.filter(completed_status=True)
+            .values_list("quest__title", flat=True)
+        )
+        users_data.append({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "date_joined": user.date_joined.isoformat() if user.date_joined else None,
+            "completed_quests": completed_quests,
+        })
+
+    data = {
+        "generated_at": datetime.now().isoformat(),
+        "record_count": users_qs.count(),
+        "users": users_data,  # Matches model/user records
+    }
+
+    response = JsonResponse(data, json_dumps_params={"indent": 2})
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response

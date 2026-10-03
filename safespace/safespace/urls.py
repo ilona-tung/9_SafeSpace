@@ -28,4 +28,7 @@ urlpatterns = [
     path("vega-lite/",views.vega_lite_charts,name="vega_lite_charts"),
     path("vega-lite/bar.png",views.vega_bar_png,name="vega_bar_png"),
     path("vega-lite/completion-timeline.png",views.vega_line_png,name="vega_line_png"),
+    path("reports/", views.reports_view, name="reports_page"),
+    path("export/csv/", views.export_users_csv, name="export_users_csv"),
+    path("export/json/", views.export_users_json, name="export_users_json"),
 ]

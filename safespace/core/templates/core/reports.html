@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Summary Reports</h2>
+    <!-- Export Action Buttons -->
+    <div>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'export_users_csv' %}">Download Users (CSV)</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'export_users_json' %}">Download Users (JSON)</a>
+    </div>
+  </div>
+
+  <!-- Totals Summary Card / Line -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <strong>Overview Totals:</strong> Total Users: <span class="badge bg-primary">{{ total_users }}</span> | Active Quest Completers: <span class="badge bg-success">{{ active_completers }}</span>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Grouped Summary 1: Quests Completed per User -->
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header py-2"><strong>Quests Completed per User</strong></div>
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Username</th>
+              <th class="text-end">Quests Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in quests_per_user %}
+              <tr>
+                <td>{{ item.username }}</td>
+                <td class="text-end">{{ item.completed_count }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="2" class="text-muted">No user quest data available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Grouped Summary 2: Users that completed quest vs all users -->
+    <div class="col-12 col-lg-6">
+      <div class="card">
+        <div class="card-header py-2"><strong>Quest Completion Status (Active vs Inactive)</strong></div>
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Category</th>
+              <th class="text-end">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Users with Completed Quests</td>
+              <td class="text-end">{{ active_completers }}</td>
+            </tr>
+            <tr>
+              <td>Users with No Quests Completed</td>
+              <td class="text-end">{{ inactive_completers }}</td>
+            </tr>
+            <tr class="table-group-divider fw-bold">
+              <td>Total Registered Users</td>
+              <td class="text-end">{{ total_users }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
