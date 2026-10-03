@@ -574,8 +574,8 @@ def vega_line_png(request):
     not need to make a request back to the Django server.
     """
 
-    start_date = date(2026, 9, 20)
-    end_date = date(2026, 9, 26)
+    start_date = date(2026, 9, 25)
+    end_date = date(2026, 10, 1)
 
     completion_summary = (
         QuestCompletion.objects
