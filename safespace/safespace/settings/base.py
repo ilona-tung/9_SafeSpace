@@ -119,6 +119,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'safespace/ui-ux/static',
 ]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # Email
