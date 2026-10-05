@@ -1,6 +1,7 @@
 from datetime import date
 import json
 import csv
+from functools import wraps
 
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
@@ -53,9 +54,29 @@ def json_response_example(request):
 
 
 # ============================================================
+# CORS for public JSON APIs
+# ============================================================
+
+def allow_cross_origin(view):
+    """
+    Let pages on other sites (e.g. the online Vega-Lite editor)
+    read this API's JSON from the browser.
+    """
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        response = view(request, *args, **kwargs)
+        response["Access-Control-Allow-Origin"] = "*"
+        return response
+
+    return wrapper
+
+
+# ============================================================
 # Part 1.1 - Database-backed JSON API
 # ============================================================
 
+@allow_cross_origin
 def quest_summary_api(request):
     """
     Return the number of distinct users who completed
@@ -93,6 +114,7 @@ def quest_summary_api(request):
 # Part 1.2 - Database-backed JSON API for Line Chart
 # ============================================================
 
+@allow_cross_origin
 def completion_timeline_api(request):
     """
     Return the number of distinct users who completed
@@ -884,6 +906,7 @@ def geocode(query):
     }
 
 
+@allow_cross_origin
 def location_search(request):
     """
     Return the external location data for ?q= as-is.
@@ -929,6 +952,7 @@ def forum_summary(posts):
     }
 
 
+@allow_cross_origin
 def forum_nearby_api(request):
     """
     Resolve ?q= (a city, zip code, or landmark) with the location API,
