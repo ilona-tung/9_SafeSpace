@@ -518,6 +518,32 @@ def vega_lite_charts(request):
 
 
 # ============================================================
+# Part 1.2 - Vega-Lite JSON Spec Downloads
+# ============================================================
+
+def vega_spec_download(request, chart):
+    """
+    Download a chart's Vega-Lite spec as a .json file.
+    The data URL is made absolute so the spec also works
+    when pasted into the online Vega-Lite editor.
+    """
+
+    if chart == "bar":
+        spec = vega_bar_spec()
+        spec["data"]["url"] = request.build_absolute_uri(spec["data"]["url"])
+        filename = "bar_chart.json"
+    else:
+        spec = vega_line_spec(
+            request.build_absolute_uri("/api/completion-timeline/")
+        )
+        filename = "line_chart.json"
+
+    response = JsonResponse(spec, json_dumps_params={"indent": 2})
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+# ============================================================
 # Part 1.2 - Vega-Lite PNG Endpoints
 # ============================================================
 
