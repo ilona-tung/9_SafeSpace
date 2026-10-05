@@ -1,0 +1,118 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Forums Nearby
+{% endblock %}
+
+{% block content %}
+
+<h1>Forums Nearby</h1>
+
+<p class="muted">
+    Enter a city, zip code, or landmark. We look it up with the
+    OpenStreetMap location API and find SafeSpace forum communities
+    in the same city and state.
+</p>
+
+
+<!-- ============================== -->
+<!-- GET SEARCH -->
+<!-- ============================== -->
+
+<form method="get">
+
+    <label for="place-search">
+        Place:
+    </label>
+
+    <input
+        type="text"
+        id="place-search"
+        name="q"
+        value="{{ query }}"
+        placeholder="e.g. 61820, Chicago, UIUC"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+
+{% if error %}
+
+    <p>{{ error }}</p>
+
+{% elif resolved_place %}
+
+    <!-- ============================== -->
+    <!-- EXTERNAL: RESOLVED PLACE -->
+    <!-- ============================== -->
+
+    <h2>Location found</h2>
+
+    <p>
+        {{ resolved_place.display_name }}<br>
+        City: {{ resolved_place.city|default:"(none)" }} ·
+        State: {{ resolved_place.state }}
+    </p>
+
+
+    <!-- ============================== -->
+    <!-- TRIANGULATED: FORUM POSTS -->
+    <!-- ============================== -->
+
+    <h2>Forum activity</h2>
+
+    <p>
+        {{ same_state.post_count }} of {{ total_posts_with_location }}
+        posts with a location are in {{ resolved_place.state }}
+        ({% widthratio state_share 1 100 %}%).
+    </p>
+
+    <table class="u-full-width">
+        <thead>
+            <tr>
+                <th>Area</th>
+                <th>Posts</th>
+                <th>Users</th>
+                <th>Communities</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Same city ({{ resolved_place.city|default:"none" }})</td>
+                <td>{{ same_city.post_count }}</td>
+                <td>{{ same_city.user_count }}</td>
+                <td>
+                    {% for group in same_city.groups %}
+                        {{ group.group }} ({{ group.post_count }}){% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        —
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Same state ({{ resolved_place.state }})</td>
+                <td>{{ same_state.post_count }}</td>
+                <td>{{ same_state.user_count }}</td>
+                <td>
+                    {% for group in same_state.groups %}
+                        {{ group.group }} ({{ group.post_count }}){% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        —
+                    {% endfor %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p class="muted">
+        JSON version:
+        <a href="{% url 'forum_nearby_api' %}?q={{ query|urlencode }}">/api/forum-nearby/?q={{ query }}</a>
+    </p>
+
+{% endif %}
+
+{% endblock %}

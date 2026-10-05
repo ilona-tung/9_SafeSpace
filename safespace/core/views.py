@@ -13,7 +13,7 @@ from django.db.models import Count, Q
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import Quest, Reward, Journal, QuestCompletion
+from .models import Quest, Reward, Journal, QuestCompletion, Forum
 
 import matplotlib
 matplotlib.use("Agg")
@@ -513,8 +513,7 @@ def vega_lite_charts(request):
 
             "line_spec": json.dumps(
                 vega_line_spec()
-            ),
-        }
+            ),        }
     )
 
 
@@ -814,31 +813,184 @@ class QuestListGenericView(ListView):
 
         return context
 
-def location_search(request):
-    query = request.GET.get("q", "")
+# ============================================================
+# Part 2 - External API (OpenStreetMap Nominatim, keyless)
+# ============================================================
 
-    if not query:
-        return JsonResponse({"error": "No location provided"}, status=400)
+def geocode(query):
+    """
+    Look up a place name with Nominatim.
+    Returns the best match, or None if nothing was found.
+    Raises requests.RequestException if the service fails.
+    The result is used for this request only and never saved.
+    """
 
     r = requests.get(
         "https://nominatim.openstreetmap.org/search",
-        params={"q": query, "format": "json", "limit": 1},
+        params={
+            "q": query,
+            "format": "json",
+            "limit": 1,
+            "addressdetails": 1,
+        },
         headers={"User-Agent": "SafeSpace-UIUC-Project (student project, INFO490)"},
         timeout=5,
     )
     r.raise_for_status()
     output_full = r.json()
+
     if not output_full:
-        return JsonResponse({"error": "Location not found"}, status=404)
+        return None
 
     place = output_full[0]
-    output_polished = {
-        "query": query,
+    address = place.get("address", {})
+
+    # "US-IL" -> "IL"
+    state_code = address.get("ISO3166-2-lvl4", "").split("-")[-1]
+
+    return {
         "display_name": place.get("display_name"),
-        "lat": place.get("lat"),
-        "lon": place.get("lon"),
+        "lat": float(place["lat"]),
+        "lon": float(place["lon"]),
+        "city": address.get("city") or address.get("town") or address.get("village"),
+        "state": address.get("state"),
+        "state_code": state_code,
     }
-    return JsonResponse(output_polished)
+
+
+def location_search(request):
+    """
+    Return the external location data for ?q= as-is.
+    """
+
+    query = request.GET.get("q", "").strip()
+
+    if not query:
+        return JsonResponse({"error": "No location provided"}, status=400)
+
+    try:
+        place = geocode(query)
+    except requests.RequestException:
+        return JsonResponse({"error": "Location service unavailable"}, status=502)
+
+    if place is None:
+        return JsonResponse({"error": "Location not found"}, status=404)
+
+    return JsonResponse({"query": query, **place})
+
+
+# ============================================================
+# Part 2 - Triangulate location API with Forum posts
+# ============================================================
+
+def forum_summary(posts):
+    """
+    Post count, distinct users, and posts per group for a list of posts.
+    """
+
+    group_counts = {}
+
+    for post in posts:
+        group_counts[post.group] = group_counts.get(post.group, 0) + 1
+
+    return {
+        "post_count": len(posts),
+        "user_count": len({post.user_id for post in posts}),
+        "groups": [
+            {"group": group, "post_count": count}
+            for group, count in sorted(group_counts.items(), key=lambda item: -item[1])
+        ],
+    }
+
+
+def forum_nearby_api(request):
+    """
+    Resolve ?q= (a city, zip code, or landmark) with the location API,
+    then find forum communities in the same city and the same state.
+
+    Forum.location is written as "City, ST" (e.g. "Champaign, IL").
+    The external data is only used to match posts; nothing is stored.
+    """
+
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "GET requests only."},
+            status=405
+        )
+
+    query = request.GET.get("q", "").strip()
+
+    if not query:
+        return JsonResponse({"error": "No location provided"}, status=400)
+
+    try:
+        place = geocode(query)
+    except requests.RequestException:
+        return JsonResponse({"error": "Location service unavailable"}, status=502)
+
+    if place is None:
+        return JsonResponse({"error": "Location not found"}, status=404)
+
+    return JsonResponse({"query": query, **match_forums(place)})
+
+
+def match_forums(place):
+    """
+    Triangulate a resolved place with Forum posts: find the posts in
+    the same city and the same state, and the state's share of all posts.
+    """
+
+    posts = list(Forum.objects.exclude(location=""))
+
+    same_city = []
+    same_state = []
+
+    for post in posts:
+        parts = [part.strip().lower() for part in post.location.split(",")]
+        city = parts[0]
+        state = parts[-1] if len(parts) > 1 else ""
+
+        in_state = state in {
+            (place["state"] or "").lower(),
+            place["state_code"].lower(),
+        }
+
+        if in_state:
+            same_state.append(post)
+
+            if place["city"] and city == place["city"].lower():
+                same_city.append(post)
+
+    return {
+        "resolved_place": place,
+        "total_posts_with_location": len(posts),
+        "same_city": forum_summary(same_city),
+        "same_state": forum_summary(same_state),
+        "state_share": round(len(same_state) / len(posts), 2) if posts else 0,
+    }
+
+
+def forum_nearby_page(request):
+    """
+    HTML version of forum_nearby_api with a search form.
+    """
+
+    query = request.GET.get("q", "").strip()
+    context = {"query": query}
+
+    if query:
+        try:
+            place = geocode(query)
+        except requests.RequestException:
+            context["error"] = "The location service is unavailable. Please try again."
+        else:
+            if place is None:
+                context["error"] = f'No place found for "{query}".'
+            else:
+                context.update(match_forums(place))
+
+    return render(request, "core/forum_nearby.html", context)
+
 
 # ============================================================
 # Reports & Data Exports
