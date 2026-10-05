@@ -1,0 +1,43 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "title": "Users Who Completed Each Quest",
+  "width": 700,
+  "height": 400,
+  "data": {
+    "url": "https://ilona.pythonanywhere.com/api/quest-summary/"
+  },
+  "mark": {
+    "type": "bar"
+  },
+  "encoding": {
+    "x": {
+      "field": "quest",
+      "type": "nominal",
+      "sort": "-y",
+      "title": "Quest",
+      "axis": {
+        "labelAngle": -35
+      }
+    },
+    "y": {
+      "field": "user_count",
+      "type": "quantitative",
+      "title": "Number of Users",
+      "scale": {
+        "zero": true
+      }
+    },
+    "tooltip": [
+      {
+        "field": "quest",
+        "type": "nominal",
+        "title": "Quest"
+      },
+      {
+        "field": "user_count",
+        "type": "quantitative",
+        "title": "Users"
+      }
+    ]
+  }
+}

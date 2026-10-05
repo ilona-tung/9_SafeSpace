@@ -1,0 +1,70 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "title": "Users Completing Each Quest Over Time",
+  "width": 700,
+  "height": 400,
+  "data": {
+    "url": "https://ilona.pythonanywhere.com/api/completion-timeline/"
+  },
+  "params": [
+    {
+      "name": "quest_selection",
+      "select": {
+        "type": "point",
+        "fields": [
+          "quest"
+        ]
+      },
+      "bind": "legend"
+    }
+  ],
+  "mark": {
+    "type": "line",
+    "point": true
+  },
+  "encoding": {
+    "x": {
+      "field": "date",
+      "type": "temporal",
+      "title": "Date",
+      "scale": {
+        "type": "utc"
+      },
+      "axis": {
+        "format": "%b %d",
+        "tickCount": "day"
+      }
+    },
+    "y": {
+      "field": "user_count",
+      "type": "quantitative",
+      "title": "Number of Users",
+      "scale": {
+        "zero": true
+      }
+    },
+    "color": {
+      "field": "quest",
+      "type": "nominal",
+      "title": "Quest"
+    },
+    "tooltip": [
+      {
+        "field": "date",
+        "type": "temporal",
+        "title": "Date",
+        "format": "%Y-%m-%d"
+      },
+      {
+        "field": "quest",
+        "type": "nominal",
+        "title": "Quest"
+      },
+      {
+        "field": "user_count",
+        "type": "quantitative",
+        "title": "Users"
+      }
+    ]
+  }
+}
