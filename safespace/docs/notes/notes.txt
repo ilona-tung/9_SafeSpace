@@ -73,3 +73,5 @@ We will serve the following data:
 	Quest rewards upon completion, a set amount that is claimed and added to the user's account every time one is finished.
 	Event information, such as locations and times.
 	Friend lists attached to each account.
+________________________________________________________________________________________________________________________
+A4 Overall: API Description/Documentation & Screenshots can be found in A4_View_Screenshots.md
