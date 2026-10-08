@@ -3,18 +3,26 @@ import json
 import csv
 from functools import wraps
 
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
 from django.template import loader
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.views import View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
 from django.urls import reverse_lazy
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .models import Quest, Reward, Journal, QuestCompletion, Forum
+from .forms import JournalEditorForm
 
 import matplotlib
 matplotlib.use("Agg")
@@ -54,20 +62,78 @@ def json_response_example(request):
 
 
 # ============================================================
-# CORS for public JSON APIs
+# Login protection for JSON APIs
 # ============================================================
 
-def allow_cross_origin(view):
+def api_login_required(view):
     """
-    Let pages on other sites (e.g. the online Vega-Lite editor)
-    read this API's JSON from the browser.
+    Like login_required, but APIs answer with a JSON 401 error
+    instead of redirecting to the HTML login page.
     """
 
     @wraps(view)
     def wrapper(request, *args, **kwargs):
-        response = view(request, *args, **kwargs)
-        response["Access-Control-Allow-Origin"] = "*"
-        return response
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"error": "Login required."},
+                status=401
+            )
+
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def admin_required(view):
+    """
+    Only admins (staff users) may open this page.
+    SafeSpace is not a competition, so regular users
+    never see reports that compare users.
+    """
+
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_staff:
+            raise PermissionDenied
+
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def regular_user_required(view):
+    """
+    Personal features (like the journal) are for regular users,
+    not for admin accounts.
+    """
+
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_staff:
+            raise PermissionDenied
+
+        return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def api_admin_required(view):
+    """
+    Admin-only JSON APIs: 401 when logged out, 403 for regular users.
+    """
+
+    @api_login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_staff:
+            return JsonResponse(
+                {"error": "Admins only."},
+                status=403
+            )
+
+        return view(request, *args, **kwargs)
 
     return wrapper
 
@@ -76,7 +142,7 @@ def allow_cross_origin(view):
 # Part 1.1 - Database-backed JSON API
 # ============================================================
 
-@allow_cross_origin
+@api_admin_required
 def quest_summary_api(request):
     """
     Return the number of distinct users who completed
@@ -114,7 +180,7 @@ def quest_summary_api(request):
 # Part 1.2 - Database-backed JSON API for Line Chart
 # ============================================================
 
-@allow_cross_origin
+@api_admin_required
 def completion_timeline_api(request):
     """
     Return the number of distinct users who completed
@@ -182,7 +248,8 @@ class RegisterView(FormView):
         return self.form_invalid(form)
 
     def form_valid(self, form):
-        form.save()
+        user = form.save()
+        login(self.request, user)
         return super().form_valid(form)
 
 
@@ -226,6 +293,7 @@ def quest_list_context(query, quests):
     }
 
 
+@login_required
 def quest_list_render(request):
 
     # GET search
@@ -238,13 +306,34 @@ def quest_list_render(request):
             title__icontains=query
         )
 
+    context = quest_list_context(
+        query,
+        quests
+    )
+
+    context["completed_today"] = completed_today_ids(request.user)
+
     return render(
         request,
         "core/quest_list.html",
-        quest_list_context(
-            query,
-            quests
-        )
+        context
+    )
+
+
+def completed_today_ids(user):
+    """
+    IDs of the quests this user has completed today.
+    """
+
+    if not user.is_authenticated:
+        return set()
+
+    return set(
+        QuestCompletion.objects.filter(
+            user=user,
+            quest_date=timezone.localdate(),
+            completed_status=True,
+        ).values_list("quest_id", flat=True)
     )
 
 
@@ -252,22 +341,103 @@ def quest_list_render(request):
 # Journals
 # ============================================================
 
+@regular_user_required
 def journal_list(request):
-    journals = Journal.objects.all()
+    """
+    Show the logged-in user's own decorated journal entries.
+    """
+
+    journals = (
+        request.user.journals
+        .select_related("background", "frame", "font")
+        .prefetch_related("stickers__user_reward__reward")
+    )
 
     return render(
         request,
         "core/journal_list.html",
         {
-            "journals": journals
+            "journals": journals,
+            "font_rewards": font_rewards(),
         }
     )
+
+
+@regular_user_required
+def journal_new(request):
+    """
+    Drag-and-drop editor for writing and decorating a new journal page.
+    """
+
+    if request.method == "POST":
+        form = JournalEditorForm(request.POST, user=request.user)
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(request, "Journal entry saved.")
+            return redirect("journal_list")
+    else:
+        form = JournalEditorForm(user=request.user)
+
+    return render(
+        request,
+        "core/journal_editor.html",
+        {
+            "form": form,
+            "editor_rewards": editor_rewards(request.user),
+            "font_rewards": font_rewards(),
+            "today": timezone.localdate(),
+        }
+    )
+
+
+def font_rewards():
+    """
+    Font rewards that have a font file, for the @font-face rules.
+    """
+
+    return Reward.objects.filter(item_type="font").exclude(asset="")
+
+
+def editor_rewards(user):
+    """
+    The user's rewards for the editor's tray, grouped by type.
+    Sticker counts only include copies that are not on a page yet.
+    """
+
+    owned = (
+        Reward.objects
+        .filter(earned_by__user=user)
+        .exclude(asset="")
+        .annotate(
+            owned_count=Count("earned_by", filter=Q(earned_by__user=user)),
+            unused_count=Count(
+                "earned_by",
+                filter=Q(earned_by__user=user, earned_by__placement__isnull=True)
+            ),
+        )
+        .order_by("name")
+    )
+
+    groups = {"sticker": [], "background": [], "frame": [], "font": []}
+
+    for reward in owned:
+        groups[reward.item_type].append({
+            "id": reward.pk,
+            "name": reward.name,
+            "url": static(reward.asset),
+            "count": reward.unused_count if reward.item_type == "sticker" else reward.owned_count,
+        })
+
+    return groups
 
 
 # ============================================================
 # Existing Matplotlib Chart
 # ============================================================
 
+@admin_required
 def quest_completion_chart(request):
     """
     Generate a vertical bar chart showing how many
@@ -277,6 +447,9 @@ def quest_completion_chart(request):
     quest_summary = Quest.objects.annotate(
         user_count=Count(
             "completions__user",
+            filter=Q(
+                completions__completed_status=True
+            ),
             distinct=True
         )
     )
@@ -520,6 +693,7 @@ def vega_line_spec(api_url="/api/completion-timeline/"):
 # Part 1.2 - Vega-Lite Chart Page
 # ============================================================
 
+@admin_required
 def vega_lite_charts(request):
     """
     Render a page containing both Vega-Lite charts.
@@ -543,6 +717,7 @@ def vega_lite_charts(request):
 # Part 1.2 - Vega-Lite JSON Spec Downloads
 # ============================================================
 
+@admin_required
 def vega_spec_download(request, chart):
     """
     Download a chart's Vega-Lite spec as a .json file.
@@ -569,6 +744,7 @@ def vega_spec_download(request, chart):
 # Part 1.2 - Vega-Lite PNG Endpoints
 # ============================================================
 
+@admin_required
 def vega_bar_png(request):
     """
     Return the Vega-Lite bar chart as PNG.
@@ -613,6 +789,7 @@ def vega_bar_png(request):
     )
 
 
+@admin_required
 def vega_line_png(request):
     """
     Return the Vega-Lite line chart as PNG.
@@ -682,8 +859,27 @@ def vega_line_png(request):
 # Rewards
 # ============================================================
 
+@login_required
 def reward_list_render(request):
     rewards = Reward.objects.all()
+
+    if request.user.is_staff:
+        # Admins see how each reward is used across the whole system
+        rewards = rewards.prefetch_related("quests").annotate(
+            times_earned=Count("earned_by"),
+            owner_count=Count("earned_by__user", distinct=True),
+        )
+    else:
+        rewards = rewards.annotate(
+            owned_count=Count(
+                "earned_by",
+                filter=Q(earned_by__user=request.user)
+            ),
+            used_count=Count(
+                "earned_by",
+                filter=Q(earned_by__user=request.user, earned_by__placement__isnull=False)
+            ),
+        )
 
     return render(
         request,
@@ -698,6 +894,7 @@ def reward_list_render(request):
 # Quest Detail
 # ============================================================
 
+@login_required
 def quest_detail(request, pk):
 
     quest = get_object_or_404(
@@ -705,19 +902,79 @@ def quest_detail(request, pk):
         pk=pk
     )
 
+    context = {
+        "quest": quest,
+        "completed_today": quest.pk in completed_today_ids(request.user),
+    }
+
+    if not request.user.is_staff:
+        context["times_completed"] = quest.completions.filter(
+            user=request.user,
+            completed_status=True,
+        ).count()
+
     return render(
         request,
         "core/quest_detail.html",
-        {
-            "quest": quest
+        context
+    )
+
+
+@regular_user_required
+@require_POST
+def complete_quest(request, pk):
+    """
+    Mark a quest as completed today for the logged-in user.
+
+    Quests are daily: each day gets its own QuestCompletion.
+    A completion that is already marked completed is never changed.
+    """
+
+    quest = get_object_or_404(
+        Quest,
+        pk=pk
+    )
+
+    today = timezone.localdate()
+
+    completion, created = QuestCompletion.objects.get_or_create(
+        user=request.user,
+        quest=quest,
+        quest_date=today,
+        defaults={
+            "completed_status": True,
+            "completed_date": today,
         }
     )
+
+    if not created and completion.completed_status:
+        messages.info(request, f"You already completed \"{quest}\" today.")
+        return redirect(quest)
+
+    if not created:
+        # The quest was started today but not finished yet
+        completion.completed_status = True
+        completion.completed_date = today
+        completion.save()
+
+    new_rewards = completion.award_rewards()
+
+    message = f"Nice work! You completed \"{quest}\"."
+
+    if new_rewards:
+        names = ", ".join(str(user_reward.reward) for user_reward in new_rewards)
+        message += f" You earned: {names}."
+
+    messages.success(request, message)
+
+    return redirect(quest)
 
 
 # ============================================================
 # Users
 # ============================================================
 
+@admin_required
 def user_list(request):
 
     # GET search
@@ -761,6 +1018,7 @@ def user_list(request):
     )
 
 
+@admin_required
 def user_detail(request, pk):
 
     user = get_object_or_404(
@@ -906,7 +1164,7 @@ def geocode(query):
     }
 
 
-@allow_cross_origin
+@api_login_required
 def location_search(request):
     """
     Return the external location data for ?q= as-is.
@@ -952,7 +1210,7 @@ def forum_summary(posts):
     }
 
 
-@allow_cross_origin
+@api_login_required
 def forum_nearby_api(request):
     """
     Resolve ?q= (a city, zip code, or landmark) with the location API,
@@ -1020,6 +1278,7 @@ def match_forums(place):
     }
 
 
+@login_required
 def forum_nearby_page(request):
     """
     HTML version of forum_nearby_api with a search form.
@@ -1046,6 +1305,7 @@ def forum_nearby_page(request):
 # Reports & Data Exports
 # ============================================================
 
+@admin_required
 def reports_view(request):
     """
     Renders the summary reports page with totals and grouped summaries.
@@ -1080,6 +1340,7 @@ def reports_view(request):
     return render(request, "core/reports.html", context)
 
 
+@admin_required
 def export_users_csv(request):
     """
     Generates and returns a downloadable CSV export of users (ordered).
@@ -1108,6 +1369,7 @@ def export_users_csv(request):
     return response
 
 
+@admin_required
 def export_users_json(request):
     """
     Generates and returns pretty JSON with metadata and all records.

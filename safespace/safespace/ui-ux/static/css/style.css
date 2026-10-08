@@ -20,6 +20,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .site-header .container {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -40,12 +41,81 @@ h1, h2, h3, h4, h5 {
   letter-spacing: 0.5px;
 }
 
-/* Navigation */
-.nav {
+/* Menu button: the navigation only opens when it is pressed */
+.nav-toggle {
+  margin: 0 0 0 auto;
+  color: var(--ghost-white);
+  background: transparent;
+  padding: .35rem .9rem;
+  height: auto;
+  line-height: inherit;
+  border-radius: 999px;
+  border: 1px solid rgba(241, 240, 249, 0.3);
+  font-size: inherit;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.nav-toggle:hover,
+.nav-toggle:focus,
+.nav-toggle[aria-expanded="true"] {
+  color: var(--white);
+  background: rgba(173, 194, 175, 0.2);
+  border-color: var(--ash-grey);
+}
+
+/* Logged-out header: Log in and Sign up buttons */
+.auth-links {
   margin-left: auto;
   display: flex;
   gap: .75rem;
-  flex-wrap: wrap;
+}
+
+.auth-links a {
+  color: var(--ghost-white);
+  padding: .35rem .9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(241, 240, 249, 0.3);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-links a:hover {
+  color: var(--white);
+  background: rgba(173, 194, 175, 0.2);
+  border-color: var(--ash-grey);
+}
+
+.auth-links a.auth-links__primary {
+  color: var(--dark-slate);
+  background: var(--ghost-white);
+  border-color: var(--ghost-white);
+}
+
+.auth-links a.auth-links__primary:hover {
+  background: var(--ash-grey);
+  border-color: var(--ash-grey);
+}
+
+/* Navigation (drop-down panel under the menu button) */
+.nav {
+  position: absolute;
+  top: 100%;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  min-width: 200px;
+  padding: .75rem;
+  background-color: var(--dark-slate);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 6px 12px rgba(50, 72, 65, 0.25);
+}
+
+.nav[hidden] {
+  display: none;
 }
 
 .nav a {
@@ -63,6 +133,47 @@ h1, h2, h3, h4, h5 {
   border-color: var(--ash-grey);
   text-decoration: none;
   color: var(--white);
+}
+
+/* Log out button styled like the nav links */
+.nav__form {
+  margin: 0;
+}
+
+.nav__form button {
+  width: 100%;
+  text-align: left;
+  color: var(--ghost-white);
+  background: transparent;
+  padding: .35rem .8rem;
+  height: auto;
+  line-height: inherit;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(241, 240, 249, 0.3);
+  font-size: inherit;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.nav__form button:hover {
+  background: rgba(173, 194, 175, 0.2);
+  border-color: var(--ash-grey);
+}
+
+/* Flash messages (e.g. "Journal entry saved.") */
+.messages {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.messages__item {
+  background: var(--ghost-white);
+  border-left: 4px solid var(--ash-grey);
+  padding: .75rem 1rem;
+  margin: 0 0 .5rem;
 }
 
 /* Content Containers & Cards */

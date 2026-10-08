@@ -27,4 +27,30 @@
     {{ quest.pk }}
 </p>
 
+
+<!-- ============================== -->
+<!-- COMPLETE QUEST -->
+<!-- ============================== -->
+
+{% if user.is_staff %}
+
+    <p class="muted">Admin accounts don't complete quests.</p>
+
+{% else %}
+
+    {% if completed_today %}
+        <p><strong>✓ Completed today.</strong> Come back tomorrow if you'd like to do it again.</p>
+    {% else %}
+        <form method="post" action="{% url 'complete_quest' quest.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="button-primary">Mark completed today</button>
+        </form>
+    {% endif %}
+
+    <p class="muted">
+        You've completed this quest {{ times_completed }} time{{ times_completed|pluralize }}.
+    </p>
+
+{% endif %}
+
 {% endblock %}

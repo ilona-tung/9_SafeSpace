@@ -1,22 +1,36 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 
 {% block title %}
-Journal
+My Journal
+{% endblock %}
+
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}">
+    {% include "core/_reward_fonts.html" %}
 {% endblock %}
 
 
 {% block content %}
-   <h1>Journal</h1>
+<h1>My Journal</h1>
+
+<p>
+    <a class="button button-primary" href="{% url 'journal_new' %}">Write a new page</a>
+</p>
 
 
-<ul>
+<!-- ============================== -->
+<!-- PAST ENTRIES -->
+<!-- ============================== -->
+
 {% for journal in journals %}
-   <li>{{ journal.content }}</li>
+    <article class="journal-entry">
+        {% include "core/_journal_page.html" %}
+    </article>
 {% empty %}
-   <li>No journals yet!</li>
+    <p class="muted">No journal entries yet. Write your first page and decorate it with your rewards!</p>
 {% endfor %}
-</ul>
-
 
 {% endblock %}

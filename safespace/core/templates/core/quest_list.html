@@ -50,6 +50,9 @@
             <a href="{{ quest.get_absolute_url }}">
                 {{ quest.title }}
             </a>
+            {% if quest.pk in completed_today %}
+                <span class="muted">✓ done today</span>
+            {% endif %}
         </li>
 
     {% empty %}
@@ -74,8 +77,10 @@
 </p>
 
 
+{% if user.is_staff %}
+
 <!-- ============================== -->
-<!-- COMPLETION SUMMARY + CHART -->
+<!-- COMPLETION SUMMARY + CHART (admin only) -->
 <!-- ============================== -->
 
 <div style="
@@ -155,6 +160,9 @@
     </div>
 
 </div>
+
+{% endif %}
+<!-- end admin only -->
 
 
 {% endblock %}

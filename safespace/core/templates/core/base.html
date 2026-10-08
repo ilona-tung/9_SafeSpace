@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="{% static 'css/normalize.css' %}?v={{ ts }}">
   <link rel="stylesheet" href="{% static 'css/skeleton.css' %}?v={{ ts }}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v={{ ts }}">
+
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body>
@@ -26,15 +28,44 @@
                 <span class="brand__title">SafeSpace</span>
             </a>
 
-            <nav class="nav">
-                <a href="{% url 'home' %}">Home</a>
-                <a href="{% url 'quest_list' %}">Quests</a>
-                <a href="{% url 'user_list' %}">Users</a>
-                <a href="{% url 'reward_list' %}">Rewards</a>
-                <a href="{% url 'vega_lite_charts' %}">Vega-Lite</a>
-                <a href="{% url 'forum_nearby_page' %}">Forums Nearby</a>
-                <a href="{% url 'register' %}">Register</a>
-            </nav>
+            {% if user.is_authenticated %}
+
+                <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav">
+                    ☰ Menu
+                </button>
+
+                <!-- Logged-in menu: only opens when the Menu button is pressed -->
+                <nav class="nav" id="site-nav" hidden>
+                    <a href="{% url 'home' %}">Home</a>
+                    <a href="{% url 'quest_list' %}">Quests</a>
+                    <a href="{% url 'reward_list' %}">Rewards</a>
+                    <a href="{% url 'forum_nearby_page' %}">Forums Nearby</a>
+
+                    {% if user.is_staff %}
+                        <!-- Admin only -->
+                        <a href="{% url 'user_list' %}">Users</a>
+                        <a href="{% url 'vega_lite_charts' %}">Vega-Lite</a>
+                        <a href="{% url 'reports_page' %}">Reports</a>
+                    {% else %}
+                        <!-- Regular users only -->
+                        <a href="{% url 'journal_list' %}">My Journal</a>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'logout' %}" class="nav__form">
+                        {% csrf_token %}
+                        <button type="submit">Log out ({{ user.username }})</button>
+                    </form>
+                </nav>
+
+            {% else %}
+
+                <!-- Logged out: only Log in and Sign up -->
+                <div class="auth-links">
+                    <a href="{% url 'login' %}">Log in</a>
+                    <a href="{% url 'register' %}" class="auth-links__primary">Sign up</a>
+                </div>
+
+            {% endif %}
         </div>
     </header>
 
@@ -42,10 +73,50 @@
 
     <!-- Main Content Area -->
     <main class="container section">
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="messages__item">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         {% block content %}
             <p class="muted">This is default content.</p>
         {% endblock %}
     </main>
+
+    {% if user.is_authenticated %}
+    <!-- Open/close the menu with the Menu button -->
+    <script>
+        (function () {
+            const toggle = document.querySelector(".nav-toggle");
+            const nav = document.getElementById("site-nav");
+
+            function setOpen(open) {
+                nav.hidden = !open;
+                toggle.setAttribute("aria-expanded", String(open));
+            }
+
+            toggle.addEventListener("click", function () {
+                setOpen(nav.hidden);
+            });
+
+            // Close when clicking outside the menu or pressing Escape
+            document.addEventListener("click", function (event) {
+                if (!nav.hidden && !nav.contains(event.target) && !toggle.contains(event.target)) {
+                    setOpen(false);
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "Escape") {
+                    setOpen(false);
+                }
+            });
+        })();
+    </script>
+    {% endif %}
 
 </body>
 </html>

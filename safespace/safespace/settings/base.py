@@ -105,11 +105,20 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Local time, so "today" for daily quests matches the users' day
+TIME_ZONE = 'America/Chicago'
 
 USE_I18N = True
 
 USE_TZ = True
+
+
+# Authentication
+# https://docs.djangoproject.com/en/6.1/topics/auth/default/
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
 
 
 # Static files (CSS, JavaScript, Images)

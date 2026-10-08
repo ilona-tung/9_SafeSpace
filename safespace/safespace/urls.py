@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import path
 from core import views
 
@@ -11,15 +12,19 @@ urlpatterns = [
     # Home
     path("",views.home,name="home"),
     path("register/", views.RegisterView.as_view(), name="register"),
+    path("login/", auth_views.LoginView.as_view(template_name="core/login.html"), name="login"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     # Quests
     path("quests/",views.quest_list_render,name="quest_list"),
     path("quests/quest-completion-chart.png",views.quest_completion_chart,name="quest_completion_chart"),
     path("quests/<int:pk>/",views.quest_detail,name="quest_detail"),
+    path("quests/<int:pk>/complete/", views.complete_quest, name="complete_quest"),
     path("users/",views.user_list,name="user_list"),
     path("users/<int:pk>/",views.user_detail,name="user_detail"),
     path("rewards/",views.reward_list_render,name="reward_list"),
     path("rewards/render/",views.reward_list_render,name="reward_list_render"),
     path("journals/",views.journal_list,name="journal_list"),
+    path("journals/new/", views.journal_new, name="journal_new"),
     path("responses/http/", views.http_response_example,name="http_response_example"),
     path("responses/json/", views.json_response_example,name="json_response_example"),
     path("api/quest-summary/",views.quest_summary_api,name="quest_summary_api"),

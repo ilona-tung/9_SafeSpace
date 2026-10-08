@@ -108,21 +108,26 @@ class QuestCompletion(models.Model):
         """
         Award every reward associated with this quest to the user
         when the quest has been completed.
+        Each completion earns its own copy, so users can collect
+        the same reward many times. Returns the newly earned rewards.
         """
 
         if not self.completed_status:
-            return
+            return []
 
-        rewards = self.quest.possible_rewards.all()
+        earned = []
 
-        for reward in rewards:
-            UserReward.objects.get_or_create(
+        for reward in self.quest.possible_rewards.all():
+            user_reward, created = UserReward.objects.get_or_create(
                 user=self.user,
                 reward=reward,
-                defaults={
-                    "unlocked_by_completion": self
-                }
+                unlocked_by_completion=self
             )
+
+            if created:
+                earned.append(user_reward)
+
+        return earned
 
 
 class Reward(models.Model):
@@ -154,6 +159,16 @@ class Reward(models.Model):
         help_text="Quests that can potentially unlock this reward."
     )
 
+    asset = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=(
+            "Design file inside the static folder, e.g. "
+            "rewards/stickers/stay-hydrated.svg. Stickers: square SVG/PNG; "
+            "backgrounds and frames: 4:3 landscape PNG/SVG; fonts: .woff2."
+        )
+    )
+
     class Meta:
         ordering = ["item_type", "name"]
         constraints = [
@@ -170,6 +185,8 @@ class Reward(models.Model):
 class UserReward(models.Model):
     """
     The user's reward collection when they completed the quests.
+    A user can own several copies of the same reward,
+    one for each quest completion that unlocked it.
     """
 
     user = models.ForeignKey(
@@ -204,8 +221,8 @@ class UserReward(models.Model):
         ordering = ["-unlocked_time"]
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "reward"],
-                name="unique_user_reward"
+                fields=["unlocked_by_completion", "reward"],
+                name="unique_reward_per_completion"
             )
         ]
 
@@ -269,11 +286,103 @@ class Journal(models.Model):
         help_text="Cosmetic rewards earned by this user and used to decorate the journal."
     )
 
+    background = models.ForeignKey(
+        Reward,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        limit_choices_to={"item_type": "background"},
+        help_text="Background reward the page is drawn on."
+    )
+
+    frame = models.ForeignKey(
+        Reward,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        limit_choices_to={"item_type": "frame"},
+        help_text="Frame reward drawn around the page."
+    )
+
+    font = models.ForeignKey(
+        Reward,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        limit_choices_to={"item_type": "font"},
+        help_text="Font reward the entry is written in."
+    )
+
     class Meta:
         ordering = ["-time"]
 
     def __str__(self):
         return f"{self.user} — {self.time:%Y-%m-%d %H:%M}"
+
+
+class JournalSticker(models.Model):
+    """
+    A sticker placed on a journal page.
+
+    Each placed sticker uses up one copy (UserReward) of that sticker,
+    so a copy can only ever be on one page.
+    Position is stored in percent of the page so it fits any screen size.
+    """
+
+    journal = models.ForeignKey(
+        Journal,
+        on_delete=models.CASCADE,
+        related_name="stickers"
+    )
+
+    user_reward = models.OneToOneField(
+        UserReward,
+        on_delete=models.CASCADE,
+        related_name="placement",
+        help_text="The sticker copy used for this placement."
+    )
+
+    x = models.FloatField(
+        help_text="Horizontal position of the sticker's center, 0-100% of the page width."
+    )
+
+    y = models.FloatField(
+        help_text="Vertical position of the sticker's center, 0-100% of the page height."
+    )
+
+    rotation = models.IntegerField(
+        default=0,
+        help_text="Rotation in degrees."
+    )
+
+    scale = models.FloatField(
+        default=1.0
+    )
+
+    layer = models.PositiveIntegerField(
+        default=0,
+        help_text="Stacking order; higher layers are drawn on top."
+    )
+
+    class Meta:
+        ordering = ["layer", "id"]
+
+    def __str__(self):
+        return f"{self.user_reward.reward} on {self.journal}"
+
+    def clean(self):
+        if self.user_reward.user_id != self.journal.user_id:
+            raise ValidationError(
+                "Only the journal's owner can use their own stickers."
+            )
+
+        if self.user_reward.reward.item_type != "sticker":
+            raise ValidationError(
+                "Only sticker rewards can be placed on the page."
+            )
 
 
 class Forum(models.Model):

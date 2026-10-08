@@ -6,8 +6,31 @@
 
 {% block content %}
 
-<h1>Welcome to SafeSpace!</h1>
+{% if user.is_authenticated %}
 
-<p>This is the SafeSpace home page.</p>
+    <h1>Welcome back, {{ user.username }}!</h1>
+
+    <p>Open the Menu to find today's quests or write in your journal.</p>
+
+{% else %}
+
+    <h1>Welcome to SafeSpace!</h1>
+
+    <p>
+        SafeSpace is a self-care app that turns daily life into a personal archive.
+        Pick low-pressure quests, earn rewards to decorate your journal,
+        and build small habits that make every day a little more special.
+    </p>
+
+    <p>
+        No streaks, no leaderboards: you never lose anything by missing a day.
+    </p>
+
+    <p>
+        <a class="button button-primary" href="{% url 'register' %}">Sign up</a>
+        <a class="button" href="{% url 'login' %}">Log in</a>
+    </p>
+
+{% endif %}
 
 {% endblock %}
