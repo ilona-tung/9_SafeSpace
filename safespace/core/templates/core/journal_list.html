@@ -8,7 +8,7 @@ My Journal
 
 
 {% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/journal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
     {% include "core/_reward_fonts.html" %}
 {% endblock %}
 

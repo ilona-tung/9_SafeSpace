@@ -8,7 +8,7 @@ New Journal Page
 
 
 {% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/journal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
     {% include "core/_reward_fonts.html" %}
 {% endblock %}
 
@@ -92,6 +92,6 @@ New Journal Page
 </div>
 
 {{ editor_rewards|json_script:"journal-rewards" }}
-<script src="{% static 'js/journal_editor.js' %}"></script>
+<script src="{% static 'js/journal_editor.js' %}?v={{ ts }}"></script>
 
 {% endblock %}

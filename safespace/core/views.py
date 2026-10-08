@@ -19,6 +19,8 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .models import Quest, Reward, Journal, QuestCompletion, Forum
@@ -234,10 +236,18 @@ def completion_timeline_api(request):
 # Registration
 # ============================================================
 
+@method_decorator(never_cache, name="dispatch")
 class RegisterView(FormView):
     template_name = "core/register.html"
     form_class = UserCreationForm
     success_url = reverse_lazy("home")
+
+    def dispatch(self, request, *args, **kwargs):
+        # Already logged in (e.g. after pressing Back): go home instead
+        if request.user.is_authenticated:
+            return redirect("home")
+
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         form = self.get_form()

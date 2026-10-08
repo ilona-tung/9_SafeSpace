@@ -18,4 +18,14 @@
     Already have an account? <a href="{% url 'login' %}">Log in</a>.
 </p>
 
+<script>
+    // Pressing Back can show this page from the browser's memory without
+    // asking the server. Reload so a logged-in user is sent home instead.
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+</script>
+
 {% endblock %}

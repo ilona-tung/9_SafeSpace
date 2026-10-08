@@ -524,6 +524,18 @@ class AccessProtectionTests(TestCase):
         self.assertContains(response, 'class="nav-toggle" aria-expanded="false"')
         self.assertContains(response, 'id="site-nav" hidden')
 
+    def test_logged_in_user_is_sent_home_from_login_and_signup(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        for url in ["/login/", "/register/"]:
+            with self.subTest(url=url):
+                self.assertRedirects(self.client.get(url), "/")
+
+    def test_static_links_carry_a_version_number(self):
+        response = self.client.get("/")
+
+        self.assertRegex(response.content.decode(), r"style\.css\?v=\d+")
+
     def test_logout_logs_user_out(self):
         self.client.login(username="member", password="pw-12345!")
 
