@@ -1,0 +1,11 @@
+{% load static %}
+{# One @font-face per font reward, named "reward-font-<id>" #}
+<style>
+{% for font in font_rewards %}
+    @font-face {
+        font-family: "reward-font-{{ font.pk }}";
+        src: url("{% static font.asset %}");
+        font-display: swap;
+    }
+{% endfor %}
+</style>

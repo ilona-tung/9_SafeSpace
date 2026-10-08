@@ -1,0 +1,297 @@
+/* ============================================================
+   Journal pages (shared by the editor and the saved entries)
+   ============================================================ */
+
+/* Saved pages use the same size as the editor's page, so stickers
+   (stored in % of the page) land exactly where they were placed */
+.journal-notebook {
+  width: 100%;
+  max-width: 676px;
+  --paper: #FFFDF8;
+  --rule: #DCE3EC;
+  --margin-line: #E8B4B8;
+
+  position: relative;
+  background: var(--dark-slate);
+  border-radius: 18px;
+  padding: 14px 14px 14px 34px;
+  box-shadow: 0 10px 30px rgba(50, 72, 65, 0.25);
+}
+
+/* Spiral binding */
+.journal-notebook::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 24px;
+  bottom: 24px;
+  width: 14px;
+  background: radial-gradient(circle, var(--ghost-white) 4px, transparent 5px) 0 0 / 14px 28px repeat-y;
+}
+
+/* The page: margin line + ruled lines, drawn over the background reward */
+.journal-page {
+  position: relative;
+  min-height: 620px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(90deg, transparent 58px, var(--margin-line) 58px, var(--margin-line) 60px, transparent 60px),
+    repeating-linear-gradient(transparent 0 31px, var(--rule) 31px 32px),
+    var(--page-bg, none);
+  background-size: auto, auto, cover;
+  background-position: 0 0, 0 0, center;
+}
+
+/* Frame reward: corners stay sharp, edges stretch with the page */
+.journal-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border: 40px solid transparent;
+  border-image-slice: 80;
+  border-image-repeat: stretch;
+}
+
+.journal-date {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 22px 56px 0 76px;
+  font-size: .85rem;
+  color: #8a8490;
+}
+
+.journal-text {
+  position: relative;
+  z-index: 2;
+  min-height: 540px;
+  padding: 4px 56px 48px 76px;
+  margin: 0;
+  line-height: 32px;
+  font-size: 1.05rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  outline: none;
+}
+
+/* Font reward */
+.journal-page.has-font .journal-text {
+  font-family: var(--page-font), cursive;
+  font-size: 1.6rem;
+  color: #3b4f7a;
+}
+
+.journal-entry + .journal-entry {
+  margin-top: 2rem;
+}
+
+/* Stickers (x/y are the sticker's center) */
+.journal-sticker {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.18));
+  user-select: none;
+}
+
+
+/* ============================================================
+   Editor
+   ============================================================ */
+
+.journal-editor {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .journal-editor { grid-template-columns: 1fr; }
+}
+
+.journal-editor .journal-text:empty::before {
+  content: attr(data-placeholder);
+  color: #b0aab6;
+}
+
+.journal-page.drop-target {
+  box-shadow: inset 0 0 0 3px var(--ash-grey);
+}
+
+/* Reward tray */
+.reward-tray {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(50, 72, 65, 0.08);
+  position: sticky;
+  top: 1rem;
+}
+
+.reward-tray h2 {
+  font-size: 1.1rem;
+  margin: 0 0 .25rem;
+}
+
+.reward-tray h3 {
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #8a8490;
+  margin: 1rem 0 .5rem;
+}
+
+.tray-hint {
+  font-size: .8rem;
+  color: #8a8490;
+  margin: 0;
+}
+
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .5rem;
+}
+
+.tray-sticker {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px dashed var(--ash-grey);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  background: var(--ghost-white);
+}
+
+.tray-sticker:hover { border-style: solid; background: var(--white); }
+.tray-sticker img { width: 70%; height: 70%; pointer-events: none; }
+.tray-sticker.empty { opacity: .35; cursor: not-allowed; }
+
+.tray-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--dark-slate);
+  color: var(--white);
+  font-size: .7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+
+.tray-option {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--lavender);
+  background: var(--white);
+  border-radius: 10px;
+  padding: .45rem .6rem;
+  margin: 0 0 .4rem;
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tray-option:hover { border-color: var(--ash-grey); }
+
+.tray-option[aria-pressed="true"] {
+  border-color: var(--dark-slate);
+  box-shadow: inset 0 0 0 1px var(--dark-slate);
+}
+
+.tray-option .tray-count { position: static; margin-left: auto; }
+
+.tray-swatch {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--white) center / cover no-repeat;
+}
+
+/* Placed stickers in the editor */
+.journal-editor .journal-sticker {
+  cursor: grab;
+  touch-action: none;
+}
+
+.journal-editor .journal-sticker:active { cursor: grabbing; }
+
+.journal-sticker.selected {
+  outline: 2px dashed var(--dark-slate);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Toolbar for the selected sticker */
+.sticker-tools {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+  background: var(--dark-slate);
+  padding: 4px;
+  border-radius: 999px;
+  transform: translate(-50%, 0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.sticker-tools[hidden] { display: none; }
+
+.sticker-tools button {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--white);
+  font-size: 1rem;
+  line-height: 30px;
+  cursor: pointer;
+}
+
+.sticker-tools button:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* Sticker following the pointer while dragging from the tray */
+.drag-ghost {
+  position: fixed;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: .85;
+  transform: scale(1.05) rotate(-4deg);
+}
+
+.journal-actions {
+  display: flex;
+  gap: .6rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-errors {
+  color: #9b2c2c;
+}

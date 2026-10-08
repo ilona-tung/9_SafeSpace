@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeSpace Journal — Decorating Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* SafeSpace palette (from the project's CSS) */
+  :root {
+    --dark-slate: #324841;
+    --ash-grey: #ADC2AF;
+    --lavender: #E4E1F0;
+    --ghost-white: #F1F0F9;
+    --shadow-grey: #2B2730;
+    --paper: #FFFDF8;
+    --line: #DCE3EC;
+    --margin-line: #E8B4B8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--shadow-grey);
+    background: var(--ghost-white);
+  }
+
+  /* Demo banner */
+  .demo-banner {
+    background: #FFF4D6;
+    border-bottom: 1px solid #E8D49A;
+    padding: .6rem 1rem;
+    text-align: center;
+    font-size: .9rem;
+  }
+
+  /* Header (looks like the real site's header) */
+  .site-header {
+    background: var(--dark-slate);
+    color: var(--ghost-white);
+    border-bottom: 4px solid var(--ash-grey);
+    padding: .8rem 1.25rem;
+    display: flex;
+    align-items: center;
+  }
+  .site-header strong { font-size: 1.2rem; letter-spacing: .5px; }
+  .site-header span {
+    margin-left: auto;
+    border: 1px solid rgba(241,240,249,.3);
+    border-radius: 999px;
+    padding: .3rem .9rem;
+    font-size: .95rem;
+  }
+
+  main {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  h1 { color: var(--dark-slate); margin: 0 0 .25rem; }
+  .muted { color: #726c74; margin: 0 0 1.25rem; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .workspace { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Reward tray ---------- */
+  .tray {
+    background: white;
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(50,72,65,.08);
+    position: sticky;
+    top: 1rem;
+  }
+  .tray h2 { font-size: 1rem; margin: 0 0 .25rem; color: var(--dark-slate); }
+  .tray h3 {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #8a8490;
+    margin: 1rem 0 .5rem;
+  }
+  .tray-hint { font-size: .8rem; color: #8a8490; margin: 0; }
+
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .5rem;
+  }
+  .tray-sticker {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1px dashed var(--ash-grey);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    background: var(--ghost-white);
+  }
+  .tray-sticker:hover { border-style: solid; background: white; }
+  .tray-sticker svg { width: 70%; height: 70%; pointer-events: none; }
+  .tray-sticker.empty { opacity: .35; cursor: not-allowed; }
+  .count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--dark-slate);
+    color: white;
+    font-size: .7rem;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 1px 6px;
+  }
+  .mock-tag {
+    position: absolute;
+    bottom: 2px;
+    font-size: .55rem;
+    color: #a09aa6;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    width: 100%;
+    border: 1px solid var(--lavender);
+    background: white;
+    border-radius: 10px;
+    padding: .45rem .6rem;
+    margin-bottom: .4rem;
+    font: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+  }
+  .option:hover { border-color: var(--ash-grey); }
+  .option[aria-pressed="true"] {
+    border-color: var(--dark-slate);
+    box-shadow: inset 0 0 0 1px var(--dark-slate);
+  }
+  .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    flex: none;
+    border: 1px solid rgba(0,0,0,.08);
+  }
+  .option .count { position: static; margin-left: auto; }
+
+  /* ---------- Journal page ---------- */
+  .notebook {
+    background: var(--dark-slate);
+    border-radius: 18px;
+    padding: 14px 14px 14px 34px;
+    box-shadow: 0 10px 30px rgba(50,72,65,.25);
+    position: relative;
+  }
+  /* Spiral binding */
+  .notebook::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 24px;
+    bottom: 24px;
+    width: 14px;
+    background: radial-gradient(circle, var(--ghost-white) 4px, transparent 5px) 0 0 / 14px 28px repeat-y;
+  }
+
+  .page {
+    position: relative;
+    min-height: 620px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(90deg, transparent 58px, var(--margin-line) 58px, var(--margin-line) 60px, transparent 60px),
+      repeating-linear-gradient(transparent 0 31px, var(--line) 31px 32px);
+    transition: box-shadow .2s;
+  }
+  .page.drop-target { box-shadow: inset 0 0 0 3px var(--ash-grey); }
+
+  /* Backgrounds (rewards) */
+  .page.bg-nature {
+    background-image:
+      linear-gradient(90deg, transparent 58px, var(--margin-line) 58px, var(--margin-line) 60px, transparent 60px),
+      repeating-linear-gradient(transparent 0 31px, rgba(80,120,90,.15) 31px 32px),
+      radial-gradient(ellipse 70% 30% at 20% 105%, #b9d3a8 0 60%, transparent 61%),
+      radial-gradient(ellipse 80% 35% at 85% 108%, #a3c494 0 60%, transparent 61%),
+      linear-gradient(#f3f8ee, #e6f0dd);
+  }
+  .page.bg-cloud {
+    background-image:
+      linear-gradient(90deg, transparent 58px, var(--margin-line) 58px, var(--margin-line) 60px, transparent 60px),
+      repeating-linear-gradient(transparent 0 31px, rgba(90,120,170,.15) 31px 32px),
+      radial-gradient(circle at 18% 18%, white 0 38px, transparent 39px),
+      radial-gradient(circle at 24% 14%, white 0 30px, transparent 31px),
+      radial-gradient(circle at 80% 30%, white 0 44px, transparent 45px),
+      radial-gradient(circle at 87% 26%, white 0 32px, transparent 33px),
+      linear-gradient(#e3eefb, #f4f8fe);
+  }
+
+  /* Frame (reward) */
+  .page.frame-smiley {
+    outline: 6px dashed #F2C14E;
+    outline-offset: -14px;
+  }
+  .frame-corner {
+    display: none;
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .page.frame-smiley .frame-corner { display: block; }
+
+  .entry-date {
+    margin: 0;
+    padding: 22px 24px 0 76px;
+    font-size: .85rem;
+    color: #8a8490;
+    position: relative;
+    z-index: 2;
+  }
+  .entry-text {
+    position: relative;
+    z-index: 2;
+    min-height: 540px;
+    padding: 4px 28px 28px 76px;
+    line-height: 32px;
+    font-size: 1.05rem;
+    outline: none;
+    white-space: pre-wrap;
+  }
+  .entry-text:empty::before {
+    content: attr(data-placeholder);
+    color: #b0aab6;
+  }
+  .page.font-cool .entry-text {
+    font-family: "Caveat", "Comic Sans MS", cursive;
+    font-size: 1.6rem;
+    color: #3b4f7a;
+  }
+
+  /* Placed stickers */
+  .placed {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    margin: -45px 0 0 -45px;   /* x/y are the sticker's center */
+    z-index: 3;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.18));
+  }
+  .placed:active { cursor: grabbing; }
+  .placed svg { width: 100%; height: 100%; pointer-events: none; }
+  .placed.selected { outline: 2px dashed var(--dark-slate); outline-offset: 4px; border-radius: 6px; }
+
+  /* Small toolbar for the selected sticker */
+  .sticker-tools {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    gap: 4px;
+    background: var(--dark-slate);
+    padding: 4px;
+    border-radius: 999px;
+    transform: translate(-50%, 0);
+    box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  }
+  .sticker-tools[hidden] { display: none; }
+  .sticker-tools button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .sticker-tools button:hover { background: rgba(255,255,255,.15); }
+
+  /* Ghost while dragging from the tray */
+  .drag-ghost {
+    position: fixed;
+    width: 90px;
+    height: 90px;
+    margin: -45px 0 0 -45px;
+    pointer-events: none;
+    z-index: 100;
+    opacity: .85;
+    transform: scale(1.05) rotate(-4deg);
+  }
+  .drag-ghost svg { width: 100%; height: 100%; }
+
+  /* Action bar + saved-data panel */
+  .actions {
+    display: flex;
+    gap: .6rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: 1px solid var(--dark-slate);
+    background: white;
+    color: var(--dark-slate);
+    border-radius: 999px;
+    padding: .55rem 1.2rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--dark-slate); color: white; }
+
+  .saved {
+    margin-top: 1rem;
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(50,72,65,.08);
+  }
+  .saved[hidden] { display: none; }
+  .saved h2 { font-size: 1rem; margin: 0 0 .25rem; color: var(--dark-slate); }
+  .saved pre {
+    background: var(--ghost-white);
+    border-radius: 8px;
+    padding: .75rem;
+    font-size: .8rem;
+    overflow-x: auto;
+    margin: .5rem 0 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">
+  <strong>DEMO</strong> — a standalone mock-up, not connected to the SafeSpace app or database.
+  Nothing here is saved.
+</div>
+
+<header class="site-header">
+  <strong>SafeSpace</strong>
+  <span>☰ Menu</span>
+</header>
+
+<main>
+  <h1>My Journal</h1>
+  <p class="muted">Write your entry, then drag stickers onto the page. Click a sticker to rotate, resize, or remove it.</p>
+
+  <div class="workspace">
+
+    <!-- ===================== Reward tray ===================== -->
+    <aside class="tray" aria-label="Your rewards">
+      <h2>Your rewards</h2>
+      <p class="tray-hint">Earned by completing quests. Each copy can be used once.</p>
+
+      <h3>Stickers (drag)</h3>
+      <div class="sticker-grid" id="sticker-tray"></div>
+
+      <h3>Background</h3>
+      <div id="background-options"></div>
+
+      <h3>Frame</h3>
+      <div id="frame-options"></div>
+
+      <h3>Font</h3>
+      <div id="font-options"></div>
+    </aside>
+
+    <!-- ===================== Journal page ===================== -->
+    <section>
+      <div class="notebook">
+        <div class="page" id="page">
+          <svg class="frame-corner" style="top:4px;left:4px" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#F2C14E"/><circle cx="14" cy="16" r="2.5" fill="#5a4310"/><circle cx="26" cy="16" r="2.5" fill="#5a4310"/><path d="M12 24 q8 8 16 0" stroke="#5a4310" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+          <svg class="frame-corner" style="top:4px;right:4px" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#F2C14E"/><circle cx="14" cy="16" r="2.5" fill="#5a4310"/><circle cx="26" cy="16" r="2.5" fill="#5a4310"/><path d="M12 24 q8 8 16 0" stroke="#5a4310" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+          <svg class="frame-corner" style="bottom:4px;left:4px" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#F2C14E"/><circle cx="14" cy="16" r="2.5" fill="#5a4310"/><circle cx="26" cy="16" r="2.5" fill="#5a4310"/><path d="M12 24 q8 8 16 0" stroke="#5a4310" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+          <svg class="frame-corner" style="bottom:4px;right:4px" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#F2C14E"/><circle cx="14" cy="16" r="2.5" fill="#5a4310"/><circle cx="26" cy="16" r="2.5" fill="#5a4310"/><path d="M12 24 q8 8 16 0" stroke="#5a4310" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>
+
+          <p class="entry-date" id="entry-date"></p>
+          <div class="entry-text" id="entry-text" contenteditable="true"
+               data-placeholder="How was your day?">Took a long walk after class and finally noticed the trees turning orange. Drank all my water today too!</div>
+
+          <div class="sticker-tools" id="sticker-tools" hidden>
+            <button type="button" data-action="rotate-left" title="Rotate left" aria-label="Rotate left">⟲</button>
+            <button type="button" data-action="rotate-right" title="Rotate right" aria-label="Rotate right">⟳</button>
+            <button type="button" data-action="smaller" title="Smaller" aria-label="Smaller">−</button>
+            <button type="button" data-action="bigger" title="Bigger" aria-label="Bigger">+</button>
+            <button type="button" data-action="front" title="Bring to front" aria-label="Bring to front">⇡</button>
+            <button type="button" data-action="remove" title="Remove (returns it to your rewards)" aria-label="Remove">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn primary" id="save-btn">Save entry</button>
+        <button type="button" class="btn" id="reset-btn">Start over</button>
+      </div>
+
+      <div class="saved" id="saved" hidden>
+        <h2>What would be saved to the database</h2>
+        <p class="tray-hint">Sticker positions are stored as percentages, so the page looks the same on a phone or a laptop.</p>
+        <pre id="saved-json"></pre>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+(function () {
+  // ------------------------------------------------------------
+  // Mock data: the real rewards from the SafeSpace database,
+  // plus two extra mock stickers to show variety.
+  // ------------------------------------------------------------
+  const STICKER_ART = {
+    hydrated: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#fff" stroke="#7FB3D5" stroke-width="4"/><path d="M50 18 C38 36 30 46 30 58 a20 20 0 0 0 40 0 C70 46 62 36 50 18z" fill="#7FB3D5"/><path d="M42 58 a8 8 0 0 0 8 8" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><text x="50" y="92" font-size="9.5" text-anchor="middle" fill="#2E6A92" font-family="system-ui" font-weight="700">STAY HYDRATED</text></svg>',
+    star: '<svg viewBox="0 0 100 100"><path d="M50 8 L61 37 L92 38 L67 57 L76 88 L50 70 L24 88 L33 57 L8 38 L39 37z" fill="#F7D774" stroke="#E2B33C" stroke-width="3" stroke-linejoin="round"/><circle cx="42" cy="50" r="3" fill="#6b4f12"/><circle cx="58" cy="50" r="3" fill="#6b4f12"/><path d="M43 59 q7 6 14 0" stroke="#6b4f12" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+    leaf: '<svg viewBox="0 0 100 100"><path d="M20 80 C20 40 50 15 85 15 C85 55 60 80 20 80z" fill="#E59A4F"/><path d="M22 78 C40 60 58 42 80 20" stroke="#B5652A" stroke-width="3" fill="none" stroke-linecap="round"/></svg>'
+  };
+
+  const rewards = {
+    stickers: [
+      { id: 1, key: "hydrated", name: "Stay Hydrated Sticker", count: 3 },
+      { id: "mock-star", key: "star", name: "Happy Star", count: 2, mock: true },
+      { id: "mock-leaf", key: "leaf", name: "Autumn Leaf", count: 1, mock: true }
+    ],
+    backgrounds: [
+      { id: null, cls: "", name: "Plain paper", swatch: "#FFFDF8" },
+      { id: 2, cls: "bg-nature", name: "Nature Background", count: 2, swatch: "linear-gradient(#f3f8ee,#a3c494)" },
+      { id: 4, cls: "bg-cloud", name: "Cloud Background", count: 5, swatch: "linear-gradient(#e3eefb,#fff)" }
+    ],
+    frames: [
+      { id: null, cls: "", name: "No frame", swatch: "#fff" },
+      { id: 3, cls: "frame-smiley", name: "Smily face frame", count: 1, swatch: "#F2C14E" }
+    ],
+    fonts: [
+      { id: null, cls: "", name: "Regular", swatch: "#fff" },
+      { id: 5, cls: "font-cool", name: "Cool Font", count: 2, swatch: "#3b4f7a" }
+    ]
+  };
+
+  const page = document.getElementById("page");
+  const tray = document.getElementById("sticker-tray");
+  const tools = document.getElementById("sticker-tools");
+  const entryText = document.getElementById("entry-text");
+  const initialText = entryText.textContent;
+
+  document.getElementById("entry-date").textContent =
+    new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+  let placed = [];         // stickers on the page: {uid, sticker, x, y, rotation, scale, el}
+  let selected = null;
+  let nextUid = 1;
+  let topZ = 3;
+  const chosen = { background: null, frame: null, font: null };
+
+  // ------------------------------------------------------------
+  // Tray: stickers you can drag
+  // ------------------------------------------------------------
+  function renderTray() {
+    tray.innerHTML = "";
+    rewards.stickers.forEach(function (sticker) {
+      const item = document.createElement("div");
+      item.className = "tray-sticker" + (sticker.count === 0 ? " empty" : "");
+      item.title = sticker.name + (sticker.mock ? " (mock)" : "");
+      item.innerHTML = STICKER_ART[sticker.key] +
+        '<span class="count">×' + sticker.count + "</span>" +
+        (sticker.mock ? '<span class="mock-tag">mock</span>' : "");
+      item.addEventListener("pointerdown", function (event) {
+        if (sticker.count > 0) startTrayDrag(event, sticker);
+      });
+      tray.appendChild(item);
+    });
+  }
+
+  function startTrayDrag(event, sticker) {
+    event.preventDefault();
+    const ghost = document.createElement("div");
+    ghost.className = "drag-ghost";
+    ghost.innerHTML = STICKER_ART[sticker.key];
+    document.body.appendChild(ghost);
+
+    function move(e) {
+      ghost.style.left = e.clientX + "px";
+      ghost.style.top = e.clientY + "px";
+      page.classList.toggle("drop-target", isOverPage(e));
+    }
+
+    function end(e) {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", end);
+      ghost.remove();
+      page.classList.remove("drop-target");
+
+      if (isOverPage(e)) {
+        const rect = page.getBoundingClientRect();
+        placeSticker(sticker, (e.clientX - rect.left) / rect.width * 100, (e.clientY - rect.top) / rect.height * 100);
+      }
+    }
+
+    move(event);
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", end);
+  }
+
+  function isOverPage(e) {
+    const rect = page.getBoundingClientRect();
+    return e.clientX >= rect.left && e.clientX <= rect.right &&
+           e.clientY >= rect.top && e.clientY <= rect.bottom;
+  }
+
+  // ------------------------------------------------------------
+  // Stickers on the page: move, select, rotate, resize, remove
+  // ------------------------------------------------------------
+  function placeSticker(sticker, x, y, rotation, scale) {
+    sticker.count -= 1;
+    renderTray();
+
+    const item = {
+      uid: nextUid++,
+      sticker: sticker,
+      x: x, y: y,
+      rotation: rotation || Math.round(Math.random() * 20 - 10),
+      scale: scale || 1,
+      el: document.createElement("div")
+    };
+    item.el.className = "placed";
+    item.el.innerHTML = STICKER_ART[sticker.key];
+    item.el.style.zIndex = ++topZ;
+    item.el.addEventListener("pointerdown", function (e) { startMove(e, item); });
+    page.appendChild(item.el);
+    placed.push(item);
+    draw(item);
+    select(item);
+  }
+
+  function draw(item) {
+    item.el.style.left = item.x + "%";
+    item.el.style.top = item.y + "%";
+    item.el.style.transform = "rotate(" + item.rotation + "deg) scale(" + item.scale + ")";
+    if (selected === item) positionTools();
+  }
+
+  function startMove(event, item) {
+    event.preventDefault();
+    event.stopPropagation();
+    select(item);
+    const rect = page.getBoundingClientRect();
+    const offsetX = event.clientX - (rect.left + item.x / 100 * rect.width);
+    const offsetY = event.clientY - (rect.top + item.y / 100 * rect.height);
+
+    function move(e) {
+      item.x = clamp((e.clientX - offsetX - rect.left) / rect.width * 100, 0, 100);
+      item.y = clamp((e.clientY - offsetY - rect.top) / rect.height * 100, 0, 100);
+      draw(item);
+    }
+    function end() {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", end);
+    }
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", end);
+  }
+
+  function select(item) {
+    placed.forEach(function (p) { p.el.classList.toggle("selected", p === item); });
+    selected = item;
+    tools.hidden = !item;
+    if (item) positionTools();
+  }
+
+  function positionTools() {
+    const size = 90 * selected.scale;
+    tools.style.left = selected.x + "%";
+    tools.style.top = "calc(" + selected.y + "% + " + (size / 2 + 12) + "px)";
+  }
+
+  tools.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  tools.addEventListener("click", function (e) {
+    const action = e.target.closest("button") && e.target.closest("button").dataset.action;
+    if (!action || !selected) return;
+    if (action === "rotate-left") selected.rotation -= 15;
+    if (action === "rotate-right") selected.rotation += 15;
+    if (action === "smaller") selected.scale = Math.max(0.5, +(selected.scale - 0.15).toFixed(2));
+    if (action === "bigger") selected.scale = Math.min(2.5, +(selected.scale + 0.15).toFixed(2));
+    if (action === "front") selected.el.style.zIndex = ++topZ;
+    if (action === "remove") return removeSticker(selected);
+    draw(selected);
+  });
+
+  function removeSticker(item) {
+    item.el.remove();
+    placed = placed.filter(function (p) { return p !== item; });
+    item.sticker.count += 1;  // the copy goes back to the tray
+    renderTray();
+    select(null);
+  }
+
+  page.addEventListener("pointerdown", function (e) {
+    if (!e.target.closest(".placed")) select(null);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (!selected || document.activeElement === entryText) return;
+    if (e.key === "Delete" || e.key === "Backspace") removeSticker(selected);
+  });
+
+  // ------------------------------------------------------------
+  // Background / frame / font: one choice each
+  // ------------------------------------------------------------
+  function renderOptions(containerId, list, slot) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    list.forEach(function (option) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "option";
+      button.setAttribute("aria-pressed", String((chosen[slot] && chosen[slot].cls) === option.cls || (!chosen[slot] && !option.cls)));
+      button.innerHTML = '<span class="swatch" style="background:' + option.swatch + '"></span>' +
+        option.name + (option.count ? '<span class="count">×' + option.count + "</span>" : "");
+      button.addEventListener("click", function () {
+        if (chosen[slot] && chosen[slot].cls) page.classList.remove(chosen[slot].cls);
+        chosen[slot] = option.cls ? option : null;
+        if (option.cls) page.classList.add(option.cls);
+        renderOptions(containerId, list, slot);
+      });
+      container.appendChild(button);
+    });
+  }
+
+  // ------------------------------------------------------------
+  // Save: show the data the real app would store
+  // ------------------------------------------------------------
+  document.getElementById("save-btn").addEventListener("click", function () {
+    const data = {
+      content: entryText.innerText.trim(),
+      background_reward_id: chosen.background ? chosen.background.id : null,
+      frame_reward_id: chosen.frame ? chosen.frame.id : null,
+      font_reward_id: chosen.font ? chosen.font.id : null,
+      stickers: placed.map(function (p) {
+        return {
+          reward_id: p.sticker.id,
+          x_percent: +p.x.toFixed(1),
+          y_percent: +p.y.toFixed(1),
+          rotation: p.rotation,
+          scale: p.scale
+        };
+      })
+    };
+    document.getElementById("saved-json").textContent = JSON.stringify(data, null, 2);
+    document.getElementById("saved").hidden = false;
+    document.getElementById("saved").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    placed.slice().forEach(removeSticker);
+    ["background", "frame", "font"].forEach(function (slot) {
+      if (chosen[slot]) page.classList.remove(chosen[slot].cls);
+      chosen[slot] = null;
+    });
+    renderAllOptions();
+    entryText.textContent = initialText;
+    document.getElementById("saved").hidden = true;
+  });
+
+  function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+
+  function renderAllOptions() {
+    renderOptions("background-options", rewards.backgrounds, "background");
+    renderOptions("frame-options", rewards.frames, "frame");
+    renderOptions("font-options", rewards.fonts, "font");
+  }
+
+  // Start with a couple of stickers already placed
+  renderTray();
+  renderAllOptions();
+  placeSticker(rewards.stickers[0], 80, 32, 8, 1);
+  placeSticker(rewards.stickers[2], 74, 72, -12, 1.2);
+  select(null);
+})();
+</script>
+
+</body>
+</html>

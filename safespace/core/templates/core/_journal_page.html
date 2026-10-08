@@ -1,0 +1,25 @@
+{% load static %}
+{# A saved, decorated journal page. Expects "journal". #}
+<div class="journal-notebook">
+    <div class="journal-page{% if journal.font.asset %} has-font{% endif %}"
+         style="{% if journal.background.asset %}--page-bg: url('{% static journal.background.asset %}');{% endif %}{% if journal.font.asset %}--page-font: 'reward-font-{{ journal.font.pk }}';{% endif %}">
+
+        {% if journal.frame.asset %}
+            <div class="journal-frame" style="border-image-source: url('{% static journal.frame.asset %}')"></div>
+        {% endif %}
+
+        <p class="journal-date">{{ journal.time|date:"l, F j, Y · g:i A" }}</p>
+        <div class="journal-text">{{ journal.content }}</div>
+
+        {% for sticker in journal.stickers.all %}
+            {% with reward=sticker.user_reward.reward %}
+                {% if reward.asset %}
+                    <img class="journal-sticker"
+                         src="{% static reward.asset %}"
+                         alt="{{ reward.name }}"
+                         style="left: {{ sticker.x|stringformat:'f' }}%; top: {{ sticker.y|stringformat:'f' }}%; transform: rotate({{ sticker.rotation }}deg) scale({{ sticker.scale|stringformat:'f' }}); z-index: {{ sticker.layer|add:10 }};">
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    </div>
+</div>

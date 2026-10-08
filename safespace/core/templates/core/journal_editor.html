@@ -1,0 +1,97 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+
+{% block title %}
+New Journal Page
+{% endblock %}
+
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}">
+    {% include "core/_reward_fonts.html" %}
+{% endblock %}
+
+
+{% block content %}
+<h1>New Journal Page</h1>
+
+<p class="muted">
+    Write your entry, then drag stickers onto the page.
+    Click a sticker to rotate, resize, or remove it.
+    Each sticker you place uses up one copy.
+</p>
+
+{% if form.errors %}
+    <ul class="form-errors">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<div class="journal-editor">
+
+    <!-- ============================== -->
+    <!-- REWARD TRAY -->
+    <!-- ============================== -->
+
+    <aside class="reward-tray" aria-label="Your rewards">
+        <h2>Your rewards</h2>
+        <p class="tray-hint">Earned by completing quests.</p>
+
+        <h3>Stickers (drag)</h3>
+        <div class="sticker-grid" id="sticker-tray"></div>
+
+        <h3>Background</h3>
+        <div id="background-options"></div>
+
+        <h3>Frame</h3>
+        <div id="frame-options"></div>
+
+        <h3>Font</h3>
+        <div id="font-options"></div>
+    </aside>
+
+
+    <!-- ============================== -->
+    <!-- JOURNAL PAGE -->
+    <!-- ============================== -->
+
+    <section>
+        <div class="journal-notebook">
+            <div class="journal-page" id="journal-page">
+                <div class="journal-frame" id="journal-frame" hidden></div>
+
+                <p class="journal-date">{{ today|date:"l, F j, Y" }}</p>
+                <div class="journal-text" id="journal-text" contenteditable="true"
+                     data-placeholder="How was your day?">{{ form.content.value|default_if_none:"" }}</div>
+
+                <div class="sticker-tools" id="sticker-tools" hidden>
+                    <button type="button" data-action="rotate-left" title="Rotate left" aria-label="Rotate left">⟲</button>
+                    <button type="button" data-action="rotate-right" title="Rotate right" aria-label="Rotate right">⟳</button>
+                    <button type="button" data-action="smaller" title="Smaller" aria-label="Smaller">−</button>
+                    <button type="button" data-action="bigger" title="Bigger" aria-label="Bigger">+</button>
+                    <button type="button" data-action="front" title="Bring to front" aria-label="Bring to front">⇡</button>
+                    <button type="button" data-action="remove" title="Remove (returns it to your rewards)" aria-label="Remove">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" id="journal-form" class="journal-actions">
+            {% csrf_token %}
+            <textarea name="content" hidden></textarea>
+            {{ form.layout }}
+            <button type="submit" class="button-primary">Save entry</button>
+            <a class="button" href="{% url 'journal_list' %}">Cancel</a>
+        </form>
+    </section>
+
+</div>
+
+{{ editor_rewards|json_script:"journal-rewards" }}
+<script src="{% static 'js/journal_editor.js' %}"></script>
+
+{% endblock %}
