@@ -1,0 +1,3 @@
+01: It gets prints out a report of each quest, showing category and the user count of each.
+02: It collects the completion timeline API.
+03: It downloads from the API and loads the results into an excel sheet.
