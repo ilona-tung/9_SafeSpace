@@ -3,6 +3,7 @@ from collections import Counter
 
 from django import forms
 from django.db import transaction
+from django.db.models import Q
 
 from .models import Journal, JournalSticker, Reward, UserReward
 
@@ -45,6 +46,7 @@ class JournalEditorForm(forms.Form):
 
     Users can only use rewards they own, and each placed sticker
     uses up one unused copy of that sticker.
+    Unlimited rewards belong to everyone and are never used up.
     """
 
     MAX_STICKERS = 40
@@ -86,10 +88,10 @@ class JournalEditorForm(forms.Form):
                 continue
 
             reward = Reward.objects.filter(
+                Q(pk__in=owned.values("reward")) | Q(unlimited=True),
                 pk=reward_id if isinstance(reward_id, int) else None,
                 item_type=slot,
-                earned_by__in=owned,
-            ).distinct().first()
+            ).first()
 
             if reward is None:
                 raise forms.ValidationError(f"You can only use a {slot} you have earned.")
@@ -115,10 +117,18 @@ class JournalEditorForm(forms.Form):
             except (KeyError, TypeError, ValueError, OverflowError):
                 raise forms.ValidationError("The page layout could not be read.")
 
-        # Each sticker uses up one unused copy
+        # Each sticker uses up one unused copy, except unlimited stickers
         needed = Counter(sticker["reward_id"] for sticker in cleaned["stickers"])
+        unlimited = set(
+            Reward.objects
+            .filter(pk__in=needed, item_type="sticker", unlimited=True)
+            .values_list("pk", flat=True)
+        )
 
         for reward_id, count in needed.items():
+            if reward_id in unlimited:
+                continue
+
             available = owned.filter(
                 reward_id=reward_id,
                 reward__item_type="sticker",
@@ -128,6 +138,7 @@ class JournalEditorForm(forms.Form):
             if count > available:
                 raise forms.ValidationError("You don't have enough copies of one of those stickers.")
 
+        cleaned["unlimited"] = unlimited
         return cleaned
 
     @transaction.atomic
@@ -142,15 +153,21 @@ class JournalEditorForm(forms.Form):
             font=layout["font"],
         )
 
+        unlimited = layout["unlimited"]
+
         for layer, sticker in enumerate(layout["stickers"]):
-            copy = UserReward.objects.filter(
-                user=self.user,
-                reward_id=sticker["reward_id"],
-                placement__isnull=True,
-            ).first()
+            copy = None
+
+            if sticker["reward_id"] not in unlimited:
+                copy = UserReward.objects.filter(
+                    user=self.user,
+                    reward_id=sticker["reward_id"],
+                    placement__isnull=True,
+                ).first()
 
             JournalSticker.objects.create(
                 journal=journal,
+                reward_id=sticker["reward_id"],
                 user_reward=copy,
                 x=sticker["x"],
                 y=sticker["y"],

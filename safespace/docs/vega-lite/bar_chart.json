@@ -1,13 +1,50 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "title": "Quests in SafeSpace",
+  "background": "#ffffff",
+  "padding": 16,
+  "config": {
+    "font": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+    "view": {
+      "stroke": null
+    },
+    "title": {
+      "color": "#324841",
+      "fontSize": 18,
+      "fontWeight": 700,
+      "anchor": "start",
+      "offset": 14
+    },
+    "axis": {
+      "labelColor": "#392D35",
+      "titleColor": "#324841",
+      "labelFontSize": 12,
+      "titleFontSize": 13,
+      "titleFontWeight": 600,
+      "domainColor": "#ADC2AF",
+      "tickColor": "#ADC2AF",
+      "gridColor": "#E4E2F3"
+    },
+    "axisX": {
+      "grid": false
+    },
+    "legend": {
+      "labelColor": "#392D35",
+      "titleColor": "#324841",
+      "labelFontSize": 12,
+      "titleFontSize": 13,
+      "symbolType": "circle"
+    }
+  },
   "width": 700,
   "height": 400,
   "data": {
     "url": "https://ilona.pythonanywhere.com/api/quest-summary/"
   },
   "mark": {
-    "type": "bar"
+    "type": "bar",
+    "cornerRadiusTopLeft": 6,
+    "cornerRadiusTopRight": 6
   },
   "encoding": {
     "x": {
@@ -15,6 +52,9 @@
       "type": "nominal",
       "sort": "-y",
       "title": "Quest",
+      "scale": {
+        "paddingInner": 0.45
+      },
       "axis": {
         "labelAngle": -35
       }
@@ -30,7 +70,23 @@
     "color": {
       "field": "category",
       "type": "nominal",
-      "title": "Category"
+      "title": "Category",
+      "scale": {
+        "range": [
+          "#324841",
+          "#ADC2AF",
+          "#E8B4B8",
+          "#9C95C9",
+          "#F2C46D",
+          "#7FB3D5",
+          "#8A8490"
+        ]
+      },
+      "legend": {
+        "orient": "bottom",
+        "direction": "horizontal",
+        "columns": 3
+      }
     },
     "tooltip": [
       {

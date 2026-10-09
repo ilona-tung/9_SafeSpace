@@ -13,15 +13,24 @@ Rewards
         {{ reward.name }} ({{ reward.get_item_type_display }})
         {% if user.is_staff %}
             <span class="muted">
-                — unlocked by:
-                {% for quest in reward.quests.all %}{{ quest.title }}{% if not forloop.last %}, {% endif %}{% empty %}no quests yet{% endfor %}
-                · earned {{ reward.times_earned }} time{{ reward.times_earned|pluralize }}
-                by {{ reward.owner_count }} user{{ reward.owner_count|pluralize }}
+                {% if reward.unlimited %}
+                    — unlimited, every user has it
+                    · placed on journal pages {{ reward.times_placed }} time{{ reward.times_placed|pluralize }}
+                {% else %}
+                    — unlocked by:
+                    {% for quest in reward.quests.all %}{{ quest.title }}{% if not forloop.last %}, {% endif %}{% empty %}no quests yet{% endfor %}
+                    · earned {{ reward.times_earned }} time{{ reward.times_earned|pluralize }}
+                    by {{ reward.owner_count }} user{{ reward.owner_count|pluralize }}
+                {% endif %}
             </span>
         {% else %}
             <span class="muted">
-                — you have {{ reward.owned_count }}
-                {% if reward.used_count %}({{ reward.used_count }} used on journal pages){% endif %}
+                {% if reward.unlimited %}
+                    — unlimited, use it as often as you like!
+                {% else %}
+                    — you have {{ reward.owned_count }}
+                    {% if reward.used_count %}({{ reward.used_count }} used on journal pages){% endif %}
+                {% endif %}
             </span>
         {% endif %}
     </li>

@@ -23,7 +23,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .models import Quest, Reward, Journal, QuestCompletion, Forum
+from .models import Quest, Reward, Journal, QuestCompletion, Forum, UserReward
 from .forms import JournalEditorForm
 
 import matplotlib
@@ -47,7 +47,9 @@ def home(request):
 
     spec = vega_bar_spec()
     spec["width"] = "container"
-    spec["height"] = 320
+    spec["height"] = 200
+    spec["title"] = {"text": "Quests in SafeSpace", "fontSize": 15}
+    spec["encoding"]["x"]["title"] = None
 
     return render(request, "core/home.html", {"quest_chart_spec": spec})
 
@@ -381,7 +383,7 @@ def journal_list(request):
     journals = (
         request.user.journals
         .select_related("background", "frame", "font")
-        .prefetch_related("stickers__user_reward__reward")
+        .prefetch_related("stickers__reward")
     )
 
     return render(
@@ -435,11 +437,15 @@ def editor_rewards(user):
     """
     The user's rewards for the editor's tray, grouped by type.
     Sticker counts only include copies that are not on a page yet.
+    Unlimited rewards are available to everyone, with count None.
     """
 
     owned = (
         Reward.objects
-        .filter(earned_by__user=user)
+        .filter(
+            Q(pk__in=UserReward.objects.filter(user=user).values("reward"))
+            | Q(unlimited=True)
+        )
         .exclude(asset="")
         .annotate(
             owned_count=Count("earned_by", filter=Q(earned_by__user=user)),
@@ -458,7 +464,11 @@ def editor_rewards(user):
             "id": reward.pk,
             "name": reward.name,
             "url": static(reward.asset),
-            "count": reward.unused_count if reward.item_type == "sticker" else reward.owned_count,
+            "count": (
+                None if reward.unlimited
+                else reward.unused_count if reward.item_type == "sticker"
+                else reward.owned_count
+            ),
         })
 
     return groups
@@ -550,6 +560,44 @@ def quest_completion_chart(request):
 # Part 1.2 - Vega-Lite Bar Chart
 # ============================================================
 
+# Colors from style.css (dark slate, sage, journal pink, lavender)
+# plus soft sticker colors, so every category gets its own color
+SAFESPACE_CATEGORY_COLORS = [
+    "#324841", "#ADC2AF", "#E8B4B8", "#9C95C9",
+    "#F2C46D", "#7FB3D5", "#8A8490",
+]
+
+SAFESPACE_CHART_STYLE = {
+    "font": 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    "view": {"stroke": None},
+    "title": {
+        "color": "#324841",
+        "fontSize": 18,
+        "fontWeight": 700,
+        "anchor": "start",
+        "offset": 14,
+    },
+    "axis": {
+        "labelColor": "#392D35",
+        "titleColor": "#324841",
+        "labelFontSize": 12,
+        "titleFontSize": 13,
+        "titleFontWeight": 600,
+        "domainColor": "#ADC2AF",
+        "tickColor": "#ADC2AF",
+        "gridColor": "#E4E2F3",
+    },
+    "axisX": {"grid": False},
+    "legend": {
+        "labelColor": "#392D35",
+        "titleColor": "#324841",
+        "labelFontSize": 12,
+        "titleFontSize": 13,
+        "symbolType": "circle",
+    },
+}
+
+
 def vega_bar_spec():
     """
     Vega-Lite specification for the quest bar chart,
@@ -563,6 +611,13 @@ def vega_bar_spec():
 
         "title": "Quests in SafeSpace",
 
+        "background": "#ffffff",
+
+        "padding": 16,
+
+        # SafeSpace look: same font and colors as style.css
+        "config": SAFESPACE_CHART_STYLE,
+
         "width": 700,
 
         "height": 400,
@@ -572,7 +627,9 @@ def vega_bar_spec():
         },
 
         "mark": {
-            "type": "bar"
+            "type": "bar",
+            "cornerRadiusTopLeft": 6,
+            "cornerRadiusTopRight": 6
         },
 
         "encoding": {
@@ -582,6 +639,10 @@ def vega_bar_spec():
                 "type": "nominal",
                 "sort": "-y",
                 "title": "Quest",
+
+                "scale": {
+                    "paddingInner": 0.45
+                },
 
                 "axis": {
                     "labelAngle": -35
@@ -602,7 +663,17 @@ def vega_bar_spec():
             "color": {
                 "field": "category",
                 "type": "nominal",
-                "title": "Category"
+                "title": "Category",
+
+                "scale": {
+                    "range": SAFESPACE_CATEGORY_COLORS
+                },
+
+                "legend": {
+                    "orient": "bottom",
+                    "direction": "horizontal",
+                    "columns": 3
+                }
             },
 
             "tooltip": [
@@ -892,8 +963,9 @@ def reward_list_render(request):
     if request.user.is_staff:
         # Admins see how each reward is used across the whole system
         rewards = rewards.prefetch_related("quests").annotate(
-            times_earned=Count("earned_by"),
+            times_earned=Count("earned_by", distinct=True),
             owner_count=Count("earned_by__user", distinct=True),
+            times_placed=Count("placements", distinct=True),
         )
     else:
         rewards = rewards.annotate(

@@ -40,11 +40,11 @@
 
       const count = document.createElement("span");
       count.className = "tray-count";
-      count.textContent = "×" + sticker.count;
+      count.textContent = sticker.count === null ? "∞" : "×" + sticker.count;
 
       item.append(img, count);
       item.addEventListener("pointerdown", function (event) {
-        if (sticker.count > 0) startTrayDrag(event, sticker);
+        if (sticker.count === null || sticker.count > 0) startTrayDrag(event, sticker);
       });
       tray.appendChild(item);
     });
@@ -95,7 +95,7 @@
   // Stickers on the page: move, select, rotate, resize, remove
   // ------------------------------------------------------------
   function placeSticker(sticker, x, y) {
-    sticker.count -= 1;
+    if (sticker.count !== null) sticker.count -= 1;   // unlimited stickers have count null
     renderTray();
 
     const item = {
@@ -180,7 +180,7 @@
   function removeSticker(item) {
     item.el.remove();
     placed = placed.filter(function (p) { return p !== item; });
-    item.sticker.count += 1;   // the copy goes back to the tray
+    if (item.sticker.count !== null) item.sticker.count += 1;   // the copy goes back to the tray
     renderTray();
     select(null);
   }
@@ -232,7 +232,7 @@
       if (option) {
         const count = document.createElement("span");
         count.className = "tray-count";
-        count.textContent = "×" + option.count;
+        count.textContent = option.count === null ? "∞" : "×" + option.count;
         button.appendChild(count);
       }
 

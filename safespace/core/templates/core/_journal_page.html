@@ -12,7 +12,7 @@
         <div class="journal-text">{{ journal.content }}</div>
 
         {% for sticker in journal.stickers.all %}
-            {% with reward=sticker.user_reward.reward %}
+            {% with reward=sticker.reward %}
                 {% if reward.asset %}
                     <img class="journal-sticker"
                          src="{% static reward.asset %}"

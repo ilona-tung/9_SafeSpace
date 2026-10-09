@@ -188,7 +188,10 @@ class JournalTests(TestCase):
         response = self.client.get("/journals/new/")
 
         rewards = response.context["editor_rewards"]
-        self.assertEqual([(r["name"], r["count"]) for r in rewards["sticker"]], [("Star", 2)])
+        self.assertEqual(
+            [(r["name"], r["count"]) for r in rewards["sticker"]],
+            [("Star", 2), ("You're a Star Sticker", None)],
+        )
         self.assertEqual([r["name"] for r in rewards["background"]], ["Meadow"])
         self.assertContains(response, "reward-font-")
 
@@ -223,6 +226,33 @@ class JournalTests(TestCase):
 
         self.assertContains(response, "enough copies")
         self.assertFalse(Journal.objects.filter(user=self.user).exists())
+
+    def test_unlimited_sticker_never_runs_out(self):
+        welcome = Reward.objects.get(unlimited=True)
+        self.client.login(username="writer", password="pw-12345!")
+        many = [{"reward": welcome.pk, "x": 10, "y": 10}] * 5
+
+        response = self.save_page(stickers=many)
+
+        self.assertRedirects(response, "/journals/")
+        journal = Journal.objects.get(user=self.user)
+        self.assertEqual(journal.stickers.filter(reward=welcome, user_reward=None).count(), 5)
+        self.assertContains(self.client.get("/journals/"), "NewUser.png")
+        self.assertContains(self.client.get("/rewards/"), "unlimited, use it as often as you like")
+
+        editor = self.client.get("/journals/new/")
+        counts = {r["name"]: r["count"] for r in editor.context["editor_rewards"]["sticker"]}
+        self.assertIsNone(counts["You're a Star Sticker"])
+
+    def test_completing_a_quest_earns_its_new_sticker(self):
+        walk = Quest.objects.create(title="Take a walk", category="diet")
+        sticker = Reward.objects.get(name="Take a Walk Sticker")
+        sticker.quests.add(walk)
+        self.client.login(username="writer", password="pw-12345!")
+
+        self.client.post(f"/quests/{walk.pk}/complete/")
+
+        self.assertTrue(UserReward.objects.filter(user=self.user, reward=sticker).exists())
 
     def test_cannot_use_rewards_you_have_not_earned(self):
         self.earn(self.other)

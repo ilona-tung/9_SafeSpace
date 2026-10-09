@@ -169,6 +169,14 @@ class Reward(models.Model):
         )
     )
 
+    unlimited = models.BooleanField(
+        default=False,
+        help_text=(
+            "Every user always has this reward and can use it "
+            "as many times as they like (e.g. the welcome sticker)."
+        )
+    )
+
     class Meta:
         ordering = ["item_type", "name"]
         constraints = [
@@ -329,6 +337,7 @@ class JournalSticker(models.Model):
 
     Each placed sticker uses up one copy (UserReward) of that sticker,
     so a copy can only ever be on one page.
+    Unlimited stickers don't use up a copy, so user_reward stays empty.
     Position is stored in percent of the page so it fits any screen size.
     """
 
@@ -338,11 +347,21 @@ class JournalSticker(models.Model):
         related_name="stickers"
     )
 
+    reward = models.ForeignKey(
+        Reward,
+        on_delete=models.PROTECT,
+        related_name="placements",
+        limit_choices_to={"item_type": "sticker"},
+        help_text="The sticker shown on the page."
+    )
+
     user_reward = models.OneToOneField(
         UserReward,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="placement",
-        help_text="The sticker copy used for this placement."
+        help_text="The sticker copy used up by this placement (empty for unlimited stickers)."
     )
 
     x = models.FloatField(
@@ -371,17 +390,29 @@ class JournalSticker(models.Model):
         ordering = ["layer", "id"]
 
     def __str__(self):
-        return f"{self.user_reward.reward} on {self.journal}"
+        return f"{self.reward} on {self.journal}"
 
     def clean(self):
+        if self.reward.item_type != "sticker":
+            raise ValidationError(
+                "Only sticker rewards can be placed on the page."
+            )
+
+        if self.user_reward is None:
+            if not self.reward.unlimited:
+                raise ValidationError(
+                    "This sticker uses up a copy, so pick the copy that was used."
+                )
+            return
+
         if self.user_reward.user_id != self.journal.user_id:
             raise ValidationError(
                 "Only the journal's owner can use their own stickers."
             )
 
-        if self.user_reward.reward.item_type != "sticker":
+        if self.user_reward.reward_id != self.reward_id:
             raise ValidationError(
-                "Only sticker rewards can be placed on the page."
+                "The sticker copy must be a copy of this sticker."
             )
 
 
