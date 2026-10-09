@@ -388,7 +388,7 @@ class AccessProtectionTests(TestCase):
         "/quests/", "/rewards/",
     ]
     APIS = [
-        "/api/quest-summary/", "/api/completion-timeline/",
+        "/api/completion-timeline/",
         "/api/location/?q=Chicago", "/api/forum-nearby/?q=Chicago",
     ]
     PUBLIC_PAGES = ["/", "/login/", "/register/"]
@@ -420,11 +420,26 @@ class AccessProtectionTests(TestCase):
     def test_chart_apis_are_admin_only(self):
         self.client.login(username="member", password="pw-12345!")
 
-        for url in ["/api/quest-summary/", "/api/completion-timeline/"]:
-            with self.subTest(url=url):
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, 403)
-                self.assertEqual(response.json(), {"error": "Admins only."})
+        response = self.client.get("/api/completion-timeline/")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json(), {"error": "Admins only."})
+
+    def test_quest_summary_api_is_public(self):
+        quest = Quest.objects.create(title="Walk", category="general")
+        QuestCompletion.objects.create(
+            user=self.user, quest=quest, completed_status=True,
+            quest_date="2026-10-01", completed_date="2026-10-01",
+        )
+
+        response = self.client.get("/api/quest-summary/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Access-Control-Allow-Origin"], "*")
+        self.assertEqual(
+            response.json(),
+            [{"quest": "Walk", "category": "General Self-Care", "user_count": 1}],
+        )
+        self.assertNotContains(response, "member")
 
     def test_public_pages_stay_open(self):
         for url in self.PUBLIC_PAGES:

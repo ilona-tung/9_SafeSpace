@@ -144,18 +144,11 @@ def api_admin_required(view):
 # Part 1.1 - Database-backed JSON API
 # ============================================================
 
-@api_admin_required
-def quest_summary_api(request):
+def quest_summary_data():
     """
-    Return the number of distinct users who completed
-    each quest.
+    Each quest with its category and the number of distinct
+    users who completed it. No usernames are included.
     """
-
-    if request.method != "GET":
-        return JsonResponse(
-            {"error": "GET requests only."},
-            status=405
-        )
 
     quest_summary = Quest.objects.annotate(
         user_count=Count(
@@ -167,15 +160,34 @@ def quest_summary_api(request):
         )
     )
 
-    data = [
+    return [
         {
             "quest": quest.title,
+            "category": quest.display_category(),
             "user_count": quest.user_count,
         }
         for quest in quest_summary
     ]
 
-    return JsonResponse(data, safe=False)
+
+def quest_summary_api(request):
+    """
+    Public API (A5 Part 3): no login needed.
+    Return each quest, its category, and the number of
+    distinct users who completed it.
+    """
+
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "GET requests only."},
+            status=405
+        )
+
+    response = JsonResponse(quest_summary_data(), safe=False)
+
+    # Let the online Vega-Lite editor (another website) read this API
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 # ============================================================
@@ -531,16 +543,16 @@ def quest_completion_chart(request):
 
 def vega_bar_spec():
     """
-    Vega-Lite specification for the aggregated
-    quest completion bar chart.
+    Vega-Lite specification for the quest bar chart,
+    colored by category.
 
-    Data comes from the internal JSON API.
+    Data comes from the public JSON API.
     """
 
     return {
         "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
 
-        "title": "Users Who Completed Each Quest",
+        "title": "Quests in SafeSpace",
 
         "width": 700,
 
@@ -578,11 +590,22 @@ def vega_bar_spec():
                 }
             },
 
+            "color": {
+                "field": "category",
+                "type": "nominal",
+                "title": "Category"
+            },
+
             "tooltip": [
                 {
                     "field": "quest",
                     "type": "nominal",
                     "title": "Quest"
+                },
+                {
+                    "field": "category",
+                    "type": "nominal",
+                    "title": "Category"
                 },
                 {
                     "field": "user_count",
@@ -764,23 +787,7 @@ def vega_bar_png(request):
     provided directly to vl_convert.
     """
 
-    quest_summary = Quest.objects.annotate(
-        user_count=Count(
-            "completions__user",
-            filter=Q(
-                completions__completed_status=True
-            ),
-            distinct=True
-        )
-    )
-
-    data = [
-        {
-            "quest": quest.title,
-            "user_count": quest.user_count,
-        }
-        for quest in quest_summary
-    ]
+    data = quest_summary_data()
 
     spec = vega_bar_spec()
 
