@@ -263,6 +263,9 @@ h1, h2, h3, h4, h5 {
   .brand__title {
     font-size: 1rem;
   }
+  main, .section {
+    padding: 1rem 0.75rem;
+  }
 }
 /* Home page quest chart */
 .quest-showcase {

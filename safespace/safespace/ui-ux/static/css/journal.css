@@ -295,3 +295,39 @@
 .form-errors {
   color: #9b2c2c;
 }
+
+@media (max-width: 800px) {
+  .journal-editor {
+    grid-template-columns: 1fr; /* Stacks reward tray on top of the notebook */
+  }
+
+  .reward-tray {
+    position: relative !important;
+    top: 0 !important;
+    margin-bottom: 1rem;
+  }
+}
+
+/* Extra tight mobile screen adjustments */
+@media (max-width: 480px) {
+  .journal-notebook {
+    padding: 8px 8px 8px 20px;
+    border-radius: 12px;
+  }
+
+  .journal-notebook::before {
+    left: 4px;
+    width: 10px;
+    background: radial-gradient(circle, var(--ghost-white) 3px, transparent 4px) 0 0 / 10px 20px repeat-y;
+  }
+
+  .journal-date {
+    padding: 14px 16px 0 42px;
+  }
+
+  .journal-text {
+    padding: 4px 16px 24px 42px;
+    min-height: 360px;
+    line-height: 26px;
+  }
+}
