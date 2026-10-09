@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, include
 from core import views
 
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path("register/", views.RegisterView.as_view(), name="register"),
     path("login/", auth_views.LoginView.as_view(template_name="core/login.html", redirect_authenticated_user=True), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path('accounts/', include('allauth.urls')),
     # Quests
     path("quests/",views.quest_list_render,name="quest_list"),
     path("quests/quest-completion-chart.png",views.quest_completion_chart,name="quest_completion_chart"),
