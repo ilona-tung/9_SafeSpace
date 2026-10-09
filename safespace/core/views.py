@@ -40,7 +40,16 @@ import requests
 # ============================================================
 
 def home(request):
-    return render(request, "core/home.html")
+    """
+    Home page. Everyone (even logged out) sees the quest chart,
+    which loads its data from the public quest-summary API.
+    """
+
+    spec = vega_bar_spec()
+    spec["width"] = "container"
+    spec["height"] = 320
+
+    return render(request, "core/home.html", {"quest_chart_spec": spec})
 
 
 # ============================================================

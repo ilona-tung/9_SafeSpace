@@ -33,4 +33,38 @@
 
 {% endif %}
 
+<section class="quest-showcase">
+
+    <h2>Look at the quests we have!</h2>
+
+    <p>
+        Every bar is a quest you can try, colored by its category.
+        Its height shows how many SafeSpace members have completed it.
+    </p>
+
+    <div id="quest-chart" class="quest-chart"></div>
+
+    <p class="text-muted">
+        Data comes live from our public API:
+        <a href="{% url 'quest_summary_api' %}">{{ request.scheme }}://{{ request.get_host }}{% url 'quest_summary_api' %}</a>
+    </p>
+
+</section>
+
+{{ quest_chart_spec|json_script:"quest-chart-spec" }}
+
+<script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+
+<script>
+    vegaEmbed(
+        "#quest-chart",
+        JSON.parse(document.getElementById("quest-chart-spec").textContent),
+        { actions: false }
+    ).catch(function (error) {
+        console.error("Quest chart error:", error);
+    });
+</script>
+
 {% endblock %}

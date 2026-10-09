@@ -264,3 +264,18 @@ h1, h2, h3, h4, h5 {
     font-size: 1rem;
   }
 }
+/* Home page quest chart */
+.quest-showcase {
+  margin-top: 2.5rem;
+}
+
+.quest-chart {
+  width: 100%;
+  min-height: 320px;
+}
+
+.quest-showcase .text-muted {
+  color: #8a8490;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}

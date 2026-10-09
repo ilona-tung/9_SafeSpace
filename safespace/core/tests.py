@@ -446,6 +446,14 @@ class AccessProtectionTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_home_shows_quest_chart_from_public_api(self):
+        response = self.client.get("/")
+
+        self.assertContains(response, "Look at the quests we have!")
+        self.assertContains(response, 'id="quest-chart-spec"')
+        self.assertContains(response, "/api/quest-summary/")
+        self.assertNotIn("values", response.context["quest_chart_spec"]["data"])
+
     def test_nav_hides_protected_links_before_login(self):
         response = self.client.get("/")
 
