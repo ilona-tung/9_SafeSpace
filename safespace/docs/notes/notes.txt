@@ -75,3 +75,19 @@ We will serve the following data:
 	Friend lists attached to each account.
 ________________________________________________________________________________________________________________________
 A4 Overall: API Description/Documentation & Screenshots can be found in A4_View_Screenshots.md
+
+________________________________________________________________________________________________________________________
+Deploy on PythonAnywhere
+1. Back up the live database, then pull
+
+The live site's database (db.sqlite3) has real data that isn't on GitHub. Back it up first, then put it back after pulling.
+cp safespace/db.sqlite3 ~/db_live_backup.sqlite3
+git checkout -- safespace/db.sqlite3
+git pull
+cp ~/db_live_backup.sqlite3 safespace/db.sqlite3
+
+2. Update the database structure and static files
+
+cd safespace
+python manage.py migrate
+python manage.py collectstatic --noinput
