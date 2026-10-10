@@ -282,7 +282,8 @@ class RegisterView(FormView):
 
     def form_valid(self, form):
         user = form.save()
-        login(self.request, user)
+        # Google login (allauth) adds a second backend, so say which one
+        login(self.request, user, backend="django.contrib.auth.backends.ModelBackend")
         return super().form_valid(form)
 
 
