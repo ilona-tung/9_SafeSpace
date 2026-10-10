@@ -91,3 +91,22 @@ cp ~/db_live_backup.sqlite3 safespace/db.sqlite3
 cd safespace
 python manage.py migrate
 python manage.py collectstatic --noinput
+________________________________________________________________________________________________________________________
+Option 1: use your teammate's key (easiest)
+1. Get the Client ID and Secret from her privately.
+2. Ask her to add your URI to her OAuth client in Google Cloud Console:
+   https://ilona.pythonanywhere.com/accounts/google/login/callback/
+3. In your PythonAnywhere /admin/:
+   - Sites: change example.com to ilona.pythonanywhere.com.
+   - Social applications → Add: Google, plus the keys, and choose your site.
+4. Reload.
+
+You need her to add your URI, because only the owner of the OAuth client can change it.
+
+Option 2: your own key (independent)
+1. Go to console.cloud.google.com and create a project.
+2. Open APIs & Services → OAuth consent screen. Set it to External, fill in the app name and your email, and add yourself as a test user.
+3. Open Credentials → Create credentials → OAuth client ID:
+   - Type: Web application
+   - Authorized redirect URI: https://ilona.pythonanywhere.com/accounts/google/login/callback/
+4. Copy your Client ID and Secret, then do step 3 from Option 1 with your keys.
