@@ -1,3 +1,36 @@
-01: It gets prints out a report of each quest, showing category and the user count of each.
-02: It collects the completion timeline information and turns it into a dataframe. Then, it calculates and prints various statistics.
-03: It downloads from the API and loads the results into an excel sheet.
+A5 Part 3.4: Three alternative uses of our public API
+
+Public API used by all three:
+https://ilona.pythonanywhere.com/api/quest-summary/
+No login needed. Returns JSON: [{"quest": ..., "category": ..., "user_count": ...}, ...]
+(anonymous totals per quest, so no personal data is exposed)
+
+
+01_quest_summary_api.py: Python script (quest report)
+A developer or community volunteer can call our public API from any Python
+script with the requests library, without an account or login. The script
+requests the production API, receives a JSON list with each quest's name,
+category, and number of users who completed it, and prints it as a table.
+It then aggregates the data: total completions and percentage share per
+category, the most and least popular quests (listing ties), and the average
+per quest. A SafeSpace admin could use this to see which quests need
+more promotion.
+
+02_quest_statistics_notebook.py: Statistical analysis in a notebook (pandas)
+A data analyst can load the same public API straight into a pandas DataFrame
+in a Jupyter notebook. The notebook computes
+summary statistics of completions per quest (mean, median, standard
+deviation, min, max), each quest's percentage share and difference from the
+average, and totals and averages per category with groupby. It then plots a
+bar chart of users per quest, colored by category, with the average marked
+and saved as quest_statistics.png. This shows the API can feed research or
+reporting without touching our database directly.
+
+03_export_to_excel.py: Importing into Excel
+People who don't program, such as a student club, can use the
+API through a spreadsheet. The script downloads the JSON from the production
+API and builds safespace_quests.xlsx: a "Quests" sheet with the raw data
+(Quest, Category, User Count) plus Excel SUM and AVERAGE formulas, and a
+"By Category" sheet that totals users per category with SUMIF formulas and
+shows a bar chart. In Excel they can then sort, filter, build pivot tables,
+and share the file, reusing the same endpoint that powers our Vega-Lite chart.

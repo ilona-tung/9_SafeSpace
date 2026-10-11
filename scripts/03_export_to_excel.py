@@ -1,59 +1,89 @@
 #!/usr/bin/env python3
-"""Download the public API and save the results to an Excel workbook or CSV."""
+"""
+Use 3: Importing the API into Excel.
 
-import csv
+Downloads the public SafeSpace API and builds an Excel workbook:
+  - "Quests" sheet: the raw API data (Quest, Category, User Count)
+  - "By Category" sheet: totals per category, calculated with Excel
+    SUMIF formulas, plus a bar chart
+"""
+
 import os
 from pathlib import Path
 
 import requests
+from openpyxl import Workbook
+from openpyxl.chart import BarChart, Reference
+from openpyxl.styles import Font, PatternFill
 
-API_URL = os.environ.get("SAFESPACE_API_URL", "http://127.0.0.1:8000/api/quest-summary/")
-OUTPUT_PATH = Path(os.environ.get("SAFESPACE_OUTPUT_FILE", "quest_summary.xlsx"))
+API_URL = os.environ.get(
+    "SAFESPACE_API_URL",
+    "https://ilona.pythonanywhere.com/api/quest-summary/",
+)
+OUTPUT_PATH = Path(os.environ.get("SAFESPACE_OUTPUT_FILE", "safespace_quests.xlsx"))
 
-
-def export_with_openpyxl(data):
-    try:
-        from openpyxl import Workbook
-    except ImportError:
-        return False
-
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Quest Summary"
-    sheet.append(["Quest", "Category", "User Count"])
-
-    for row in data:
-        sheet.append([row.get("quest", ""), row.get("category", ""), row.get("user_count", 0)])
-
-    workbook.save(OUTPUT_PATH)
-    print(f"Saved Excel workbook to {OUTPUT_PATH}")
-    return True
+HEADER_FONT = Font(bold=True, color="FFFFFF")
+HEADER_FILL = PatternFill("solid", fgColor="324841")  # SafeSpace dark slate
 
 
-def export_as_csv(data):
-    csv_path = OUTPUT_PATH.with_suffix(".csv")
-    with csv_path.open("w", newline="", encoding="utf-8") as csv_file:
-        writer = csv.writer(csv_file)
-        writer.writerow(["Quest", "Category", "User Count"])
-        for row in data:
-            writer.writerow([row.get("quest", ""), row.get("category", ""), row.get("user_count", 0)])
-
-    print(f"Saved CSV file to {csv_path}")
+def style_header(sheet):
+    for cell in sheet[1]:
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
 
 
 def main():
+    print(f"API: {API_URL}")
+
     try:
         response = requests.get(API_URL, timeout=10)
         response.raise_for_status()
     except requests.RequestException as exc:
-        print(f"Failed to call {API_URL}: {exc}")
-        print("Start the app first: python manage.py runserver")
+        print(f"Could not reach the API: {exc}")
         return 1
 
-    data = response.json()
-    if not export_with_openpyxl(data):
-        export_as_csv(data)
+    quests = response.json()
+    print(f"Fetched {len(quests)} quests")
 
+    workbook = Workbook()
+
+    # Sheet 1: the API data as rows
+    sheet = workbook.active
+    sheet.title = "Quests"
+    sheet.append(["Quest", "Category", "User Count"])
+    for item in quests:
+        sheet.append([item["quest"], item["category"], item["user_count"]])
+    style_header(sheet)
+    sheet.column_dimensions["A"].width = 30
+    sheet.column_dimensions["B"].width = 22
+    sheet.column_dimensions["C"].width = 12
+
+    last_row = len(quests) + 1
+    sheet.append([])
+    sheet.append(["Total", "", f"=SUM(C2:C{last_row})"])
+    sheet.append(["Average", "", f"=ROUND(AVERAGE(C2:C{last_row}), 1)"])
+
+    # Sheet 2: totals per category, with Excel formulas and a chart
+    summary = workbook.create_sheet("By Category")
+    summary.append(["Category", "Total Users"])
+    categories = sorted({item["category"] for item in quests})
+    for row, category in enumerate(categories, start=2):
+        summary.append([category, f"=SUMIF(Quests!B:B, A{row}, Quests!C:C)"])
+    style_header(summary)
+    summary.column_dimensions["A"].width = 22
+    summary.column_dimensions["B"].width = 14
+
+    chart = BarChart()
+    chart.title = "SafeSpace completions per category"
+    chart.y_axis.title = "Users"
+    chart.legend = None
+    chart.add_data(Reference(summary, min_col=2, min_row=1, max_row=len(categories) + 1), titles_from_data=True)
+    chart.set_categories(Reference(summary, min_col=1, min_row=2, max_row=len(categories) + 1))
+    summary.add_chart(chart, "D2")
+
+    workbook.save(OUTPUT_PATH)
+    print(f"Saved Excel workbook to {OUTPUT_PATH.resolve()}")
+    print("Open it in Excel and check both sheets: 'Quests' and 'By Category'.")
     return 0
 
 
