@@ -498,6 +498,10 @@ class AccessProtectionTests(TestCase):
         self.assertContains(response, 'id="quest-chart-spec"')
         self.assertContains(response, "/api/quest-summary/")
         self.assertNotIn("values", response.context["quest_chart_spec"]["data"])
+        self.assertIn(
+            {"filter": "datum.rank <= 6"},
+            response.context["quest_chart_spec"]["transform"],
+        )
 
     def test_nav_hides_protected_links_before_login(self):
         response = self.client.get("/")

@@ -40,6 +40,9 @@ import requests
 # Home
 # ============================================================
 
+HOME_CHART_QUESTS = 6
+
+
 def home(request):
     """
     Home page. Everyone (even logged out) sees the quest chart,
@@ -49,8 +52,20 @@ def home(request):
     spec = vega_bar_spec()
     spec["width"] = "container"
     spec["height"] = 200
-    spec["title"] = {"text": "Quests in SafeSpace", "fontSize": 15}
+    spec["title"] = {"text": "Top 6 quests in SafeSpace", "fontSize": 15}
     spec["encoding"]["x"]["title"] = None
+
+    # Only the 6 most completed quests, so the small chart stays readable
+    spec["transform"] = [
+        {
+            "window": [{"op": "row_number", "as": "rank"}],
+            "sort": [
+                {"field": "user_count", "order": "descending"},
+                {"field": "quest", "order": "ascending"},
+            ],
+        },
+        {"filter": f"datum.rank <= {HOME_CHART_QUESTS}"},
+    ]
 
     return render(request, "core/home.html", {"quest_chart_spec": spec})
 
