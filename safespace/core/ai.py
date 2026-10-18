@@ -276,9 +276,9 @@ def load_model():
 
 
 def generate(messages, max_new_tokens=120):
-    import torch
+    tokenizer, model = load_model()  # raises AIUnavailable without torch / transformers
 
-    tokenizer, model = load_model()
+    import torch
 
     inputs = tokenizer.apply_chat_template(
         messages,

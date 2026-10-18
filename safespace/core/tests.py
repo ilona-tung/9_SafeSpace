@@ -672,7 +672,7 @@ class AIQuestSuggestionTests(TestCase):
         self.assertEqual(result["quest"], breaths)
 
     def test_missing_ai_packages_show_a_friendly_message(self):
-        with patch("core.ai.generate", side_effect=ai.AIUnavailable):
+        with patch("core.ai.load_model", side_effect=ai.AIUnavailable):
             result = ai.suggest_quest(self.user, "I feel tired.")
 
         self.assertEqual(result["status"], "unavailable")

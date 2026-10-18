@@ -19,3 +19,22 @@ The app uses GET calls to get information on quests and search for users. POST c
 
 ## Other notes for P1-A3
 safespace/docs/P1-A3 Organized Notes
+
+## How to run locally
+```bash
+git clone https://github.com/ilona-tung/9_SafeSpace.git
+cd 9_SafeSpace
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r safespace/safespace/settings/requirements.txt
+cd safespace
+python manage.py migrate        # already up to date in the included db.sqlite3; safe to run
+python manage.py runserver
+```
+Open http://127.0.0.1:8000/. The included `db.sqlite3` has sample users, quests, completions, rewards and journals.
+
+**AI quest suggestions (optional, local only):** from the `safespace` folder, `pip install -r safespace/settings/requirements-ai.txt`
+(torch + transformers). The model `Qwen/Qwen2.5-0.5B-Instruct` downloads automatically on the first suggestion.
+Log in as a regular user and open **Quests → Ask SafeSpace for a quest**. See `README_AI.md` for details.
+
+**Google login:** the Google client secret is not stored in the repository.
+To use it, add your own key under Admin → Social applications.
