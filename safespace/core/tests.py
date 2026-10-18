@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from . import ai
 from .models import Journal, JournalSticker, Quest, QuestCompletion, Reward, UserReward
+from .welcome import FALLBACK_WELCOME_MESSAGE, generate_welcome_message
 
 
 class AccountRegistrationTests(TestCase):
@@ -454,6 +455,7 @@ class CompleteQuestTests(TestCase):
         self.assertContains(self.client.get("/rewards/"), "you have 2")
 
 
+@patch.dict("os.environ", {"GEMINI_KEY": ""})
 class AccessProtectionTests(TestCase):
     PRIVATE_PAGES = [
         "/journals/", "/users/", "/forums/nearby/", "/reports/",
@@ -534,7 +536,8 @@ class AccessProtectionTests(TestCase):
             response.context["quest_chart_spec"]["transform"],
         )
 
-    def test_home_shows_shortcut_buttons_after_login(self):
+    @patch("core.views.generate_welcome_message", return_value="Welcome back.")
+    def test_home_shows_shortcut_buttons_after_login(self, generate_welcome):
         self.client.login(username="member", password="pw-12345!")
 
         response = self.client.get("/")
@@ -543,6 +546,83 @@ class AccessProtectionTests(TestCase):
         self.assertContains(response, 'class="shortcut" href="/journals/"')
         self.assertContains(response, 'class="shortcut" href="/rewards/"')
         self.assertNotContains(response, 'class="shortcut" href="/reports/"')
+        generate_welcome.assert_called_once_with(self.user)
+
+    @patch("core.views.generate_welcome_message", return_value="Your journal shows steady progress.")
+    def test_home_shows_a_personal_welcome_message_after_login(self, generate_welcome):
+        self.client.force_login(self.user)
+
+        response = self.client.get("/")
+
+        self.assertContains(response, "Your journal shows steady progress.")
+        generate_welcome.assert_called_once_with(self.user)
+
+    @patch("core.views.generate_welcome_message")
+    def test_home_does_not_generate_a_personal_message_for_guests(self, generate_welcome):
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        generate_welcome.assert_not_called()
+
+    def test_welcome_message_uses_recent_journals_and_completed_quests(self):
+        journal = Journal.objects.create(
+            user=self.user,
+            summary="Proud I took a break",
+            content="I went outside and made time to rest.",
+        )
+        quest = Quest.objects.create(title="Take a short walk", category="exploration")
+        QuestCompletion.objects.create(
+            user=self.user,
+            quest=quest,
+            completed_status=True,
+            quest_date=date(2026, 10, 1),
+            completed_date=date(2026, 10, 2),
+        )
+        incomplete_quest = Quest.objects.create(
+            title="Try a new hobby",
+            category="learning",
+        )
+        QuestCompletion.objects.create(
+            user=self.user,
+            quest=incomplete_quest,
+            completed_status=False,
+            quest_date=date(2026, 10, 3),
+        )
+        result = {
+            "candidates": [{
+                "content": {"parts": [{"text": "You made space for rest and fresh air."}]},
+            }],
+        }
+
+        with (
+            patch.dict("os.environ", {"GEMINI_KEY": "test-key"}),
+            patch("core.welcome.requests.post") as post,
+        ):
+            post.return_value.json.return_value = result
+            message = generate_welcome_message(self.user)
+
+        self.assertEqual(message, "You made space for rest and fresh air.")
+        post.assert_called_once()
+        self.assertEqual(post.call_args.kwargs["headers"]["x-goog-api-key"], "test-key")
+        prompt_context = json.loads(
+            post.call_args.kwargs["json"]["contents"][0]["parts"][0]["text"]
+        )
+        self.assertEqual(
+            prompt_context["recent_journal_entries"][0]["summary"],
+            journal.summary,
+        )
+        self.assertEqual(
+            prompt_context["recently_completed_quests"][0]["quest"],
+            quest.title,
+        )
+        self.assertEqual(len(prompt_context["recently_completed_quests"]), 1)
+
+    def test_welcome_message_falls_back_when_gemini_key_is_missing(self):
+        with patch.dict("os.environ", {"GEMINI_KEY": ""}):
+            self.assertEqual(
+                generate_welcome_message(self.user),
+                FALLBACK_WELCOME_MESSAGE,
+            )
 
     def test_nav_hides_protected_links_before_login(self):
         response = self.client.get("/")
@@ -551,7 +631,8 @@ class AccessProtectionTests(TestCase):
         for url in ["/journals/", "/users/", "/reports/", "/vega-lite/", "/forums/nearby/"]:
             self.assertNotContains(response, f'href="{url}"')
 
-    def test_nav_shows_protected_links_after_login(self):
+    @patch("core.views.generate_welcome_message", return_value="Welcome back.")
+    def test_nav_shows_protected_links_after_login(self, generate_welcome):
         self.client.login(username="member", password="pw-12345!")
 
         response = self.client.get("/")
@@ -562,6 +643,7 @@ class AccessProtectionTests(TestCase):
             self.assertContains(response, f'href="{url}"')
         for url in ["/users/", "/vega-lite/", "/reports/"]:
             self.assertNotContains(response, f'href="{url}"')
+        generate_welcome.assert_called_once_with(self.user)
 
     ADMIN_PAGES = [
         "/reports/", "/export/csv/", "/export/json/", "/users/",

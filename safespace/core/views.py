@@ -26,6 +26,7 @@ from django.views.decorators.http import require_POST
 from .models import Quest, Reward, Journal, QuestCompletion, Forum, UserReward
 from .forms import FeelingForm, JournalEditorForm
 from . import ai
+from .welcome import generate_welcome_message
 
 import matplotlib
 matplotlib.use("Agg")
@@ -67,7 +68,11 @@ def home(request):
         {"filter": f"datum.rank <= {HOME_CHART_QUESTS}"},
     ]
 
-    return render(request, "core/home.html", {"quest_chart_spec": spec})
+    context = {"quest_chart_spec": spec}
+    if request.user.is_authenticated:
+        context["welcome_message"] = generate_welcome_message(request.user)
+
+    return render(request, "core/home.html", context)
 
 
 # ============================================================

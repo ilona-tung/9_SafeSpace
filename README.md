@@ -32,6 +32,8 @@ python manage.py runserver
 ```
 Open http://127.0.0.1:8000/. The included `db.sqlite3` has sample users, quests, completions, rewards and journals.
 
+**Personalized welcome messages (optional):** set `GEMINI_KEY` in the environment or in `safespace/.env.local`. The home page uses recent journal entries and completed quests to generate a welcome message; if the key is unavailable, it displays a friendly default.
+
 **AI quest suggestions (optional, local only):** from the `safespace` folder, `pip install -r safespace/settings/requirements-ai.txt`
 (torch + transformers). The model `Qwen/Qwen2.5-0.5B-Instruct` downloads automatically on the first suggestion.
 Log in as a regular user and open **Quests → Ask SafeSpace for a quest**. See `README_AI.md` for details.
