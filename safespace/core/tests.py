@@ -503,6 +503,16 @@ class AccessProtectionTests(TestCase):
             response.context["quest_chart_spec"]["transform"],
         )
 
+    def test_home_shows_shortcut_buttons_after_login(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        response = self.client.get("/")
+
+        self.assertContains(response, 'class="shortcut" href="/quests/"')
+        self.assertContains(response, 'class="shortcut" href="/journals/"')
+        self.assertContains(response, 'class="shortcut" href="/rewards/"')
+        self.assertNotContains(response, 'class="shortcut" href="/reports/"')
+
     def test_nav_hides_protected_links_before_login(self):
         response = self.client.get("/")
 

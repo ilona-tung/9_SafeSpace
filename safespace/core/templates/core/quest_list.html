@@ -114,28 +114,30 @@
 
 <h2>Quest List</h2>
 
-<ul>
+<p class="muted">Click a quest to open it and mark it as done.</p>
+
+<div class="quest-grid">
 
     {% for quest in quests %}
 
-        <li>
-            <a href="{{ quest.get_absolute_url }}">
-                {{ quest.title }}
-            </a>
+        <a class="quest-card{% if quest.pk in completed_today %} quest-card--done{% endif %}"
+           href="{{ quest.get_absolute_url }}">
+            <span class="quest-card__category">{{ quest.display_category }}</span>
+            <span class="quest-card__title">{{ quest.title }}</span>
             {% if quest.pk in completed_today %}
-                <span class="muted">✓ done today</span>
+                <span class="quest-card__done">✓ done today</span>
+            {% else %}
+                <span class="quest-card__open">Open quest →</span>
             {% endif %}
-        </li>
+        </a>
 
     {% empty %}
 
-        <li>
-            No quests found.
-        </li>
+        <p>No quests found.</p>
 
     {% endfor %}
 
-</ul>
+</div>
 
 
 <!-- ============================== -->

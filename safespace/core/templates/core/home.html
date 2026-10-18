@@ -10,7 +10,60 @@
 
     <h1>Welcome back, {{ user.username }}!</h1>
 
-    <p>Open the Menu to find today's quests or write in your journal.</p>
+    <p>Where would you like to go today?</p>
+
+    <!-- Shortcuts: the same pages as the Menu, but easy to see -->
+    <nav class="shortcuts" aria-label="Main pages">
+
+        <a class="shortcut" href="{% url 'quest_list' %}">
+            <span class="shortcut__icon" aria-hidden="true">🌱</span>
+            <span class="shortcut__title">Quests</span>
+            <span class="shortcut__text">Pick a small step for today</span>
+        </a>
+
+        {% if user.is_staff %}
+
+            <a class="shortcut" href="{% url 'user_list' %}">
+                <span class="shortcut__icon" aria-hidden="true">👥</span>
+                <span class="shortcut__title">Users</span>
+                <span class="shortcut__text">See member accounts</span>
+            </a>
+
+            <a class="shortcut" href="{% url 'reports_page' %}">
+                <span class="shortcut__icon" aria-hidden="true">📊</span>
+                <span class="shortcut__title">Reports</span>
+                <span class="shortcut__text">Quest and reward statistics</span>
+            </a>
+
+            <a class="shortcut" href="{% url 'vega_lite_charts' %}">
+                <span class="shortcut__icon" aria-hidden="true">📈</span>
+                <span class="shortcut__title">Vega-Lite</span>
+                <span class="shortcut__text">Charts from our APIs</span>
+            </a>
+
+        {% else %}
+
+            <a class="shortcut" href="{% url 'journal_list' %}">
+                <span class="shortcut__icon" aria-hidden="true">📓</span>
+                <span class="shortcut__title">My Journal</span>
+                <span class="shortcut__text">Write and decorate your day</span>
+            </a>
+
+            <a class="shortcut" href="{% url 'reward_list' %}">
+                <span class="shortcut__icon" aria-hidden="true">⭐</span>
+                <span class="shortcut__title">Rewards</span>
+                <span class="shortcut__text">See the stickers you earned</span>
+            </a>
+
+        {% endif %}
+
+        <a class="shortcut" href="{% url 'forum_nearby_page' %}">
+            <span class="shortcut__icon" aria-hidden="true">💬</span>
+            <span class="shortcut__title">Forums Nearby</span>
+            <span class="shortcut__text">Talk with people near you</span>
+        </a>
+
+    </nav>
 
 {% else %}
 
@@ -40,7 +93,11 @@
     <p>
         Our 6 most popular quests, colored by category.
         Each bar shows how many SafeSpace members have completed it.
-        Log in to see all of them!
+        {% if user.is_authenticated %}
+            <a href="{% url 'quest_list' %}">See all quests →</a>
+        {% else %}
+            Log in to see all of them!
+        {% endif %}
     </p>
 
     <div id="quest-chart" class="quest-chart"></div>

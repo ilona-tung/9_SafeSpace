@@ -368,3 +368,93 @@ h1, h2, h3, h4, h5 {
   font-size: .85rem;
   margin: .25rem 0 .75rem;
 }
+
+/* Home shortcuts: main pages as big buttons (feedback: the Menu was easy to miss) */
+.shortcuts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 1rem;
+}
+
+.shortcut,
+.quest-card {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  padding: 1rem 1.1rem;
+  background: var(--white);
+  border: 1px solid var(--lavender);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(50, 72, 65, 0.08);
+  color: var(--dark-slate);
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.shortcut:hover,
+.shortcut:focus-visible,
+.quest-card:hover,
+.quest-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--ash-grey);
+  box-shadow: 0 6px 16px rgba(50, 72, 65, 0.14);
+  text-decoration: none;
+  color: var(--dark-slate);
+}
+
+.shortcut__icon {
+  font-size: 1.6rem;
+}
+
+.shortcut__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.shortcut__text {
+  color: #726c74;
+  font-size: .9rem;
+}
+
+/* Quest list: each quest is a clickable card */
+.quest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .9rem;
+  margin-bottom: 2rem;
+}
+
+.quest-card__category {
+  align-self: flex-start;
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  background: var(--ghost-white);
+  font-size: .75rem;
+  color: #726c74;
+}
+
+.quest-card__title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.quest-card__open {
+  margin-top: auto;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--dark-slate);
+}
+
+.quest-card__done {
+  margin-top: auto;
+  font-size: .85rem;
+  color: #4f7a5b;
+  font-weight: 600;
+}
+
+.quest-card--done {
+  background: #f4f8f4;
+  border-color: var(--ash-grey);
+}
+
