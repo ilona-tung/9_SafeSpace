@@ -9,6 +9,78 @@
 <h1>Quests</h1>
 
 
+{% if feeling_form %}
+
+<!-- ============================== -->
+<!-- ASK SAFESPACE (local AI, regular users only) -->
+<!-- ============================== -->
+
+<section class="ask-safespace card" id="ask-safespace">
+
+    <div class="card__header">
+        Ask SafeSpace for a quest
+    </div>
+
+    <div class="card__body">
+
+        {% if ai_result %}
+            <div class="suggestion suggestion--{{ ai_result.status }}">
+                <p class="suggestion__input muted">
+                    {% if ai_result.feeling %}You wrote: “{{ ai_result.feeling }}”{% endif %}
+                    {% if ai_result.feeling and ai_result.journal_label %}<br>{% endif %}
+                    {% if ai_result.journal_label %}📓 {{ ai_result.journal_label }}{% endif %}
+                </p>
+
+                {% if ai_result.quest_url %}
+                    <a href="{{ ai_result.quest_url }}" class="suggestion__quest">
+                        {{ ai_result.quest_title }} →
+                    </a>
+                {% endif %}
+
+                <p class="suggestion__message">{{ ai_result.message }}</p>
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'quest_suggest' %}" class="ask-form">
+            {% csrf_token %}
+
+            <label for="{{ feeling_form.feeling.id_for_label }}">
+                {{ feeling_form.feeling.label }}
+            </label>
+
+            {{ feeling_form.feeling }}
+
+            <label for="{{ feeling_form.journal.id_for_label }}">
+                {{ feeling_form.journal.label }}
+            </label>
+
+            {{ feeling_form.journal }}
+
+            <p class="muted ask-form__hint">
+                Write how you feel, choose a journal entry, or both.
+                Without a choice, your 3 most recent entries are used as background.
+                Everything runs on this computer.
+            </p>
+
+            <button type="submit">Suggest a quest</button>
+        </form>
+
+    </div>
+
+</section>
+
+<script>
+    // The local model takes a few seconds: show that it is working
+    document.querySelector(".ask-form").addEventListener("submit", function (event) {
+        const button = event.target.querySelector("button");
+        button.disabled = true;
+        button.textContent = "Thinking…";
+    });
+</script>
+
+{% endif %}
+
+
 <!-- ============================== -->
 <!-- GET SEARCH -->
 <!-- ============================== -->

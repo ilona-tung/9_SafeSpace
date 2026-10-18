@@ -292,6 +292,28 @@
   flex-wrap: wrap;
 }
 
+/* Optional one-line overall message (used by AI quest suggestions) */
+.journal-summary-field {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  font-size: .9rem;
+}
+
+.journal-summary-field input {
+  width: 100%;
+}
+
+.journal-summary {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 4px 56px 0 76px;
+  font-style: italic;
+  color: var(--dark-slate);
+}
+
 .form-errors {
   color: #9b2c2c;
 }
@@ -323,6 +345,10 @@
 
   .journal-date {
     padding: 14px 16px 0 42px;
+  }
+
+  .journal-summary {
+    padding: 4px 16px 0 42px;
   }
 
   .journal-text {

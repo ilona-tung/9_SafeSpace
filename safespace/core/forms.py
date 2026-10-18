@@ -56,6 +56,16 @@ class JournalEditorForm(forms.Form):
         error_messages={"required": "Write something before saving your entry."},
     )
 
+    summary = forms.CharField(
+        max_length=150,
+        required=False,
+        label="Overall message (optional)",
+        widget=forms.TextInput(attrs={
+            "maxlength": 150,
+            "placeholder": "e.g. Anxious about my group project deadline",
+        }),
+    )
+
     layout = forms.CharField(
         widget=forms.HiddenInput,
         required=False,
@@ -148,6 +158,7 @@ class JournalEditorForm(forms.Form):
         journal = Journal.objects.create(
             user=self.user,
             content=self.cleaned_data["content"],
+            summary=self.cleaned_data["summary"],
             background=layout["background"],
             frame=layout["frame"],
             font=layout["font"],
@@ -184,3 +195,54 @@ def clamp(value, low, high):
         raise ValueError("not a number")
 
     return min(high, max(low, value))
+
+
+class JournalChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, journal):
+        text = journal.summary or journal.content
+
+        if len(text) > 60:
+            text = text[:60].rsplit(" ", 1)[0] + "..."
+
+        return f"{journal.time:%b %d} · {text}"
+
+
+class FeelingForm(forms.Form):
+    """
+    "How are you feeling today?" box for AI quest suggestions.
+
+    The user writes how they feel, picks one of their journal entries,
+    or both. At least one of the two is required.
+    """
+
+    feeling = forms.CharField(
+        max_length=300,
+        required=False,
+        strip=True,
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "maxlength": 300,
+            "placeholder": "e.g. I'm stressed about my exams next week.",
+        }),
+        label="How are you feeling today?",
+    )
+
+    journal = JournalChoiceField(
+        queryset=Journal.objects.none(),
+        required=False,
+        empty_label="My 3 most recent entries (default)",
+        label="Base it on a journal entry",
+    )
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Users can only choose their own entries
+        self.fields["journal"].queryset = Journal.objects.filter(user=user).order_by("-time")
+
+    def clean(self):
+        cleaned = super().clean()
+
+        if not cleaned.get("feeling") and not cleaned.get("journal"):
+            raise forms.ValidationError("Write how you feel, or choose a journal entry.")
+
+        return cleaned

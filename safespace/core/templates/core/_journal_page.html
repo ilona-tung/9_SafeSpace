@@ -9,6 +9,9 @@
         {% endif %}
 
         <p class="journal-date">{{ journal.time|date:"l, F j, Y · g:i A" }}</p>
+        {% if journal.summary %}
+            <p class="journal-summary">“{{ journal.summary }}”</p>
+        {% endif %}
         <div class="journal-text">{{ journal.content }}</div>
 
         {% for sticker in journal.stickers.all %}

@@ -283,6 +283,12 @@ class Journal(models.Model):
 
     content = models.TextField()
 
+    summary = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="Optional one-line overall message of the entry (used by AI quest suggestions)."
+    )
+
     time = models.DateTimeField(
         auto_now_add=True
     )

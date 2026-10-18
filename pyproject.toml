@@ -8,3 +8,10 @@ dependencies = [
     "requests>=2.34.2",
     "vl-convert-python>=1.9.0.post1",
 ]
+
+[project.optional-dependencies]
+# Local AI quest suggestions: uv sync --extra ai
+ai = [
+    "torch>=2.9",
+    "transformers>=4.56",
+]

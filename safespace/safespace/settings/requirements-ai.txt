@@ -1,0 +1,5 @@
+# Extra packages for the local AI quest suggestions (core/ai.py).
+# Install locally only (large download, not needed on PythonAnywhere):
+#   pip install -r requirements-ai.txt
+torch>=2.9
+transformers>=4.56

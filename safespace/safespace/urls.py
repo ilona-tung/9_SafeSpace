@@ -17,6 +17,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     # Quests
     path("quests/",views.quest_list_render,name="quest_list"),
+    path("quests/suggest/", views.quest_suggest, name="quest_suggest"),
     path("quests/quest-completion-chart.png",views.quest_completion_chart,name="quest_completion_chart"),
     path("quests/<int:pk>/",views.quest_detail,name="quest_detail"),
     path("quests/<int:pk>/complete/", views.complete_quest, name="complete_quest"),

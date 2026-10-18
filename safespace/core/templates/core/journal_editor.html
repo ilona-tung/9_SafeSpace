@@ -84,6 +84,10 @@ New Journal Page
             {% csrf_token %}
             <textarea name="content" hidden></textarea>
             {{ form.layout }}
+            <label class="journal-summary-field" for="{{ form.summary.id_for_label }}">
+                {{ form.summary.label }}
+                {{ form.summary }}
+            </label>
             <button type="submit" class="button-primary">Save entry</button>
             <a class="button" href="{% url 'journal_list' %}">Cancel</a>
         </form>

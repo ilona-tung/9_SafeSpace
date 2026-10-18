@@ -11,7 +11,7 @@ from django.templatetags.static import static
 from django.views import View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -24,7 +24,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .models import Quest, Reward, Journal, QuestCompletion, Forum, UserReward
-from .forms import JournalEditorForm
+from .forms import FeelingForm, JournalEditorForm
+from . import ai
 
 import matplotlib
 matplotlib.use("Agg")
@@ -347,11 +348,55 @@ def quest_list_render(request):
 
     context["completed_today"] = completed_today_ids(request.user)
 
+    if not request.user.is_staff:
+        context["feeling_form"] = FeelingForm(user=request.user)
+        # Shown once, right after asking: one quest per input
+        context["ai_result"] = request.session.pop(AI_RESULT_KEY, None)
+
     return render(
         request,
         "core/quest_list.html",
         context
     )
+
+
+# ============================================================
+# AI Quest Suggestions (local Hugging Face model)
+# ============================================================
+
+AI_RESULT_KEY = "ai_quest_suggestion"
+
+
+@regular_user_required
+@require_POST
+def quest_suggest(request):
+    """
+    The user writes how they feel and/or picks one of their journal
+    entries; the local LLM (core/ai.py) suggests one of our quests.
+    One quest per input: the result is shown once on the Quests page.
+    """
+
+    form = FeelingForm(request.POST, user=request.user)
+
+    if not form.is_valid():
+        messages.error(request, "Write how you feel (up to 300 characters), or choose a journal entry.")
+        return redirect(reverse("quest_list") + "#ask-safespace")
+
+    feeling = form.cleaned_data["feeling"]
+    journal = form.cleaned_data["journal"]
+    result = ai.suggest_quest(request.user, feeling, journal=journal)
+    quest = result["quest"]
+
+    request.session[AI_RESULT_KEY] = {
+        "feeling": feeling,
+        "journal_label": form.fields["journal"].label_from_instance(journal) if journal else "",
+        "message": result["message"],
+        "status": result["status"],
+        "quest_title": quest.title if quest else "",
+        "quest_url": quest.get_absolute_url() if quest else "",
+    }
+
+    return redirect(reverse("quest_list") + "#ask-safespace")
 
 
 def completed_today_ids(user):

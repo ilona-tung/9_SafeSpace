@@ -315,3 +315,56 @@ h1, h2, h3, h4, h5 {
     width: 20px;
     height: 20px;
 }
+
+/* Ask SafeSpace (AI quest suggestions on the Quests page) */
+.ask-safespace {
+  max-width: 640px;
+  margin-bottom: 2rem;
+}
+
+/* One suggestion card per input */
+.suggestion {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--ghost-white);
+  border-left: 4px solid var(--ash-grey);
+  border-radius: 8px;
+}
+
+.suggestion--crisis {
+  border-left-color: #E8B4B8;
+  background: #fdf1f2;
+}
+
+.suggestion__input {
+  margin: 0 0 .5rem;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+
+.suggestion__quest {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dark-slate);
+}
+
+.suggestion__message {
+  margin: .35rem 0 0;
+}
+
+.ask-form textarea,
+.ask-form select {
+  width: 100%;
+}
+
+.ask-form textarea {
+  resize: vertical;
+}
+
+
+
+.ask-form__hint {
+  font-size: .85rem;
+  margin: .25rem 0 .75rem;
+}

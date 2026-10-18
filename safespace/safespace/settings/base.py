@@ -139,6 +139,10 @@ LOGOUT_REDIRECT_URL = "home"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+# Local Hugging Face model for AI quest suggestions (core/ai.py).
+# Chosen in llm-test/ai_prototype.ipynb; downloaded automatically on first use.
+AI_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
