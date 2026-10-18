@@ -315,12 +315,43 @@ class JournalTests(TestCase):
             stickers=[{"reward": self.sticker.pk, "x": 50, "y": 50}],
         )
 
+        journal = Journal.objects.get(user=self.user)
         response = self.client.get("/journals/")
 
         self.assertContains(response, "Saw a nice sunset")
         self.assertContains(response, "rewards/backgrounds/nature.svg")
-        self.assertContains(response, 'class="journal-sticker"')
+        self.assertContains(response, "rewards/stickers/stay-hydrated.svg")
+        self.assertContains(response, f'href="/journals/{journal.pk}/"')
         self.assertNotContains(response, "Someone else&#x27;s secret")
+
+        # The full decorated page opens from the card
+        detail = self.client.get(f"/journals/{journal.pk}/")
+        self.assertContains(detail, "Saw a nice sunset")
+        self.assertContains(detail, 'class="journal-sticker"')
+
+    def test_cannot_open_or_delete_someone_elses_entry(self):
+        theirs = Journal.objects.get(user=self.other)
+        self.client.login(username="writer", password="pw-12345!")
+
+        self.assertEqual(self.client.get(f"/journals/{theirs.pk}/").status_code, 404)
+        self.assertEqual(self.client.post(f"/journals/{theirs.pk}/delete/").status_code, 404)
+        self.assertTrue(Journal.objects.filter(pk=theirs.pk).exists())
+
+    def test_delete_entry_frees_its_stickers(self):
+        self.earn(self.user)
+        self.client.login(username="writer", password="pw-12345!")
+        self.save_page(stickers=[{"reward": self.sticker.pk, "x": 50, "y": 50}])
+        journal = Journal.objects.get(user=self.user)
+
+        self.assertEqual(self.client.get(f"/journals/{journal.pk}/delete/").status_code, 405)
+
+        response = self.client.post(f"/journals/{journal.pk}/delete/")
+
+        self.assertRedirects(response, "/journals/")
+        self.assertFalse(Journal.objects.filter(pk=journal.pk).exists())
+        self.assertTrue(
+            UserReward.objects.filter(user=self.user, reward=self.sticker, placement__isnull=True).exists()
+        )
 
     def test_rewards_page_shows_used_copies(self):
         self.earn(self.user, times=2)

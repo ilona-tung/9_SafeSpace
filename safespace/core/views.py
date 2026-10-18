@@ -438,23 +438,65 @@ def completed_today_ids(user):
 @regular_user_required
 def journal_list(request):
     """
-    Show the logged-in user's own decorated journal entries.
+    The logged-in user's own journal entries as small cards.
+    Click a card to open the full decorated page.
     """
 
     journals = (
         request.user.journals
-        .select_related("background", "frame", "font")
+        .select_related("background")
         .prefetch_related("stickers__reward")
     )
 
     return render(
         request,
         "core/journal_list.html",
+        {"journals": journals}
+    )
+
+
+@regular_user_required
+def journal_detail(request, pk):
+    """
+    One full decorated journal page. Users can only open their own.
+    """
+
+    journal = get_object_or_404(
+        Journal.objects
+        .select_related("background", "frame", "font")
+        .prefetch_related("stickers__reward"),
+        pk=pk,
+        user=request.user,
+    )
+
+    return render(
+        request,
+        "core/journal_detail.html",
         {
-            "journals": journals,
+            "journal": journal,
             "font_rewards": font_rewards(),
         }
     )
+
+
+@regular_user_required
+@require_POST
+def journal_delete(request, pk):
+    """
+    Delete one of the user's own journal entries.
+    Stickers placed on it are freed and can be used again.
+    """
+
+    journal = get_object_or_404(
+        Journal,
+        pk=pk,
+        user=request.user,
+    )
+
+    journal.delete()
+
+    messages.success(request, "Journal entry deleted. Its stickers are back in your rewards.")
+    return redirect("journal_list")
 
 
 @regular_user_required

@@ -9,7 +9,6 @@ My Journal
 
 {% block extra_head %}
     <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
-    {% include "core/_reward_fonts.html" %}
 {% endblock %}
 
 
@@ -25,12 +24,46 @@ My Journal
 <!-- PAST ENTRIES -->
 <!-- ============================== -->
 
-{% for journal in journals %}
-    <article class="journal-entry">
-        {% include "core/_journal_page.html" %}
-    </article>
-{% empty %}
-    <p class="muted">No journal entries yet. Write your first page and decorate it with your rewards!</p>
-{% endfor %}
+{% if journals %}
+    <p class="muted">Click an entry to open the full page.</p>
+{% endif %}
+
+<div class="journal-grid">
+
+    {% for journal in journals %}
+
+        <a class="journal-card" href="{% url 'journal_detail' journal.pk %}">
+
+            <!-- Preview strip: the page background and a few of its stickers -->
+            <span class="journal-card__preview"
+                  {% if journal.background.asset %}style="background-image: url('{% static journal.background.asset %}')"{% endif %}>
+                {% for sticker in journal.stickers.all|slice:":4" %}
+                    {% if sticker.reward.asset %}
+                        <img src="{% static sticker.reward.asset %}" alt="{{ sticker.reward.name }}">
+                    {% endif %}
+                {% endfor %}
+            </span>
+
+            <span class="journal-card__body">
+                <span class="journal-card__date">{{ journal.time|date:"D, M j, Y" }}</span>
+
+                {% if journal.summary %}
+                    <span class="journal-card__summary">“{{ journal.summary }}”</span>
+                {% else %}
+                    <span class="journal-card__excerpt">{{ journal.content|truncatechars:110 }}</span>
+                {% endif %}
+
+                <span class="journal-card__open">Open page →</span>
+            </span>
+
+        </a>
+
+    {% empty %}
+
+        <p class="muted">No journal entries yet. Write your first page and decorate it with your rewards!</p>
+
+    {% endfor %}
+
+</div>
 
 {% endblock %}

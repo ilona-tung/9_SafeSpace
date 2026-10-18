@@ -357,3 +357,100 @@
     line-height: 26px;
   }
 }
+/* ============================================================
+   Journal list: one small card per entry
+   ============================================================ */
+.journal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.journal-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--white);
+  border: 1px solid var(--lavender);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(50, 72, 65, 0.08);
+  color: var(--dark-slate);
+  text-decoration: none;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.journal-card:hover,
+.journal-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--ash-grey);
+  box-shadow: 0 6px 16px rgba(50, 72, 65, 0.14);
+  text-decoration: none;
+  color: var(--dark-slate);
+}
+
+.journal-card__preview {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  height: 64px;
+  padding: 0 .8rem;
+  /* Lined paper when the page has no background reward */
+  background:
+    repeating-linear-gradient(#FFFDF8 0 15px, #DCE3EC 15px 16px) center / cover no-repeat;
+  border-bottom: 1px solid var(--lavender);
+}
+
+.journal-card__preview img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.journal-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex: 1;
+  padding: .8rem 1rem 1rem;
+}
+
+.journal-card__date {
+  font-size: .8rem;
+  color: #726c74;
+}
+
+.journal-card__summary {
+  font-weight: 700;
+  font-style: italic;
+}
+
+.journal-card__excerpt {
+  color: var(--shadow-grey);
+  font-size: .95rem;
+  overflow-wrap: anywhere;
+}
+
+.journal-card__open {
+  margin-top: auto;
+  padding-top: .3rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+/* Journal detail: delete button */
+.journal-delete {
+  margin-top: 1.5rem;
+}
+
+.button-danger {
+  background: transparent;
+  border-color: #c98a8f;
+  color: #9b2c2c;
+}
+
+.button-danger:hover,
+.button-danger:focus {
+  background: #fdf1f2;
+  opacity: 1;
+}
