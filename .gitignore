@@ -2,6 +2,13 @@
 staticfiles/
 *.pyc
 
+# model weights (transformers downloads them automatically)
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.gguf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

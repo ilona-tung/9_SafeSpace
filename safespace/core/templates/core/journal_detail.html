@@ -1,0 +1,39 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+
+{% block title %}
+{{ journal.time|date:"M j, Y" }} · My Journal
+{% endblock %}
+
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
+    {% include "core/_reward_fonts.html" %}
+{% endblock %}
+
+
+{% block content %}
+
+<p>
+    <a href="{% url 'journal_list' %}">← Back to My Journal</a>
+</p>
+
+<article class="journal-entry">
+    {% include "core/_journal_page.html" %}
+</article>
+
+
+<!-- ============================== -->
+<!-- DELETE -->
+<!-- ============================== -->
+
+<form method="post"
+      action="{% url 'journal_delete' journal.pk %}"
+      class="journal-delete"
+      onsubmit="return confirm('Delete this journal entry? This cannot be undone. Its stickers will go back to your rewards.');">
+    {% csrf_token %}
+    <button type="submit" class="button-danger">Delete this entry</button>
+</form>
+
+{% endblock %}
