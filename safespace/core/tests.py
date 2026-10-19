@@ -2,6 +2,7 @@ import json
 from datetime import date
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import TestCase
 from django.test import Client
 from django.contrib.auth.models import User
@@ -471,6 +472,7 @@ class AccessProtectionTests(TestCase):
     PUBLIC_PAGES = ["/", "/login/", "/register/"]
 
     def setUp(self):
+        cache.clear()
         self.user = User.objects.create_user(username="member", password="pw-12345!")
 
     def test_private_pages_redirect_to_login(self):
@@ -616,6 +618,48 @@ class AccessProtectionTests(TestCase):
             quest.title,
         )
         self.assertEqual(len(prompt_context["recently_completed_quests"]), 1)
+
+    def test_welcome_message_is_reused_until_activity_changes(self):
+        result = {
+            "candidates": [{
+                "content": {"parts": [{"text": "Nice to see you."}]},
+            }],
+        }
+
+        with (
+            patch.dict("os.environ", {"GEMINI_KEY": "test-key"}),
+            patch("core.welcome.requests.post") as post,
+        ):
+            post.return_value.json.return_value = result
+            generate_welcome_message(self.user)
+            generate_welcome_message(self.user)
+            self.assertEqual(post.call_count, 1)
+
+            Journal.objects.create(user=self.user, content="A calm day.")
+            generate_welcome_message(self.user)
+            self.assertEqual(post.call_count, 2)
+
+    def test_welcome_message_limits_thinking_and_skips_thought_parts(self):
+        result = {
+            "candidates": [{
+                "content": {"parts": [
+                    {"text": "planning the reply", "thought": True},
+                    {"text": "Glad you are here."},
+                ]},
+            }],
+        }
+
+        with (
+            patch.dict("os.environ", {"GEMINI_KEY": "test-key"}),
+            patch("core.welcome.requests.post") as post,
+        ):
+            post.return_value.json.return_value = result
+            message = generate_welcome_message(self.user)
+
+        self.assertEqual(message, "Glad you are here.")
+        config = post.call_args.kwargs["json"]["generationConfig"]
+        self.assertEqual(config["thinkingConfig"], {"thinkingLevel": "minimal"})
+        self.assertNotIn("gemini-2.5-flash", post.call_args.args[0])
 
     def test_welcome_message_falls_back_when_gemini_key_is_missing(self):
         with patch.dict("os.environ", {"GEMINI_KEY": ""}):
