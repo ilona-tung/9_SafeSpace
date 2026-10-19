@@ -110,3 +110,122 @@ Option 2: your own key (independent)
    - Type: Web application
    - Authorized redirect URI: https://ilona.pythonanywhere.com/accounts/google/login/callback/
 4. Copy your Client ID and Secret, then do step 3 from Option 1 with your keys.
+________________________________________________________________________________________________________________________
+
+A6_Part 3: Production Reflection
+(copy & pasting the chart does not work too well on notes.txt)
+(here is the doc link for reflection: https://docs.google.com/document/d/1KeJ-L_8Oijk6x0DXn0KaTWSSNhLw3ewXr6YEYlH0W84/edit?usp=sharing)
+...
+P1-A6 Text Intelligence: Production Reflection
+Project: SafeSpace
+Team Number: 9
+Members: Ilona Tung, Em Bensinger, Koey Huang, Nicholas Rondon
+Date: 10/17/26
+1. Model Size vs. Quality
+Our goal for this assignment is to choose a locally runnable language model that would be best fit for SafeSpace. For our AI feature, we tested models that receive a user’s description of how they feel, and it returns a supportive message and suggested quest in a specific JSON format. Since SafeSpace is designed as an application that provides users with supportive messages and wellness-related suggestions, it is important that the AI can respond quickly and accurately, following the format that our application expects.
+Our team evaluated 15 language models from Hugging Face, testing each using 5 test inputs that resulted in 75 total responses. The test results represented common situations that users may experience, for example: stress from exams, loneliness from moving, poor sleep from tiredness, skipping lunch, and low motivation. Using the same 5 inputs for each model allows us to compare how different models respond to similar situations.
+We evaluated the responses based on whether they produced valid JSON, alongside the required keys (category, quest, message), and selected a category that was accepted by our application. The 3 required keys are important because SafeSpace needs to know which category the response belongs to, what suggested quest/activity to recommend, and what kind of supportive message to give to the user. At the same time, we measured how long each model took to respond so we could check their response times. In the notebook, we tested the 4 categories SafeSpace had at the time (Diet & Wellness, General Self-Care, Learning, Social); the app has since added Budgeting and Exploration.
+Category
+Model
+Score
+Avg Seconds
+Tiny (< 0.5B)
+Qwen/Qwen2.5-0.5B-Instruct
+100
+2.2
+Ultra-light (0.5-1.5B)
+ibm-granite/granite-3.1-1b-a400m-instruct
+100
+4.4
+Small (1.5-2.5B)
+Qwen/Qwen2.5-1.5B-Instruct
+100
+2.3
+Medium (2.5-3.5B)
+unsloth/Llama-3.2-3B-Instruct
+100
+2.6
+Large (3.5-8B)
+microsoft/Phi-4-mini-instruct
+100
+3.7
+
+The matrix test results showed that the top-performing model in each size category received a score of 100. In the Tiny category, the top model was Qwen/Qwen2.5-0.5B-Instruct, with an average response speed of 2.2 seconds. The Ultra-light category’s top model was ibm-granite/granite-3.1-1b-a400m-instruct at an average of 4.4 seconds. The Small category’s top model was Qwen/Qwen2.5-1.5B-Instruct, averaging 2.3 seconds. For the Medium category, the top model was unsloth/Llama-3.2-3B-Instruct with an average of 2.6 seconds. Finally, the Large category’s top model was microsoft/Phi-4-mini-instruct at an average of 3.7 seconds.
+These results suggested that a larger model did not necessarily achieve a higher score in our tests, since the top model in every size category obtained the same score of 100. The scores also varied a lot within categories: HuggingFaceTB/SmolLM2-135M-Instruct (Tiny) and tiiuae/Falcon3-3B-Instruct (Medium) scored only 20, and unsloth/Llama-3.2-1B-Instruct (Ultra-light) scored 40, while the much smaller Qwen/Qwen2.5-0.5B-Instruct scored 100. This shows that size alone does not predict how reliably a model follows our JSON format. The smaller Qwen/Qwen2.5-0.5B-Instruct model also had the fastest average response speed within its size category and among the other top size models. This makes it a promising option for SafeSpace because it can provide quick responses while requiring less resources compared to larger models. However, these results are purely based on our selected test inputs and evaluation criteria, so it does not prove that all the models above would perform equally across every situation.
+At the same time, response speed is not the only important part in finding about a model’s quality of performance. For example, a model could return perfectly formatted JSON, including all 3 required keys, and have fast response speed, but it outputs a message that is far too generalized, does not properly address the user’s situation, or isn’t really that helpful. So a model can perform well on the technical parts of our evaluation, but can also fail in providing the best experience for our SafeSpace users.
+Prompt style
+Score
+Calculation from table
+Average (seconds)
+Zero-shot
+100
+(1.9 + 2.4 + 2.9) / 3
+2.40 s
+One-shot
+100
+(1.5 + 1.6 + 1.5) / 3
+1.53 s
+Few-shot
+100
+(1.2 + 1.4 + 1.5) / 3
+1.37 s
+Many-shot
+100
+(1.1 + 1.4 + 1.7) / 3
+1.40 s
+ 
+We chose Route A, which involved testing different prompting strategies rather than fine-tuning the models directly. We compared zero-shot, one-shot, few-shot, and many-shot prompting. Each prompt style scored a 100, so the numerical scores alone did not establish a clear winner (the notebook prints “zero-shot” as the most reliable style only because it is the first of a four-way tie). So, we used response time as the tie-breaker; few-shot prompting had the fastest average response time across the three models at approximately 1.37 seconds, closely followed by many-shot prompting at 1.40 seconds. Therefore, we chose few-shot prompting because it tied for the most reliable output while being the fastest, and it only adds a few short examples to the prompt.
+In Django, we kept the few-shot approach but adapted the output. Instead of inventing a quest and a category, Qwen receives the list of real quests from our database and returns only two keys: “quest” (an exact quest title from the list) and “message” (one kind sentence). The category comes from the matched quest. If the answer is not valid JSON, names a quest that does not exist, or contains blocked words, the app shows a safe default quest (“Take 3 deep breaths”).
+Based on these results, we selected Qwen/Qwen2.5-0.5B-Instruct for our Django implementation. Our decision followed the consideration and balance of the following: response time/speed, output accuracy (following required format), output quality (accuracy to situation), memory requirements, hosting costs, and other factors. Our testing serves as a starting point to compare models, but 5 inputs per model is not exactly the most accurate to prove that a model will work well in every situation. More testing will therefore be needed to evaluate the quality of the responses before using the model with real users.
+2. Cost & Scaling to 10k Daily Users
+Another aspect of concern for SafeSpace is how much it would cost to operate an AI feature once the application does become popular. An AI system that works well for a small group of users may not work or require additional resources once thousands of people begin using the application every day. Therefore, we considered a hypothetical situation in which SafeSpace has 10,000 daily users.
+To estimate the potential cost of running SafeSpace with 10,000 daily users, we assumed that each user would make an average of 3 AI requests per day. This is a hypothetical estimate as we do not have actual usage data from 10,000 users. Based on this assumption, the application would be processing 30,000 AI requests per day, or roughly 900,000 requests over a month’s period of time.
+On the other hand, we should also estimate how much text the AI has to process during each request. As 1 token is approximately ¾ of a word, we can assume that an average interaction would be a 300-token user prompt (around 225 words), and the AI response would be roughly a 100-token response (around 75 words). At an expected volume of 30,000 AI requests per day, that translates to a daily volume of 9 million input tokens and 3 million output tokens. For a month, that would be a staggering 270 million input tokens and 90 million output tokens.
+One option would be to use a publicly available, paid AI API. An API allows SafeSpace to send a request to an outer AI provider and receive responses without having to operate the AI within the server. Of course, API providers charge, but they usually charge based on the amount of input and output processed. The exact cost would depend on the model and its base pricing.
+For example, we can reference these 2 pricing rates to estimate the potential monthly cost:
+Example Model
+API pricing
+Estimated daily cost
+Estimated 30-day cost
+Gemini 2.5 Flash-Lite
+$0.10 per mil. input tokens
+ $0.40 per mil. output tokens
+$2.10
+$63
+Gemini 3.1 Flash-Lite
+$0.25 per mil. input tokens
+$1.50 per mil. output tokens
+$6.75
+$202.50
+
+The first example uses the published token rates for Google’s Gemini 2.5 Flash-Lite model, and the second example uses the published rates for Gemini 3.1 Flash-Lite. These two examples show how the model affects the pricing estimate, so there is not a guarantee of accuracy in determining future costs. However, this is a good outlook on how the prices roughly range at, so it is important to check before making an actual purchase.
+The calculations use the following formula:
+Estimated API cost = (input tokens / 1 million * input rate) + (output tokens / 1 million * output rate)
+To contextualize these assumptions, our current Gemini welcome-message request on the SafeSpace homepage consumes roughly 300 input tokens. While the visible output text remains concise, this 300-token count reflects background payload required to generate this response, which includes the system’s behavioral instructions, user contextual information, and API structured formatting. However, our local Qwen quest prompt is significantly larger at 800 tokens because it must bundle all 26 quests, examples, and journal context into every quest recommendation. If we were to migrate these heavy quest suggestions from our free local server to an external paid public API, the increase in input data will cause our operating costs to rise to approximately $108 (Gemini 2.5 Flash-Lite) to $315 (Gemini 3.1 Flash-Lite) per month.
+A second option would be to host a pre-trained model on a local, rented server/GPU. Instead of paying a separate API fee for the total token usage by the rate, SafeSpace could instead pay for the computing resources needed to run the model.
+For example, Google Cloud lists a g2-standard-4 machine with a NVIDIA L4 GPU at $0.7068 per hour. This machine includes 4 virtual CPUs and 16GB of memory. That would equate to a daily cost of $16.96, and a monthly cost of $508.90. The official hourly rate here would cost approximately $508.90 over 720 hours.
+This pricing point is a useful reference, but it is not a guarantee that one machine alone would serve 10,000 users. Depending on how many requests are distributed during the day, the length of prompts & responses, the model used, and the speed of the generated responses, the cost would rack up higher than this estimate to accommodate such a capacity. So things like Disk storage, monitoring, and other infrastructure would add to the total as well. Under these assumptions, the estimated API cost of 63-202.50 per month would run lower than the estimated $508.90 cost of running on a GPU-equipped machine. This may suggest that a paid API AI model would be a cost-effective option for SafeSpace at the assumed usage level of 10,000 users per day; this would run especially true since our team does not already possess suitable hardware.
+In both situations, this would still not be a complete and accurate comparison. It does not confirm whether 1 GPU model would be sufficient and the other infrastructure expenses. It also only assumes that the chosen API models shown in the example would provide suitable quality and security for SafeSpace. This comparison could change a lot depending on the complexity of inputs/outputs, possession of hardware, etc. But overall, this cost estimate suggests that a paid API is a reasonable starting expense for an early version of SafeSpace because it reduces the need to manage AI infrastructure ourselves. Local hosting is a difficult task, but it would be possible given if we meet privacy requirements, possess hardware, etc. For the time being, our team should measure real request volumes and bookmark potential models + pricing before making actual production decisions.
+3. Hybrid Potential (Local & External API)
+Another way to approach this is to employ a hybrid architecture. This could be a useful approach for SafeSpace because it combines the advantages from both local models and external AI APIs.
+Under this design, SafeSpace could use a smaller local model for routine requests. For example, some requests can be wellness check-ins, general encouragement messages, or just responses in general that follow a predictable structure. A local model could help reduce API charges for repeat routine requests like these and instead give the application more control as to where certain user information is processed.
+In our implementation, Qwen/Qwen2.5-0.5B-Instruct is the local model integrated into Django. When a user describes how they feel, picks one of their journal entries, or both, Qwen chooses one quest from SafeSpace’s existing quest list that fits and writes a short supportive sentence. This information is returned in a structured JSON format for the SafeSpace application to validate and use.
+Otherwise, for more complex requests, the application can call an external AI API when appropriate. This approach divides the work within SafeSpace. The local model can handle simpler classification tasks without requiring an API call for every step, while the external API can handle requests/responses that the local model would struggle with. This method can help control costs by limiting API usage specifically to the part of the experience that is going to be most valuable.
+In our current hybrid approach, the external API is Google Gemini (gemini-flash-lite-latest), chosen based on cost, response quality, and speed. It works separately from Qwen: when a logged-in user opens the Home page, Gemini writes a short (under 40 words), personalized welcome message based on the user’s 3 most recent journal entries and 3 most recently completed quests, for example acknowledging a stressful week or a small accomplishment. To limit cost, each user’s message is reused until their journals or completed quests change, so refreshing the page does not call the API again. If the API key is missing or the request fails, a default welcome message is shown. A possible next step would be connecting the two, for example letting Gemini rewrite the message for the quest that Qwen suggests.
+From our individual server runs, we can see that the above works. Here are some real examples shown here: https://docs.google.com/document/d/1JQRlVbPCEBUQvBNTYcgr9KBp2W6ZvKNC_orkLOtxCAw/edit?usp=sharing
+Since SafeSpace handles personal and emotional reflections, privacy and safety have to be considered in order to protect this information. The application only sends what the welcome message needs: the summary and up to 350 characters of each of the 3 most recent journal entries, plus the titles and dates of recently completed quests. No usernames or other account details are sent. Journal entries that look like a crisis or a prompt-injection attempt are skipped, and the prompt tells Gemini to treat this data as personal content, not as instructions. Additionally, the local model’s output should not be treated as a completely safe system, and both Qwen’s and Gemini’s responses are checked against a blocked-word list before they are shown. If a user’s input suggests a crisis, the app shows the 988 Suicide & Crisis Lifeline instead of calling a model.
+4. Cost & Comparison (From References & Assumptions)
+A pre-trained model on our server would be a good choice when our application needs to process many requests simultaneously and on a regular basis. It will also be a good choice when you need to keep data under control. For example, SafeSpace can use the local Qwen model to choose a fitting quest based on how a user feels. With a specific situation like this, a smaller model would suffice. However, running a model locally is not free. It requires a device with adequate storage, memory and processing power to maintain the server and respond quickly to multiple users on the application. If the server is running all the time but only gets a relatively small set of requests, we may also be paying for unnecessary computing expenses that are not being used.
+A paid AI API may be a better choice if we want to employ the model immediately in our application, especially when users would like more detailed responses or when we need to maintain our server and it would cost too much to work on a local one. So the provider in this case would manage the AI infrastructure and we would pay them based on their pricing system (which likely depends on the number of input and output tokens). However, costs like these would for sure increase as usage grows, so we have to carefully consider what provider to go with, observing their availability, privacy policies, pricing, and other handling practices.
+Therefore, for SafeSpace, a better compromise would be to take a hybrid approach. Our local Qwen model handles quest suggestions, while the external API generates the personalized welcome messages. Ultimately, this would depend on the costs, usage volume, response quality, privacy requirements, and more. A hybrid design can combine these advantages while limiting situations where we will need to depend on an external API.
+
+Sources
+ai_prototype.ipynb: https://drive.google.com/file/d/1JcpTk-pytOz9Ns-WREQpX1fV2BxvbZW5/view?usp=sharing 
+Google Gemini API pricing: https://ai.google.dev/gemini-api/docs/pricing 
+Google Cloud accelerator-optimized pricing: https://cloud.google.com/products/compute/pricing/accelerator-optimized#accelerator-optimized-pricing 
+________________________________________________________________________________________________________________________
+
+
+
+
+
