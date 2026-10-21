@@ -5,7 +5,7 @@ from django import forms
 from django.db import transaction
 from django.db.models import Q
 
-from .models import Journal, JournalSticker, Reward, UserReward
+from .models import Forum, Journal, JournalSticker, Reward, UserReward
 
 
 class JournalAdminForm(forms.ModelForm):
@@ -246,3 +246,63 @@ class FeelingForm(forms.Form):
             raise forms.ValidationError("Write how you feel, or choose a journal entry.")
 
         return cleaned
+
+
+# ============================================================
+# Forums
+# ============================================================
+
+FORUM_TEXT_MAX = 1000
+
+
+class ForumForm(forms.ModelForm):
+    """
+    Create a new forum. Names are unique, ignoring upper/lower case.
+    """
+
+    class Meta:
+        model = Forum
+        fields = ["name", "category", "description", "location"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "e.g. Exam Stress Support"}),
+            "description": forms.Textarea(attrs={
+                "rows": 3,
+                "maxlength": FORUM_TEXT_MAX,
+                "placeholder": "What is this forum about?",
+            }),
+            "location": forms.TextInput(attrs={"placeholder": "e.g. Champaign, IL"}),
+        }
+        labels = {"location": "Location (optional)"}
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+
+        if Forum.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError("A forum with this name already exists.")
+
+        return name
+
+    def clean_description(self):
+        description = self.cleaned_data["description"].strip()
+
+        if len(description) > FORUM_TEXT_MAX:
+            raise forms.ValidationError(f"Keep the description under {FORUM_TEXT_MAX} characters.")
+
+        return description
+
+
+class PostForm(forms.Form):
+    """
+    Text of a new post or reply.
+    """
+
+    content = forms.CharField(
+        max_length=FORUM_TEXT_MAX,
+        strip=True,
+        widget=forms.Textarea(attrs={"rows": 3, "maxlength": FORUM_TEXT_MAX}),
+        label="",
+        error_messages={
+            "required": "Write something before posting.",
+            "max_length": f"Posts and replies can be up to {FORUM_TEXT_MAX} characters.",
+        },
+    )

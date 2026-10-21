@@ -7,6 +7,8 @@ from .models import (
     Reward,
     Journal,
     Forum,
+    Post,
+    Reply,
     Friendship,
     UserReward,
 )
@@ -27,5 +29,7 @@ class JournalAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Forum)
+admin.site.register(Post)
+admin.site.register(Reply)
 admin.site.register(Friendship)
 admin.site.register(UserReward)

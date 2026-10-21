@@ -1,0 +1,143 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Forums
+{% endblock %}
+
+{% block content %}
+
+<h1>Forums</h1>
+
+<p class="muted">
+    Join forums to post and reply. Use "Near" to find forums around a city,
+    zip code, or landmark (looked up with the OpenStreetMap location API).
+</p>
+
+
+<!-- ============================== -->
+<!-- GET SEARCH: name, category, near a place -->
+<!-- ============================== -->
+
+<form method="get" class="forum-search">
+
+    <div>
+        <label for="forum-search">Search forums</label>
+        <input type="text" id="forum-search" name="q" value="{{ query }}" placeholder="e.g. books">
+    </div>
+
+    <div>
+        <label for="forum-category">Category</label>
+        <select id="forum-category" name="category">
+            <option value="">All categories</option>
+            {% for value, label in categories %}
+                <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="forum-near">Near</label>
+        <input type="text" id="forum-near" name="near" value="{{ near }}" placeholder="e.g. 61820, Chicago, UIUC">
+    </div>
+
+    <div class="forum-search__buttons">
+        <button type="submit" class="button-primary">Search</button>
+        {% if query or category or near %}
+            <a class="button" href="{% url 'forum_list' %}">Clear</a>
+        {% endif %}
+    </div>
+
+</form>
+
+<p>
+    <a class="button" href="{% url 'forum_new' %}">+ Start a forum</a>
+</p>
+
+
+{% if near %}
+
+    <!-- ============================== -->
+    <!-- NEAR A PLACE (external API + forum posts) -->
+    <!-- ============================== -->
+
+    {% if near_error %}
+
+        <p>{{ near_error }}</p>
+
+    {% else %}
+
+        <h2>Near {{ resolved_place.city|default:resolved_place.state }}</h2>
+
+        <p class="muted forum-near__place">{{ resolved_place.display_name }}</p>
+
+        <p>
+            {{ same_state.post_count }} of {{ total_posts_with_location }} posts with a location
+            are in {{ resolved_place.state }} ({% widthratio state_share 1 100 %}%),
+            from {{ same_state.user_count }} member{{ same_state.user_count|pluralize }}.
+        </p>
+
+        {% if resolved_place.city %}
+            <h3>In {{ resolved_place.city }}</h3>
+
+            <div class="quest-grid">
+                {% for forum in in_city %}
+                    {% include "core/_forum_card.html" %}
+                {% empty %}
+                    <p class="muted">No forums in {{ resolved_place.city }} yet.</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <h3>{% if resolved_place.city %}Elsewhere in{% else %}In{% endif %} {{ resolved_place.state }}</h3>
+
+        <div class="quest-grid">
+            {% for forum in in_state %}
+                {% include "core/_forum_card.html" %}
+            {% empty %}
+                <p class="muted">No {% if resolved_place.city %}other {% endif %}forums in {{ resolved_place.state }} yet.</p>
+            {% endfor %}
+        </div>
+
+        <p class="muted">
+            JSON version:
+            <a href="{% url 'forum_nearby_api' %}?q={{ near|urlencode }}">/api/forum-nearby/?q={{ near }}</a>
+        </p>
+
+    {% endif %}
+
+{% else %}
+
+    <!-- ============================== -->
+    <!-- MY FORUMS -->
+    <!-- ============================== -->
+
+    <h2>My forums</h2>
+
+    <div class="quest-grid">
+        {% for forum in joined %}
+            {% include "core/_forum_card.html" %}
+        {% empty %}
+            <p class="muted">
+                {% if query or category %}None of your forums match.{% else %}You haven't joined a forum yet.{% endif %}
+            </p>
+        {% endfor %}
+    </div>
+
+
+    <!-- ============================== -->
+    <!-- DISCOVER (not joined yet) -->
+    <!-- ============================== -->
+
+    <h2>Discover</h2>
+
+    <div class="quest-grid">
+        {% for forum in discover %}
+            {% include "core/_forum_card.html" %}
+        {% empty %}
+            <p class="muted">No other forums found.</p>
+        {% endfor %}
+    </div>
+
+{% endif %}
+
+{% endblock %}

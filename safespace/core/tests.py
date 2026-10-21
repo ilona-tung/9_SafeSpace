@@ -2,6 +2,8 @@ import json
 from datetime import date
 from unittest.mock import patch
 
+import requests
+
 from django.core.cache import cache
 from django.test import TestCase
 from django.test import Client
@@ -9,7 +11,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from . import ai
-from .models import Journal, JournalSticker, Quest, QuestCompletion, Reward, UserReward
+from .models import Forum, Journal, JournalSticker, Post, Quest, QuestCompletion, Reply, Reward, UserReward
+from .views import DAILY_REWARD_LIMIT
 from .welcome import FALLBACK_WELCOME_MESSAGE, generate_welcome_message
 
 
@@ -442,6 +445,59 @@ class CompleteQuestTests(TestCase):
         self.assertContains(self.client.get("/quests/"), "done today")
         self.assertContains(self.client.get(f"/quests/{self.quest.pk}/"), "Completed today")
 
+    def make_rewarded_quests(self, count):
+        quests = []
+
+        for number in range(count):
+            quest = Quest.objects.create(title=f"Quest {number}", category="general")
+            self.reward.quests.add(quest)
+            quests.append(quest)
+
+        return quests
+
+    def test_rewards_stop_after_daily_limit(self):
+        quests = self.make_rewarded_quests(DAILY_REWARD_LIMIT)
+        self.client.login(username="quester", password="pw-12345!")
+
+        for quest in quests:
+            self.client.post(f"/quests/{quest.pk}/complete/")
+
+        response = self.client.post(self.url, follow=True)
+
+        self.assertContains(response, "today&#x27;s limit")
+        self.assertTrue(QuestCompletion.objects.get(quest=self.quest).completed_status)
+        self.assertEqual(UserReward.objects.filter(user=self.user).count(), DAILY_REWARD_LIMIT)
+        self.assertContains(response, "reached today's reward limit")
+
+    def test_quests_without_rewards_do_not_use_the_limit(self):
+        plain_quests = [
+            Quest.objects.create(title=f"Plain {number}", category="general")
+            for number in range(DAILY_REWARD_LIMIT)
+        ]
+        self.client.login(username="quester", password="pw-12345!")
+
+        for quest in plain_quests:
+            self.client.post(f"/quests/{quest.pk}/complete/")
+
+        response = self.client.post(self.url, follow=True)
+
+        self.assertContains(response, "You earned: Bookmark")
+
+    def test_reward_limit_resets_the_next_day(self):
+        yesterday = date(2026, 9, 26)
+
+        for quest in self.make_rewarded_quests(DAILY_REWARD_LIMIT):
+            QuestCompletion.objects.create(
+                user=self.user, quest=quest, quest_date=yesterday,
+                completed_status=True, completed_date=yesterday,
+            ).award_rewards()
+        self.client.login(username="quester", password="pw-12345!")
+
+        response = self.client.post(self.url, follow=True)
+
+        self.assertContains(response, "You earned: Bookmark")
+        self.assertContains(response, f"Rewards left today: {DAILY_REWARD_LIMIT - 1} of {DAILY_REWARD_LIMIT}")
+
     def test_each_completion_earns_another_copy_of_the_reward(self):
         QuestCompletion.objects.create(
             user=self.user, quest=self.quest, quest_date=date(2026, 9, 26),
@@ -459,7 +515,7 @@ class CompleteQuestTests(TestCase):
 @patch.dict("os.environ", {"GEMINI_KEY": ""})
 class AccessProtectionTests(TestCase):
     PRIVATE_PAGES = [
-        "/journals/", "/users/", "/forums/nearby/", "/reports/",
+        "/journals/", "/users/", "/forums/", "/forums/new/", "/forums/nearby/", "/reports/",
         "/export/csv/", "/export/json/", "/vega-lite/",
         "/vega-lite/bar.png", "/vega-lite/completion-timeline.png",
         "/vega-lite/bar.json", "/vega-lite/completion-timeline.json",
@@ -672,7 +728,7 @@ class AccessProtectionTests(TestCase):
         response = self.client.get("/")
 
         self.assertContains(response, 'href="/login/"')
-        for url in ["/journals/", "/users/", "/reports/", "/vega-lite/", "/forums/nearby/"]:
+        for url in ["/journals/", "/users/", "/reports/", "/vega-lite/", "/forums/"]:
             self.assertNotContains(response, f'href="{url}"')
 
     @patch("core.views.generate_welcome_message", return_value="Welcome back.")
@@ -683,7 +739,7 @@ class AccessProtectionTests(TestCase):
 
         self.assertContains(response, "Log out (member)")
         self.assertNotContains(response, 'href="/login/"')
-        for url in ["/journals/", "/forums/nearby/"]:
+        for url in ["/journals/", "/forums/"]:
             self.assertContains(response, f'href="{url}"')
         for url in ["/users/", "/vega-lite/", "/reports/"]:
             self.assertNotContains(response, f'href="{url}"')
@@ -752,7 +808,7 @@ class AccessProtectionTests(TestCase):
         self.assertContains(response, 'href="/login/"')
         self.assertContains(response, 'href="/register/"')
         self.assertNotContains(response, "nav-toggle")
-        for url in ["/quests/", "/rewards/", "/journals/", "/forums/nearby/"]:
+        for url in ["/quests/", "/rewards/", "/journals/", "/forums/"]:
             self.assertNotContains(response, f'href="{url}"')
 
     def test_menu_is_hidden_until_button_pressed(self):
@@ -931,3 +987,186 @@ class AIQuestSuggestionTests(TestCase):
 
         fake.assert_not_called()
         self.assertNotContains(self.client.get("/quests/"), "Private thoughts")
+
+
+class ForumTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(username="owner", password="pw-12345!")
+        self.member = User.objects.create_user(username="member", password="pw-12345!")
+        self.other = User.objects.create_user(username="other", password="pw-12345!")
+
+        self.forum = Forum.objects.create(
+            name="Books!",
+            category="learning",
+            location="Chicago, IL",
+            created_by=self.owner,
+        )
+        self.forum.members.add(self.owner, self.member)
+
+        self.post = Post.objects.create(
+            user=self.member,
+            forum=self.forum,
+            content="Any book ideas?",
+            location="Chicago, IL",
+        )
+        self.url = f"/forums/{self.forum.pk}/"
+
+    def test_board_splits_joined_and_discover(self):
+        Forum.objects.create(name="Casual", category="social")
+        self.client.login(username="member", password="pw-12345!")
+
+        response = self.client.get("/forums/")
+
+        self.assertEqual([forum.name for forum in response.context["joined"]], ["Books!"])
+        self.assertEqual([forum.name for forum in response.context["discover"]], ["Casual"])
+
+    def test_board_search_and_category_filter(self):
+        Forum.objects.create(name="Casual", category="social")
+        self.client.login(username="other", password="pw-12345!")
+
+        by_name = self.client.get("/forums/", {"q": "book"})
+        by_category = self.client.get("/forums/", {"category": "social"})
+
+        self.assertEqual([forum.name for forum in by_name.context["discover"]], ["Books!"])
+        self.assertEqual([forum.name for forum in by_category.context["discover"]], ["Casual"])
+
+    def test_create_forum_makes_creator_a_member(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        response = self.client.post("/forums/new/", {
+            "name": "Exam Stress", "category": "learning", "description": "", "location": "",
+        })
+
+        forum = Forum.objects.get(name="Exam Stress")
+        self.assertRedirects(response, forum.get_absolute_url())
+        self.assertEqual(forum.created_by, self.other)
+        self.assertTrue(forum.members.filter(pk=self.other.pk).exists())
+
+    def test_forum_names_are_unique_ignoring_case(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        response = self.client.post("/forums/new/", {"name": "books!", "category": "learning"})
+
+        self.assertContains(response, "already exists")
+        self.assertEqual(Forum.objects.count(), 1)
+
+    def test_join_and_leave(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        self.client.post(f"{self.url}join/")
+        self.assertTrue(self.forum.members.filter(pk=self.other.pk).exists())
+
+        self.client.post(f"{self.url}leave/")
+        self.assertFalse(self.forum.members.filter(pk=self.other.pk).exists())
+
+    def test_join_needs_post(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        self.assertEqual(self.client.get(f"{self.url}join/").status_code, 405)
+
+    def test_only_members_can_post_and_reply(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        self.client.post(f"{self.url}post/", {"content": "Hi!"})
+        self.client.post(f"/forums/posts/{self.post.pk}/reply/", {"content": "Hi!"})
+
+        self.assertEqual(self.forum.posts.count(), 1)
+        self.assertEqual(Reply.objects.count(), 0)
+
+    def test_member_can_post_and_reply(self):
+        self.client.login(username="owner", password="pw-12345!")
+
+        self.client.post(f"{self.url}post/", {"content": "Welcome everyone"})
+        self.client.post(f"/forums/posts/{self.post.pk}/reply/", {"content": "Try Dune"})
+
+        new_post = self.forum.posts.get(content="Welcome everyone")
+        self.assertEqual(new_post.location, "Chicago, IL")
+        self.assertEqual(self.post.replies.get().content, "Try Dune")
+
+        response = self.client.get(self.url)
+        self.assertContains(response, "Welcome everyone")
+        self.assertContains(response, "Try Dune")
+
+    def test_empty_and_too_long_posts_are_rejected(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        self.client.post(f"{self.url}post/", {"content": "   "})
+        response = self.client.post(f"{self.url}post/", {"content": "x" * 1001}, follow=True)
+
+        self.assertContains(response, "up to 1000 characters")
+        self.assertEqual(self.forum.posts.count(), 1)
+
+    def test_post_text_is_escaped(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        self.client.post(f"{self.url}post/", {"content": "<script>alert(1)</script>"})
+
+        response = self.client.get(self.url)
+        self.assertNotContains(response, "<script>alert(1)</script>")
+        self.assertContains(response, "&lt;script&gt;")
+
+    def test_crisis_post_is_saved_and_shows_988(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        response = self.client.post(f"{self.url}post/", {"content": "I want to kill myself"}, follow=True)
+
+        self.assertTrue(self.forum.posts.filter(content="I want to kill myself").exists())
+        self.assertContains(response, "988")
+
+    def test_only_owner_or_admin_can_delete(self):
+        reply = Reply.objects.create(post=self.post, user=self.member, content="bump")
+        self.client.login(username="owner", password="pw-12345!")
+
+        self.assertEqual(self.client.post(f"/forums/posts/{self.post.pk}/delete/").status_code, 403)
+        self.assertEqual(self.client.post(f"/forums/replies/{reply.pk}/delete/").status_code, 403)
+
+        self.client.login(username="member", password="pw-12345!")
+        self.assertEqual(self.client.post(f"{self.url}delete/").status_code, 403)
+
+        self.client.post(f"/forums/replies/{reply.pk}/delete/")
+        self.client.post(f"/forums/posts/{self.post.pk}/delete/")
+        self.assertFalse(Post.objects.exists())
+
+        admin = User.objects.create_user(username="admin", password="pw-12345!", is_staff=True)
+        self.client.force_login(admin)
+        self.client.post(f"{self.url}delete/")
+        self.assertFalse(Forum.objects.exists())
+
+    PLACE = {"city": "Chicago", "state": "Illinois", "state_code": "IL", "display_name": "Chicago, IL"}
+
+    def test_near_search_shows_forums_in_city_and_state(self):
+        Forum.objects.create(name="Champaign chat", location="Champaign, IL")
+        Forum.objects.create(name="Seattle walks", location="Seattle, WA")
+        self.client.login(username="other", password="pw-12345!")
+
+        with patch("core.views.geocode", return_value=self.PLACE):
+            response = self.client.get("/forums/", {"near": "Chicago"})
+
+        self.assertEqual([forum.name for forum in response.context["in_city"]], ["Books!"])
+        self.assertEqual([forum.name for forum in response.context["in_state"]], ["Champaign chat"])
+        self.assertEqual(response.context["same_state"]["post_count"], 1)
+        self.assertNotContains(response, "Seattle walks")
+
+    def test_near_search_handles_unknown_place_and_service_errors(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        with patch("core.views.geocode", return_value=None):
+            self.assertContains(self.client.get("/forums/", {"near": "nowhere"}), "No place found")
+
+        with patch("core.views.geocode", side_effect=requests.RequestException):
+            self.assertContains(self.client.get("/forums/", {"near": "Chicago"}), "unavailable")
+
+    def test_old_forums_nearby_page_redirects(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        response = self.client.get("/forums/nearby/", {"q": "Chicago"})
+
+        self.assertRedirects(response, "/forums/?near=Chicago", fetch_redirect_response=False)
+
+    def test_forums_nearby_api_still_works(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        with patch("core.views.geocode", return_value=self.PLACE):
+            data = self.client.get("/api/forum-nearby/", {"q": "Chicago"}).json()
+
+        self.assertEqual(data["same_city"]["groups"], [{"group": "Books!", "forum_id": self.forum.pk, "post_count": 1}])

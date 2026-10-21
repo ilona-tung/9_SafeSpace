@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Start a forum
+{% endblock %}
+
+{% block content %}
+
+<h1>Start a forum</h1>
+
+<p class="muted">You will join it automatically. Anyone can find it on the Forums page.</p>
+
+<form method="post" class="forum-form">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <button type="submit" class="button-primary">Create forum</button>
+    <a class="button" href="{% url 'forum_list' %}">Cancel</a>
+</form>
+
+{% endblock %}

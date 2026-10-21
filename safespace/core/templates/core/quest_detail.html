@@ -51,6 +51,14 @@
         You've completed this quest {{ times_completed }} time{{ times_completed|pluralize }}.
     </p>
 
+    <p class="muted">
+        {% if rewards_left %}
+            Rewards left today: {{ rewards_left }} of {{ daily_reward_limit }} quests.
+        {% else %}
+            You've reached today's reward limit ({{ daily_reward_limit }} quests). You can still complete quests; rewards unlock again tomorrow.
+        {% endif %}
+    </p>
+
 {% endif %}
 
 {% endblock %}

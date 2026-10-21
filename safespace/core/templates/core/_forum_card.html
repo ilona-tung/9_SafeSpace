@@ -1,0 +1,15 @@
+<a class="quest-card{% if forum.pk in joined_ids %} quest-card--done{% endif %}" href="{{ forum.get_absolute_url }}">
+    <span class="quest-card__category">{{ forum.get_category_display }}</span>
+    <span class="quest-card__title">{{ forum.name }}</span>
+    {% if forum.description %}
+        <span class="muted forum-card__text">{{ forum.description|truncatechars:90 }}</span>
+    {% endif %}
+    <span class="quest-card__open">
+        {{ forum.member_count }} member{{ forum.member_count|pluralize }} ·
+        {{ forum.post_count }} post{{ forum.post_count|pluralize }}
+        {% if forum.location %}· {{ forum.location }}{% endif %}
+    </span>
+    {% if forum.pk in joined_ids %}
+        <span class="quest-card__done">✓ joined</span>
+    {% endif %}
+</a>

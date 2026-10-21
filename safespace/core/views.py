@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import date
 import json
 import csv
@@ -12,6 +13,7 @@ from django.views import View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
 from django.urls import reverse, reverse_lazy
+from urllib.parse import urlencode
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -23,8 +25,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .models import Quest, Reward, Journal, QuestCompletion, Forum, UserReward
-from .forms import FeelingForm, JournalEditorForm
+from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward
+from .forms import FeelingForm, JournalEditorForm, ForumForm, PostForm
 from . import ai
 from .welcome import generate_welcome_message
 
@@ -1100,6 +1102,27 @@ def reward_list_render(request):
 # Quest Detail
 # ============================================================
 
+# Quests work on the honor system, so rewards are capped per day:
+# extra completions still count, but don't earn more stickers.
+DAILY_REWARD_LIMIT = 3
+
+
+def rewards_left_today(user):
+    """
+    How many more quest completions can earn rewards today.
+    Only completions that actually unlocked a reward count.
+    """
+
+    rewarded_today = (
+        QuestCompletion.objects
+        .filter(user=user, completed_date=timezone.localdate(), unlocked_rewards__isnull=False)
+        .distinct()
+        .count()
+    )
+
+    return max(DAILY_REWARD_LIMIT - rewarded_today, 0)
+
+
 @login_required
 def quest_detail(request, pk):
 
@@ -1118,6 +1141,8 @@ def quest_detail(request, pk):
             user=request.user,
             completed_status=True,
         ).count()
+        context["rewards_left"] = rewards_left_today(request.user)
+        context["daily_reward_limit"] = DAILY_REWARD_LIMIT
 
     return render(
         request,
@@ -1134,6 +1159,7 @@ def complete_quest(request, pk):
 
     Quests are daily: each day gets its own QuestCompletion.
     A completion that is already marked completed is never changed.
+    Only the first DAILY_REWARD_LIMIT rewarded completions each day earn rewards.
     """
 
     quest = get_object_or_404(
@@ -1157,17 +1183,25 @@ def complete_quest(request, pk):
         messages.info(request, f"You already completed \"{quest}\" today.")
         return redirect(quest)
 
+    # Checked before saving, so this completion isn't counted yet
+    can_earn_rewards = rewards_left_today(request.user) > 0
+
     if not created:
         # The quest was started today but not finished yet
         completion.completed_status = True
         completion.completed_date = today
         completion.save()
 
-    new_rewards = completion.award_rewards()
+    new_rewards = completion.award_rewards() if can_earn_rewards else []
 
     message = f"Nice work! You completed \"{quest}\"."
 
-    if new_rewards:
+    if not can_earn_rewards and quest.possible_rewards.exists():
+        message += (
+            f" You've earned rewards from {DAILY_REWARD_LIMIT} quests today, "
+            "which is today's limit. New rewards unlock again tomorrow."
+        )
+    elif new_rewards:
         names = ", ".join(str(user_reward.reward) for user_reward in new_rewards)
         message += f" You earned: {names}."
 
@@ -1393,7 +1427,253 @@ def location_search(request):
 
 
 # ============================================================
-# Part 2 - Triangulate location API with Forum posts
+# Forums: communities users join, with posts and replies
+# ============================================================
+
+@login_required
+def forum_list(request):
+    """
+    Forums page: the forums the user joined, and the ones they haven't
+    joined yet. Search by name, filter by category, or search near a place.
+
+    "Near" looks the place up with the OpenStreetMap location API, then
+    shows forums in the same city and elsewhere in the same state, plus
+    the post statistics from match_forums.
+    """
+
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "")
+    near = request.GET.get("near", "").strip()
+
+    forums = Forum.objects.annotate(
+        member_count=Count("members", distinct=True),
+        post_count=Count("posts", distinct=True),
+    )
+
+    if query:
+        forums = forums.filter(
+            Q(name__icontains=query) | Q(description__icontains=query)
+        )
+
+    if category in dict(Quest.CATEGORY_CHOICES):
+        forums = forums.filter(category=category)
+
+    joined_ids = set(request.user.forums.values_list("pk", flat=True))
+
+    context = {
+        "joined": [forum for forum in forums if forum.pk in joined_ids],
+        "discover": [forum for forum in forums if forum.pk not in joined_ids],
+        "joined_ids": joined_ids,
+        "query": query,
+        "category": category,
+        "near": near,
+        "categories": Quest.CATEGORY_CHOICES,
+    }
+
+    if near:
+        try:
+            place = geocode(near)
+        except requests.RequestException:
+            context["near_error"] = "The location service is unavailable. Please try again."
+        else:
+            if place is None:
+                context["near_error"] = f'No place found for "{near}".'
+            else:
+                matches = [(forum, location_match(forum.location, place)) for forum in forums]
+
+                context.update(match_forums(place))
+                context["in_city"] = [forum for forum, match in matches if match == "city"]
+                context["in_state"] = [forum for forum, match in matches if match == "state"]
+
+    return render(request, "core/forum_list.html", context)
+
+
+@login_required
+def forum_new(request):
+    """
+    Any logged-in user can start a forum. The creator joins it.
+    """
+
+    if request.method == "POST":
+        form = ForumForm(request.POST)
+
+        if form.is_valid():
+            forum = form.save(commit=False)
+            forum.created_by = request.user
+            forum.save()
+            forum.members.add(request.user)
+
+            messages.success(request, f"Forum created: {forum.name}")
+            return redirect(forum)
+    else:
+        form = ForumForm()
+
+    return render(request, "core/forum_form.html", {"form": form})
+
+
+def can_manage(user, owner_id):
+    """
+    The owner of a forum, post or reply can delete it. Admins can delete anything.
+    """
+
+    return user.is_staff or user.pk == owner_id
+
+
+def is_member(user, forum):
+    return forum.members.filter(pk=user.pk).exists()
+
+
+@login_required
+def forum_detail(request, pk):
+    """
+    One forum: its description, a Join/Leave button,
+    and its posts with replies. Only members can post and reply.
+    """
+
+    forum = get_object_or_404(Forum, pk=pk)
+
+    posts = (
+        forum.posts
+        .select_related("user")
+        .prefetch_related("replies__user")
+    )
+
+    return render(
+        request,
+        "core/forum_detail.html",
+        {
+            "forum": forum,
+            "posts": posts,
+            "member_count": forum.members.count(),
+            "is_member": is_member(request.user, forum),
+            "can_manage": can_manage(request.user, forum.created_by_id),
+            "post_form": PostForm(),
+        }
+    )
+
+
+@login_required
+@require_POST
+def forum_join(request, pk):
+    forum = get_object_or_404(Forum, pk=pk)
+    forum.members.add(request.user)
+
+    messages.success(request, f"You joined {forum.name}.")
+    return redirect(forum)
+
+
+@login_required
+@require_POST
+def forum_leave(request, pk):
+    forum = get_object_or_404(Forum, pk=pk)
+    forum.members.remove(request.user)
+
+    messages.success(request, f"You left {forum.name}.")
+    return redirect(forum)
+
+
+@login_required
+@require_POST
+def forum_delete(request, pk):
+    forum = get_object_or_404(Forum, pk=pk)
+
+    if not can_manage(request.user, forum.created_by_id):
+        raise PermissionDenied
+
+    forum.delete()
+
+    messages.success(request, f"Forum deleted: {forum.name}")
+    return redirect("forum_list")
+
+
+def save_post_text(request, create):
+    """
+    Validate a post or reply and save it with create(content).
+    Crisis words don't block the post, but the author sees the 988 message.
+    """
+
+    form = PostForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(request, form.errors["content"][0])
+        return
+
+    content = form.cleaned_data["content"]
+    create(content)
+
+    if ai.is_crisis(content):
+        messages.warning(request, ai.CRISIS_MESSAGE)
+    else:
+        messages.success(request, "Posted.")
+
+
+@login_required
+@require_POST
+def post_create(request, pk):
+    forum = get_object_or_404(Forum, pk=pk)
+
+    if not is_member(request.user, forum):
+        messages.error(request, "Join this forum to post.")
+        return redirect(forum)
+
+    save_post_text(request, lambda content: Post.objects.create(
+        user=request.user,
+        forum=forum,
+        content=content,
+        location=forum.location,
+    ))
+
+    return redirect(forum)
+
+
+@login_required
+@require_POST
+def reply_create(request, pk):
+    post = get_object_or_404(Post.objects.select_related("forum"), pk=pk)
+
+    if not is_member(request.user, post.forum):
+        messages.error(request, "Join this forum to reply.")
+        return redirect(post.forum)
+
+    save_post_text(request, lambda content: Reply.objects.create(
+        post=post,
+        user=request.user,
+        content=content,
+    ))
+
+    return redirect(f"{post.forum.get_absolute_url()}#post-{post.pk}")
+
+
+@login_required
+@require_POST
+def post_delete(request, pk):
+    post = get_object_or_404(Post.objects.select_related("forum"), pk=pk)
+
+    if not can_manage(request.user, post.user_id):
+        raise PermissionDenied
+
+    post.delete()
+
+    messages.success(request, "Post deleted.")
+    return redirect(post.forum)
+
+
+@login_required
+@require_POST
+def reply_delete(request, pk):
+    reply = get_object_or_404(Reply.objects.select_related("post__forum"), pk=pk)
+
+    if not can_manage(request.user, reply.user_id):
+        raise PermissionDenied
+
+    reply.delete()
+
+    messages.success(request, "Reply deleted.")
+    return redirect(f"{reply.post.forum.get_absolute_url()}#post-{reply.post_id}")
+
+
+# ============================================================
+# Part 2 - Triangulate location API with forum posts
 # ============================================================
 
 def forum_summary(posts):
@@ -1401,17 +1681,14 @@ def forum_summary(posts):
     Post count, distinct users, and posts per group for a list of posts.
     """
 
-    group_counts = {}
-
-    for post in posts:
-        group_counts[post.group] = group_counts.get(post.group, 0) + 1
+    group_counts = Counter(post.forum for post in posts)
 
     return {
         "post_count": len(posts),
         "user_count": len({post.user_id for post in posts}),
         "groups": [
-            {"group": group, "post_count": count}
-            for group, count in sorted(group_counts.items(), key=lambda item: -item[1])
+            {"group": forum.name, "forum_id": forum.pk, "post_count": count}
+            for forum, count in group_counts.most_common()
         ],
     }
 
@@ -1420,9 +1697,9 @@ def forum_summary(posts):
 def forum_nearby_api(request):
     """
     Resolve ?q= (a city, zip code, or landmark) with the location API,
-    then find forum communities in the same city and the same state.
+    then find forum posts in the same city and the same state.
 
-    Forum.location is written as "City, ST" (e.g. "Champaign, IL").
+    Post.location is written as "City, ST" (e.g. "Champaign, IL").
     The external data is only used to match posts; nothing is stored.
     """
 
@@ -1448,31 +1725,43 @@ def forum_nearby_api(request):
     return JsonResponse({"query": query, **match_forums(place)})
 
 
+def location_match(location, place):
+    """
+    Compare a "City, ST" location with a resolved place.
+    Returns "city" (same city and state), "state" (same state only) or None.
+    """
+
+    parts = [part.strip().lower() for part in location.split(",")]
+    city = parts[0]
+    state = parts[-1] if len(parts) > 1 else ""
+
+    if state not in {(place["state"] or "").lower(), place["state_code"].lower()}:
+        return None
+
+    if place["city"] and city == place["city"].lower():
+        return "city"
+
+    return "state"
+
+
 def match_forums(place):
     """
-    Triangulate a resolved place with Forum posts: find the posts in
+    Triangulate a resolved place with forum posts: find the posts in
     the same city and the same state, and the state's share of all posts.
     """
 
-    posts = list(Forum.objects.exclude(location=""))
+    posts = list(Post.objects.select_related("forum").exclude(location=""))
 
     same_city = []
     same_state = []
 
     for post in posts:
-        parts = [part.strip().lower() for part in post.location.split(",")]
-        city = parts[0]
-        state = parts[-1] if len(parts) > 1 else ""
+        match = location_match(post.location, place)
 
-        in_state = state in {
-            (place["state"] or "").lower(),
-            place["state_code"].lower(),
-        }
-
-        if in_state:
+        if match:
             same_state.append(post)
 
-            if place["city"] and city == place["city"].lower():
+            if match == "city":
                 same_city.append(post)
 
     return {
@@ -1487,24 +1776,14 @@ def match_forums(place):
 @login_required
 def forum_nearby_page(request):
     """
-    HTML version of forum_nearby_api with a search form.
+    Forums Nearby is now part of the Forums page (the "Near" search box).
+    Old links still work.
     """
 
     query = request.GET.get("q", "").strip()
-    context = {"query": query}
+    url = reverse("forum_list")
 
-    if query:
-        try:
-            place = geocode(query)
-        except requests.RequestException:
-            context["error"] = "The location service is unavailable. Please try again."
-        else:
-            if place is None:
-                context["error"] = f'No place found for "{query}".'
-            else:
-                context.update(match_forums(place))
-
-    return render(request, "core/forum_nearby.html", context)
+    return redirect(f"{url}?{urlencode({'near': query})}" if query else url)
 
 
 # ============================================================

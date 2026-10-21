@@ -424,7 +424,60 @@ class JournalSticker(models.Model):
 
 class Forum(models.Model):
     """
-    Represents a community for the users to interact and connect with each other.
+    A community (e.g. "Books!") that users can join.
+    Members can post in it and reply to posts.
+    """
+
+    name = models.CharField(
+        max_length=120,
+        unique=True
+    )
+
+    description = models.TextField(blank=True)
+
+    category = models.CharField(
+        max_length=20,
+        choices=Quest.CATEGORY_CHOICES,
+        default="general"
+    )
+
+    location = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Optional "City, ST" (e.g. "Champaign, IL"), used by Forums Nearby.'
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="forums_created"
+    )
+
+    members = models.ManyToManyField(
+        User,
+        related_name="forums",
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ["name"]
+        
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse("forum_detail", kwargs={"pk": self.pk})
+
+
+class Post(models.Model):
+    """
+    One post in a forum.
     """
 
     user = models.ForeignKey(
@@ -433,9 +486,10 @@ class Forum(models.Model):
         related_name="forum_posts"
     )
 
-    group = models.CharField(
-        max_length=120,
-        help_text="Community or group that this post belongs to."
+    forum = models.ForeignKey(
+        Forum,
+        on_delete=models.CASCADE,
+        related_name="posts"
     )
 
     content = models.TextField()
@@ -454,7 +508,38 @@ class Forum(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.group} ({self.created_at:%Y-%m-%d}) — by {self.user}"
+        return f"{self.forum} ({self.created_at:%Y-%m-%d}) — by {self.user}"
+
+
+class Reply(models.Model):
+    """
+    A reply to a forum post.
+    """
+
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="forum_replies"
+    )
+
+    content = models.TextField()
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name_plural = "replies"
+
+    def __str__(self):
+        return f"Reply by {self.user} on {self.post}"
 
 
 class Friendship(models.Model):
