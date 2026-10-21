@@ -11,6 +11,7 @@ from .models import (
     Reply,
     Friendship,
     Profile,
+    TogetherInvite,
     UserReward,
 )
 
@@ -34,4 +35,5 @@ admin.site.register(Post)
 admin.site.register(Reply)
 admin.site.register(Friendship)
 admin.site.register(Profile)
+admin.site.register(TogetherInvite)
 admin.site.register(UserReward)

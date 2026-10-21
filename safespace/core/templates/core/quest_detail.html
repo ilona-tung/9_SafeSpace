@@ -40,6 +40,30 @@
 
     {% if completed_today %}
         <p><strong>✓ Completed today.</strong> Come back tomorrow if you'd like to do it again.</p>
+    {% elif quest.is_together %}
+
+        <!-- Together quest: invite a friend; it completes for both when they accept -->
+        <p>This quest is done with a friend. Invite one: when they accept, it's completed for both of you and you each get the rewards.</p>
+
+        {% if friends %}
+            <form method="post" action="{% url 'together_invite' quest.pk %}" class="people-search">
+                {% csrf_token %}
+                <label for="together-friend">Invite</label>
+                <select id="together-friend" name="friend">
+                    {% for friend in friends %}
+                        <option value="{{ friend.username }}">{{ friend.get_full_name|default:friend.username }} (@{{ friend.username }})</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="button-primary">Send invite</button>
+            </form>
+        {% else %}
+            <p class="muted">You don't have friends on SafeSpace yet. <a href="{% url 'people_search' %}">Find people</a> and add a friend first.</p>
+        {% endif %}
+
+        {% for invite in sent_invites %}
+            <p class="muted">Waiting for <a href="{% url 'profile_view' invite.to_user.username %}">{{ invite.to_user.username }}</a> to accept.</p>
+        {% endfor %}
+
     {% else %}
         <form method="post" action="{% url 'complete_quest' quest.pk %}">
             {% csrf_token %}

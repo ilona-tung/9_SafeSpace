@@ -16,8 +16,13 @@ class Quest(models.Model):
         ("social", "Social"),
         ("general", "General Self-Care"),
         ("exploration", "Exploration"),
+        ("together", "Together"),
         ("other", "Other"),
     ]
+
+    # Together quests are done with a friend: one invites, the other
+    # accepts, and the quest is completed for both
+    TOGETHER = "together"
 
     title = models.CharField(max_length=120)
 
@@ -48,6 +53,10 @@ class Quest(models.Model):
 
     def get_absolute_url(self):
         return reverse("quest_detail", kwargs={"pk": self.pk})
+
+    @property
+    def is_together(self):
+        return self.category == self.TOGETHER
 
     def display_category(self):
         if self.category == "other" and self.custom_category:
@@ -589,6 +598,28 @@ class Friendship(models.Model):
             f"{self.user_to} ({self.status})"
         )
 
+    @classmethod
+    def between(cls, user, other):
+        """
+        The friendship row between two users in either direction, or None.
+        """
+
+        return cls.objects.filter(
+            models.Q(user_from=user, user_to=other)
+            | models.Q(user_from=other, user_to=user)
+        ).first()
+
+    @classmethod
+    def friends_of(cls, user):
+        """
+        Users with an accepted friendship with `user`.
+        """
+
+        return User.objects.filter(
+            models.Q(friendship_requests_sent__user_to=user, friendship_requests_sent__status="accepted")
+            | models.Q(friendship_requests_received__user_from=user, friendship_requests_received__status="accepted")
+        ).distinct().order_by("username")
+
     def clean(self):
         """
         Prevent a user from sending a friendship request to themselves.
@@ -625,3 +656,80 @@ class Profile(models.Model):
     def for_user(cls, user):
         profile, _ = cls.objects.get_or_create(user=user)
         return profile
+
+
+
+class TogetherInvite(models.Model):
+    """
+    An invitation to do a Together quest with a friend.
+    When the friend accepts, the quest is completed for both of them.
+    """
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+    ]
+
+    from_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="together_invites_sent"
+    )
+
+    to_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="together_invites_received"
+    )
+
+    quest = models.ForeignKey(
+        Quest,
+        on_delete=models.PROTECT,
+        related_name="together_invites",
+        limit_choices_to={"category": Quest.TOGETHER}
+    )
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default="pending"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    # Each person's own completion, so we can show the rewards they got
+    from_completion = models.ForeignKey(
+        QuestCompletion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+"
+    )
+
+    to_completion = models.ForeignKey(
+        QuestCompletion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_user", "to_user", "quest"],
+                condition=models.Q(status="pending"),
+                name="one_pending_together_invite"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.from_user} + {self.to_user}: {self.quest} ({self.status})"

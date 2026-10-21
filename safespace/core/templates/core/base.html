@@ -40,7 +40,7 @@
                     <a href="{% url 'quest_list' %}">Quests</a>
                     <a href="{% url 'reward_list' %}">Rewards</a>
                     <a href="{% url 'forum_list' %}">Forums</a>
-                    <a href="{% url 'profile_me' %}">Profile</a>
+                    <a href="{% url 'profile_me' %}">Profile{% if pending_count %} <span class="nav__badge" title="Friend requests and invites">{{ pending_count }}</span>{% endif %}</a>
 
                     {% if user.is_staff %}
                         <!-- Admin only -->

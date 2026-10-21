@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from . import ai
-from .models import Forum, Journal, JournalSticker, Post, Profile, Quest, QuestCompletion, Reply, Reward, UserReward
+from .models import Forum, Friendship, Journal, JournalSticker, Post, Profile, Quest, QuestCompletion, Reply, Reward, TogetherInvite, UserReward
 from .views import DAILY_REWARD_LIMIT
 from .welcome import FALLBACK_WELCOME_MESSAGE, generate_welcome_message
 
@@ -793,7 +793,7 @@ class AccessProtectionTests(TestCase):
         rewards_page = self.client.get("/rewards/")
         self.assertContains(rewards_page, "unlocked by:")
         self.assertContains(rewards_page, "earned 1 time")
-        self.assertNotContains(rewards_page, "you have")
+        self.assertNotContains(rewards_page, "— you have")
 
     def test_quest_page_hides_completion_stats_from_users(self):
         self.client.login(username="member", password="pw-12345!")
@@ -863,6 +863,17 @@ class AIQuestSuggestionTests(TestCase):
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["quest"], self.walk)
         self.assertEqual(result["message"], "Fresh air helps.")
+
+    def test_together_quests_are_never_offered(self):
+        lunch = Quest.objects.create(title="Have lunch together", category=Quest.TOGETHER)
+
+        with self.fake_generate('{"quest": "Have lunch together", "message": "Eat with a friend."}') as fake:
+            result = ai.suggest_quest(self.user, "I feel lonely.")
+
+        prompt = json.dumps(fake.call_args.args[0])
+        self.assertNotIn("Have lunch together", prompt)
+        self.assertEqual(result["status"], "fallback")
+        self.assertNotEqual(result["quest"], lunch)
 
     def test_broken_or_unknown_answers_fall_back(self):
         for answer in [
@@ -1283,3 +1294,179 @@ class ProfileTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Recent journals")
+
+
+class FriendTests(TestCase):
+    def setUp(self):
+        self.alice = User.objects.create_user(username="alice", password="pw-12345!")
+        self.bob = User.objects.create_user(username="bob", password="pw-12345!")
+        self.client.login(username="alice", password="pw-12345!")
+
+    def friendship(self):
+        return Friendship.between(self.alice, self.bob)
+
+    def test_request_then_accept(self):
+        self.client.post("/people/bob/friend/add/")
+        self.assertEqual(self.friendship().status, "pending")
+        self.assertContains(self.client.get("/people/bob/"), "Request sent")
+
+        self.client.login(username="bob", password="pw-12345!")
+        self.assertContains(self.client.get("/profile/"), "wants to be friends")
+        self.assertEqual(self.client.get("/profile/").context["pending_count"], 1)
+
+        self.client.post("/people/alice/friend/accept/")
+        self.assertEqual(self.friendship().status, "accepted")
+        self.assertEqual(list(Friendship.friends_of(self.alice)), [self.bob])
+        self.assertContains(self.client.get("/people/alice/"), "Friends ✓")
+
+    def test_adding_someone_who_asked_you_accepts(self):
+        Friendship.objects.create(user_from=self.bob, user_to=self.alice)
+
+        self.client.post("/people/bob/friend/add/")
+
+        self.assertEqual(Friendship.objects.count(), 1)
+        self.assertEqual(self.friendship().status, "accepted")
+
+    def test_cancel_decline_and_unfriend_delete_the_row(self):
+        self.client.post("/people/bob/friend/add/")
+        self.client.post("/people/bob/friend/decline/")
+        self.assertIsNone(self.friendship())
+
+        Friendship.objects.create(user_from=self.alice, user_to=self.bob, status="accepted")
+        self.client.post("/people/bob/friend/remove/")
+        self.assertIsNone(self.friendship())
+
+    def test_cannot_friend_yourself_or_admins_or_use_get(self):
+        User.objects.create_user(username="admin", password="pw-12345!", is_staff=True)
+
+        self.assertEqual(self.client.post("/people/alice/friend/add/").status_code, 403)
+        self.assertEqual(self.client.post("/people/admin/friend/add/").status_code, 404)
+        self.assertEqual(self.client.get("/people/bob/friend/add/").status_code, 405)
+        self.assertFalse(Friendship.objects.exists())
+
+    def test_only_the_receiver_can_accept(self):
+        self.client.post("/people/bob/friend/add/")
+
+        response = self.client.post("/people/bob/friend/accept/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.friendship().status, "pending")
+
+    def test_next_only_goes_back_to_this_site(self):
+        response = self.client.post("/people/bob/friend/add/", {"next": "https://evil.example.com/"})
+
+        self.assertRedirects(response, "/people/bob/", fetch_redirect_response=False)
+
+
+class TogetherQuestTests(TestCase):
+    def setUp(self):
+        self.alice = User.objects.create_user(username="alice", password="pw-12345!")
+        self.bob = User.objects.create_user(username="bob", password="pw-12345!")
+        self.carol = User.objects.create_user(username="carol", password="pw-12345!")
+        Friendship.objects.create(user_from=self.alice, user_to=self.bob, status="accepted")
+
+        # Added by migration 0011, with its sticker and the Friendship Frame
+        self.quest = Quest.objects.get(title="Have lunch together", category=Quest.TOGETHER)
+        self.client.login(username="alice", password="pw-12345!")
+
+    def invite(self, friend="bob"):
+        return self.client.post(f"/quests/{self.quest.pk}/invite/", {"friend": friend})
+
+    def test_migration_added_quests_and_rewards(self):
+        self.assertEqual(Quest.objects.filter(category=Quest.TOGETHER).count(), 4)
+        self.assertEqual(
+            sorted(reward.name for reward in self.quest.possible_rewards.all()),
+            ["Friendship Frame", "Lunch Together Sticker"],
+        )
+        self.assertTrue(Quest.objects.get(title="Take 3 deep breaths").possible_rewards.filter(name="Sunset Background").exists())
+
+    def test_cannot_complete_alone(self):
+        self.client.post(f"/quests/{self.quest.pk}/complete/")
+
+        self.assertFalse(QuestCompletion.objects.exists())
+
+    def test_quest_page_shows_invite_form(self):
+        response = self.client.get(f"/quests/{self.quest.pk}/")
+
+        self.assertContains(response, "Send invite")
+        self.assertContains(response, '<option value="bob">')
+        self.assertNotContains(response, "Mark completed today")
+
+    def test_accepting_completes_for_both_with_rewards(self):
+        self.invite()
+        invite = TogetherInvite.objects.get()
+
+        self.client.login(username="bob", password="pw-12345!")
+        self.assertContains(self.client.get("/profile/"), "invited you to")
+        self.client.post(f"/invites/{invite.pk}/accept/")
+
+        invite.refresh_from_db()
+        self.assertEqual(invite.status, "accepted")
+        for user in [self.alice, self.bob]:
+            self.assertTrue(user.quest_completions.filter(quest=self.quest, completed_status=True).exists())
+            self.assertEqual(
+                sorted(owned.reward.name for owned in user.rewards.all()),
+                ["Friendship Frame", "Lunch Together Sticker"],
+            )
+
+        # Each friend sees it on the other's profile
+        response = self.client.get("/people/alice/")
+        self.assertContains(response, "Have lunch together")
+        self.assertContains(response, "LunchTogether.svg")
+
+    def test_strangers_dont_see_together_history(self):
+        self.invite()
+        self.client.login(username="bob", password="pw-12345!")
+        self.client.post(f"/invites/{TogetherInvite.objects.get().pk}/accept/", follow=True)
+
+        self.client.login(username="carol", password="pw-12345!")
+        response = self.client.get("/people/alice/")
+
+        self.assertNotContains(response, "Have lunch together")
+        self.assertContains(response, "Add friend")
+
+    def test_can_only_invite_friends(self):
+        self.invite("carol")
+
+        self.assertFalse(TogetherInvite.objects.exists())
+
+    def test_inviter_cannot_accept_own_invite(self):
+        self.invite()
+
+        response = self.client.post(f"/invites/{TogetherInvite.objects.get().pk}/accept/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(QuestCompletion.objects.exists())
+
+    def test_decline_removes_invite(self):
+        self.invite()
+        self.client.login(username="bob", password="pw-12345!")
+
+        self.client.post(f"/invites/{TogetherInvite.objects.get().pk}/decline/")
+
+        self.assertFalse(TogetherInvite.objects.exists())
+
+    def test_daily_limit_applies_to_each_person(self):
+        # Bob already earned rewards from 3 quests today
+        today = timezone.localdate()
+        for quest in Quest.objects.exclude(category=Quest.TOGETHER).filter(possible_rewards__isnull=False).distinct()[:DAILY_REWARD_LIMIT]:
+            completion = QuestCompletion.objects.create(
+                user=self.bob, quest=quest, completed_status=True, quest_date=today, completed_date=today,
+            )
+            completion.award_rewards()
+        before = self.bob.rewards.count()
+
+        self.invite()
+        self.client.login(username="bob", password="pw-12345!")
+        response = self.client.post(f"/invites/{TogetherInvite.objects.get().pk}/accept/", follow=True)
+
+        self.assertContains(response, "today&#x27;s limit")
+        self.assertEqual(self.bob.rewards.count(), before)
+        self.assertEqual(self.alice.rewards.count(), 2)
+
+    def test_unfriending_removes_pending_invites(self):
+        self.invite()
+
+        self.client.post("/people/bob/friend/remove/")
+
+        self.assertFalse(TogetherInvite.objects.exists())

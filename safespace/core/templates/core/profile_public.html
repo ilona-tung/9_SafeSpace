@@ -14,6 +14,22 @@
 
 {% include "core/_profile_header.html" %}
 
+{% if can_friend %}
+    {% include "core/_friend_buttons.html" %}
+{% endif %}
+
+{% if friend_state == "friends" and not preview %}
+
+    <!-- ============================== -->
+    <!-- TOGETHER (only friends see this) -->
+    <!-- ============================== -->
+
+    <h2>Together</h2>
+
+    {% include "core/_together_list.html" with empty_text="You haven't done a Together quest yet." %}
+
+{% endif %}
+
 
 <!-- ============================== -->
 <!-- FORUMS (public anyway) -->

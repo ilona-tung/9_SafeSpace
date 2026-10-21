@@ -687,3 +687,97 @@ h1, h2, h3, h4, h5 {
 .profile-list li {
   margin-bottom: .4rem;
 }
+
+
+/* Friends and Together quests */
+.nav__badge {
+  display: inline-block;
+  min-width: 1.3em;
+  padding: 0 .35em;
+  border-radius: 999px;
+  background: #F15A29;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1.3em;
+  text-align: center;
+}
+
+.friend-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin: .5rem 0 1rem;
+}
+
+.friend-actions form,
+.friend-actions button {
+  margin: 0;
+}
+
+.friend-badge {
+  font-weight: 700;
+  color: #4f7a5b;
+}
+
+.profile-inbox {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: #FFF6EC;
+  border: 1px solid #FBD3A6;
+  border-radius: var(--radius);
+}
+
+.profile-inbox h2 {
+  margin-top: 0;
+}
+
+.inbox-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .25rem 1rem;
+}
+
+.inbox-item .friend-actions {
+  margin: 0;
+}
+
+.together-list {
+  padding: 0;
+  list-style: none;
+}
+
+.together-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem 1rem;
+  margin: 0 0 .6rem;
+  padding: .6rem .9rem;
+  background: var(--white);
+  border: 1px solid var(--lavender);
+  border-radius: var(--radius);
+}
+
+.together-item__rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+}
+
+.together-item__who {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .9rem;
+}
+
+.together-item__who img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}

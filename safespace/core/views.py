@@ -22,10 +22,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward, Profile
+from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward, Profile, Friendship, TogetherInvite
 from .forms import FeelingForm, JournalEditorForm, ForumForm, PostForm, NameForm, BioForm
 from . import ai
 from .welcome import generate_welcome_message
@@ -1144,11 +1145,71 @@ def quest_detail(request, pk):
         context["rewards_left"] = rewards_left_today(request.user)
         context["daily_reward_limit"] = DAILY_REWARD_LIMIT
 
+        if quest.is_together:
+            context["friends"] = Friendship.friends_of(request.user)
+            context["sent_invites"] = (
+                request.user.together_invites_sent
+                .filter(quest=quest, status="pending")
+                .select_related("to_user")
+            )
+
     return render(
         request,
         "core/quest_detail.html",
         context
     )
+
+
+def complete_today(user, quest):
+    """
+    Mark `quest` as completed today for `user` and award its rewards,
+    within the daily reward limit.
+
+    Returns (completion, already_done, new_rewards, hit_limit).
+    """
+
+    today = timezone.localdate()
+
+    completion, created = QuestCompletion.objects.get_or_create(
+        user=user,
+        quest=quest,
+        quest_date=today,
+        defaults={
+            "completed_status": True,
+            "completed_date": today,
+        }
+    )
+
+    if not created and completion.completed_status:
+        return completion, True, [], False
+
+    # Checked before saving, so this completion isn't counted yet
+    can_earn_rewards = rewards_left_today(user) > 0
+
+    if not created:
+        # The quest was started today but not finished yet
+        completion.completed_status = True
+        completion.completed_date = today
+        completion.save()
+
+    new_rewards = completion.award_rewards() if can_earn_rewards else []
+    hit_limit = not can_earn_rewards and quest.possible_rewards.exists()
+
+    return completion, False, new_rewards, hit_limit
+
+
+def reward_message(new_rewards, hit_limit):
+    if hit_limit:
+        return (
+            f" You've earned rewards from {DAILY_REWARD_LIMIT} quests today, "
+            "which is today's limit. New rewards unlock again tomorrow."
+        )
+
+    if new_rewards:
+        names = ", ".join(str(user_reward.reward) for user_reward in new_rewards)
+        return f" You earned: {names}."
+
+    return ""
 
 
 @regular_user_required
@@ -1160,6 +1221,7 @@ def complete_quest(request, pk):
     Quests are daily: each day gets its own QuestCompletion.
     A completion that is already marked completed is never changed.
     Only the first DAILY_REWARD_LIMIT rewarded completions each day earn rewards.
+    Together quests can't be completed alone: they need an accepted invite.
     """
 
     quest = get_object_or_404(
@@ -1167,45 +1229,17 @@ def complete_quest(request, pk):
         pk=pk
     )
 
-    today = timezone.localdate()
+    if quest.is_together:
+        messages.error(request, "This is a Together quest: invite a friend to complete it with you.")
+        return redirect(quest)
 
-    completion, created = QuestCompletion.objects.get_or_create(
-        user=request.user,
-        quest=quest,
-        quest_date=today,
-        defaults={
-            "completed_status": True,
-            "completed_date": today,
-        }
-    )
+    _, already_done, new_rewards, hit_limit = complete_today(request.user, quest)
 
-    if not created and completion.completed_status:
+    if already_done:
         messages.info(request, f"You already completed \"{quest}\" today.")
         return redirect(quest)
 
-    # Checked before saving, so this completion isn't counted yet
-    can_earn_rewards = rewards_left_today(request.user) > 0
-
-    if not created:
-        # The quest was started today but not finished yet
-        completion.completed_status = True
-        completion.completed_date = today
-        completion.save()
-
-    new_rewards = completion.award_rewards() if can_earn_rewards else []
-
-    message = f"Nice work! You completed \"{quest}\"."
-
-    if not can_earn_rewards and quest.possible_rewards.exists():
-        message += (
-            f" You've earned rewards from {DAILY_REWARD_LIMIT} quests today, "
-            "which is today's limit. New rewards unlock again tomorrow."
-        )
-    elif new_rewards:
-        names = ", ".join(str(user_reward.reward) for user_reward in new_rewards)
-        message += f" You earned: {names}."
-
-    messages.success(request, message)
+    messages.success(request, f"Nice work! You completed \"{quest}\"." + reward_message(new_rewards, hit_limit))
 
     return redirect(quest)
 
@@ -1292,6 +1326,7 @@ def user_detail(request, pk):
 PROFILE_RECENT_JOURNALS = 3
 PROFILE_RECENT_REWARDS = 6
 PROFILE_RECENT_QUESTS = 5
+PROFILE_RECENT_TOGETHER = 5
 PEOPLE_SEARCH_LIMIT = 50
 
 
@@ -1338,6 +1373,14 @@ def profile_me(request):
                 completions.select_related("quest")
                 .order_by("-completed_date", "-pk")[:PROFILE_RECENT_QUESTS]
             ),
+
+            # Friends and Together quests
+            "friends": Friendship.friends_of(me),
+            "friend_requests": me.friendship_requests_received.filter(status="pending").select_related("user_from"),
+            "sent_requests": me.friendship_requests_sent.filter(status="pending").select_related("user_to"),
+            "invites_received": me.together_invites_received.filter(status="pending").select_related("quest", "from_user"),
+            "invites_sent": me.together_invites_sent.filter(status="pending").select_related("quest", "to_user"),
+            "together": together_history(me)[:PROFILE_RECENT_TOGETHER],
         })
 
     return render(request, "core/profile.html", context)
@@ -1363,6 +1406,21 @@ def profile_view(request, username):
     forums = joined_forums(person)
     joined_ids = set(request.user.forums.values_list("pk", flat=True))
 
+    # Friend button state, and what you two did together (friends only)
+    friendship = Friendship.between(request.user, person)
+    can_friend = not preview and not request.user.is_staff and not person.is_staff
+
+    if friendship is None:
+        friend_state = "none"
+    elif friendship.status == "accepted":
+        friend_state = "friends"
+    elif friendship.user_from == request.user:
+        friend_state = "sent"
+    else:
+        friend_state = "received"
+
+    together = together_history(request.user, person) if friend_state == "friends" and not preview else []
+
     return render(
         request,
         "core/profile_public.html",
@@ -1372,6 +1430,9 @@ def profile_view(request, username):
             "forums": forums,
             "joined_ids": joined_ids,
             "preview": preview,
+            "can_friend": can_friend,
+            "friend_state": friend_state,
+            "together": together,
         }
     )
 
@@ -1430,6 +1491,211 @@ def people_search(request):
         "core/people.html",
         {"query": query, "people": people}
     )
+
+
+# ============================================================
+# Friends
+# ============================================================
+
+def back_to(request, fallback):
+    """
+    Go back to the page the form was on (only pages on this site).
+    """
+
+    next_url = request.POST.get("next", "")
+
+    if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+
+    return redirect(fallback)
+
+
+def other_user(request, username):
+    """
+    The regular user a friend button is about (not yourself, not an admin).
+    """
+
+    person = get_object_or_404(User, username=username, is_active=True, is_staff=False)
+
+    if person == request.user:
+        raise PermissionDenied
+
+    return person
+
+
+@regular_user_required
+@require_POST
+def friend_add(request, username):
+    """
+    Send a friend request. If they already asked you, this accepts it.
+    """
+
+    person = other_user(request, username)
+    friendship = Friendship.between(request.user, person)
+
+    if friendship is None:
+        Friendship.objects.create(user_from=request.user, user_to=person)
+        messages.success(request, f"Friend request sent to {person.username}.")
+    elif friendship.status == "accepted":
+        messages.info(request, f"You and {person.username} are already friends.")
+    elif friendship.user_from == person:
+        friendship.status = "accepted"
+        friendship.save()
+        messages.success(request, f"You and {person.username} are now friends.")
+    else:
+        messages.info(request, f"You already sent {person.username} a request.")
+
+    return back_to(request, reverse("profile_view", args=[person.username]))
+
+
+@regular_user_required
+@require_POST
+def friend_accept(request, username):
+    person = other_user(request, username)
+    friendship = get_object_or_404(Friendship, user_from=person, user_to=request.user, status="pending")
+
+    friendship.status = "accepted"
+    friendship.save()
+    messages.success(request, f"You and {person.username} are now friends.")
+
+    return back_to(request, reverse("profile_view", args=[person.username]))
+
+
+@regular_user_required
+@require_POST
+def friend_decline(request, username):
+    """
+    Decline a request you received, or cancel one you sent.
+    No one is notified, and either person can ask again later.
+    """
+
+    person = other_user(request, username)
+    Friendship.objects.filter(
+        Q(user_from=person, user_to=request.user) | Q(user_from=request.user, user_to=person),
+        status="pending",
+    ).delete()
+
+    return back_to(request, reverse("profile_view", args=[person.username]))
+
+
+@regular_user_required
+@require_POST
+def friend_remove(request, username):
+    """
+    Unfriend. Pending Together invites between the two are removed too.
+    """
+
+    person = other_user(request, username)
+    Friendship.objects.filter(
+        Q(user_from=person, user_to=request.user) | Q(user_from=request.user, user_to=person),
+        status="accepted",
+    ).delete()
+    # Two simple deletes: an OR filter here trips an SQLite planner bug
+    # with the partial unique index on pending invites
+    for sender, receiver in [(person, request.user), (request.user, person)]:
+        TogetherInvite.objects.filter(from_user=sender, to_user=receiver, status="pending").delete()
+    messages.info(request, f"You and {person.username} are no longer friends.")
+
+    return back_to(request, reverse("profile_view", args=[person.username]))
+
+
+# ============================================================
+# Together quests
+# ============================================================
+
+def together_history(user, other=None):
+    """
+    Accepted Together invites of `user` (only the ones with `other`, if given),
+    newest first, with each person's own rewards.
+    """
+
+    invites = TogetherInvite.objects.filter(
+        Q(from_user=user) | Q(to_user=user),
+        status="accepted",
+    )
+
+    if other is not None:
+        invites = invites.filter(Q(from_user=other) | Q(to_user=other))
+
+    invites = invites.select_related("quest", "from_user", "to_user").prefetch_related(
+        "from_completion__unlocked_rewards__reward",
+        "to_completion__unlocked_rewards__reward",
+    ).order_by("-accepted_at")
+
+    return invites
+
+
+@regular_user_required
+@require_POST
+def together_invite(request, pk):
+    """
+    Invite a friend to do a Together quest with you.
+    """
+
+    quest = get_object_or_404(Quest, pk=pk, category=Quest.TOGETHER)
+    friend = Friendship.friends_of(request.user).filter(username=request.POST.get("friend", "")).first()
+
+    if friend is None:
+        messages.error(request, "Choose one of your friends to invite.")
+    elif TogetherInvite.objects.filter(from_user=request.user, to_user=friend, quest=quest, status="pending").exists():
+        messages.info(request, f"You already invited {friend.username} to this quest.")
+    else:
+        TogetherInvite.objects.create(from_user=request.user, to_user=friend, quest=quest)
+        messages.success(request, f"Invite sent! When {friend.username} accepts, the quest is completed for both of you.")
+
+    return redirect(quest)
+
+
+@regular_user_required
+@require_POST
+def together_accept(request, pk):
+    """
+    Accept an invite: the quest is completed today for both people,
+    and each gets rewards within their own daily limit.
+    """
+
+    invite = get_object_or_404(TogetherInvite, pk=pk, to_user=request.user, status="pending")
+
+    if Friendship.between(invite.from_user, request.user) is None:
+        invite.delete()
+        messages.error(request, "You're no longer friends, so this invite was removed.")
+        return back_to(request, reverse("profile_me"))
+
+    from_completion, _, _, _ = complete_today(invite.from_user, invite.quest)
+    to_completion, already_done, new_rewards, hit_limit = complete_today(request.user, invite.quest)
+
+    invite.status = "accepted"
+    invite.accepted_at = timezone.now()
+    invite.from_completion = from_completion
+    invite.to_completion = to_completion
+    invite.save()
+
+    message = f"You and {invite.from_user.username} completed \"{invite.quest}\" together!"
+
+    if already_done:
+        message += " You had already completed it today, so no new rewards for you."
+    else:
+        message += reward_message(new_rewards, hit_limit)
+
+    messages.success(request, message)
+
+    return back_to(request, reverse("profile_me"))
+
+
+@regular_user_required
+@require_POST
+def together_decline(request, pk):
+    """
+    Decline an invite you received, or cancel one you sent.
+    """
+
+    get_object_or_404(
+        TogetherInvite.objects.filter(Q(to_user=request.user) | Q(from_user=request.user)),
+        pk=pk,
+        status="pending",
+    ).delete()
+
+    return back_to(request, reverse("profile_me"))
 
 
 # ============================================================

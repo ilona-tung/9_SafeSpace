@@ -385,7 +385,8 @@ def suggest_quest(user, feeling, journal=None):
     """
 
     feeling = clean_text(feeling, MAX_INPUT_CHARS)
-    quests = list(Quest.objects.all())
+    # Only quests one person can do alone: Together quests need a friend
+    quests = list(Quest.objects.exclude(category=Quest.TOGETHER))
 
     # Everything the user wrote that would reach the model
     user_text = feeling

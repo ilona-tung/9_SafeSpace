@@ -34,6 +34,49 @@
 
 
     <!-- ============================== -->
+    <!-- WAITING FOR YOU: friend requests and Together invites -->
+    <!-- ============================== -->
+
+    {% if friend_requests or invites_received %}
+        <section class="profile-inbox" id="inbox">
+            <h2>Waiting for you</h2>
+
+            <ul class="profile-list">
+                {% for request_ in friend_requests %}
+                    <li class="inbox-item">
+                        <span>
+                            <a href="{% url 'profile_view' request_.user_from.username %}">{{ request_.user_from.username }}</a>
+                            wants to be friends.
+                        </span>
+                        {% include "core/_friend_buttons.html" with person=request_.user_from friend_state="received" %}
+                    </li>
+                {% endfor %}
+
+                {% for invite in invites_received %}
+                    <li class="inbox-item">
+                        <span>
+                            <a href="{% url 'profile_view' invite.from_user.username %}">{{ invite.from_user.username }}</a>
+                            invited you to <a href="{{ invite.quest.get_absolute_url }}">{{ invite.quest.title }}</a>.
+                            <span class="muted">Accept once you've done it together.</span>
+                        </span>
+                        <div class="friend-actions">
+                            <form method="post" action="{% url 'together_accept' invite.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="button-primary">We did it!</button>
+                            </form>
+                            <form method="post" action="{% url 'together_decline' invite.pk %}">
+                                {% csrf_token %}
+                                <button type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+
+    <!-- ============================== -->
     <!-- RECENT JOURNALS -->
     <!-- ============================== -->
 
@@ -84,16 +127,62 @@
         <a href="{% url 'quest_list' %}">See all →</a>
     </div>
 
-    <ul class="profile-list">
+    <div class="quest-grid">
         {% for completion in recent_quests %}
-            <li>
-                <a href="{{ completion.quest.get_absolute_url }}">{{ completion.quest.title }}</a>
-                <span class="muted">· {{ completion.completed_date|date:"M j, Y" }}</span>
-            </li>
+            <a class="quest-card" href="{{ completion.quest.get_absolute_url }}">
+                <span class="quest-card__category">{{ completion.quest.display_category }}</span>
+                <span class="quest-card__title">{{ completion.quest.title }}</span>
+                <span class="muted">✓ {{ completion.completed_date|date:"M j, Y" }}</span>
+                <span class="quest-card__open">Open quest →</span>
+            </a>
         {% empty %}
-            <li class="muted">No quests completed yet.</li>
+            <p class="muted">No quests completed yet.</p>
+        {% endfor %}
+    </div>
+
+
+
+    <!-- ============================== -->
+    <!-- FRIENDS (only you see this list) -->
+    <!-- ============================== -->
+
+    <div class="profile-section__head">
+        <h2>Friends</h2>
+        <a href="{% url 'people_search' %}">Find people →</a>
+    </div>
+
+    <ul class="profile-list">
+        {% for friend in friends %}
+            <li><a href="{% url 'profile_view' friend.username %}">{{ friend.get_full_name|default:friend.username }}</a> <span class="muted">@{{ friend.username }}</span></li>
+        {% empty %}
+            <li class="muted">No friends yet. Search for people above and send a request.</li>
+        {% endfor %}
+
+        {% for sent in sent_requests %}
+            <li class="muted">
+                Request sent to <a href="{% url 'profile_view' sent.user_to.username %}">{{ sent.user_to.username }}</a>
+            </li>
         {% endfor %}
     </ul>
+
+
+    <!-- ============================== -->
+    <!-- TOGETHER QUESTS -->
+    <!-- ============================== -->
+
+    <div class="profile-section__head">
+        <h2>Together</h2>
+        <a href="{% url 'quest_list' %}">All quests →</a>
+    </div>
+
+    {% for invite in invites_sent %}
+        <p class="muted">
+            Waiting for <a href="{% url 'profile_view' invite.to_user.username %}">{{ invite.to_user.username }}</a>
+            to accept <a href="{{ invite.quest.get_absolute_url }}">{{ invite.quest.title }}</a>.
+        </p>
+    {% endfor %}
+
+    {% include "core/_together_list.html" with empty_text="No Together quests yet. Open one and invite a friend!" %}
 
 {% endif %}
 
