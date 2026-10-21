@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    People
+{% endblock %}
+
+{% block content %}
+
+<p><a href="{% url 'profile_me' %}">← My profile</a></p>
+
+<h1>Find people</h1>
+
+{% include "core/_people_search.html" %}
+
+{% if query %}
+
+    <div class="quest-grid">
+        {% for person in people %}
+            <a class="quest-card" href="{% url 'profile_view' person.username %}">
+                <span class="quest-card__title">{{ person.get_full_name|default:person.username }}</span>
+                <span class="muted">@{{ person.username }}</span>
+                {% if person.profile.bio %}
+                    <span class="muted forum-card__text">{{ person.profile.bio|truncatechars:90 }}</span>
+                {% endif %}
+                <span class="quest-card__open">View profile →</span>
+            </a>
+        {% empty %}
+            <p class="muted">No one found for "{{ query }}".</p>
+        {% endfor %}
+    </div>
+
+{% else %}
+
+    <p class="muted">Search by username, first name or last name.</p>
+
+{% endif %}
+
+{% endblock %}

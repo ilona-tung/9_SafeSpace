@@ -1,0 +1,118 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}
+    My Profile
+{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
+{% endblock %}
+
+{% block content %}
+
+{% include "core/_people_search.html" %}
+
+{% include "core/_profile_header.html" %}
+
+<p class="profile-actions">
+    <a class="button" href="{% url 'profile_edit' %}">Edit profile</a>
+    <a class="muted" href="{% url 'profile_view' person.username %}?preview=1">How others see my profile</a>
+</p>
+
+{% if not person.is_staff %}
+
+    <!-- ============================== -->
+    <!-- QUICK NUMBERS -->
+    <!-- ============================== -->
+
+    <ul class="profile-stats">
+        <li><strong>{{ quest_count }}</strong> quest{{ quest_count|pluralize }} completed</li>
+        <li><strong>{{ reward_count }}</strong> reward{{ reward_count|pluralize }} earned</li>
+        <li><strong>{{ journal_count }}</strong> journal entr{{ journal_count|pluralize:"y,ies" }}</li>
+    </ul>
+
+
+    <!-- ============================== -->
+    <!-- RECENT JOURNALS -->
+    <!-- ============================== -->
+
+    <div class="profile-section__head">
+        <h2>Recent journals</h2>
+        <a href="{% url 'journal_list' %}">See all →</a>
+    </div>
+
+    <div class="journal-grid">
+        {% for journal in recent_journals %}
+            {% include "core/_journal_card.html" %}
+        {% empty %}
+            <p class="muted">No journal entries yet. <a href="{% url 'journal_new' %}">Write your first page</a>.</p>
+        {% endfor %}
+    </div>
+
+
+    <!-- ============================== -->
+    <!-- RECENT REWARDS -->
+    <!-- ============================== -->
+
+    <div class="profile-section__head">
+        <h2>Recent rewards</h2>
+        <a href="{% url 'reward_list' %}">See all →</a>
+    </div>
+
+    <ul class="profile-rewards">
+        {% for owned in recent_rewards %}
+            <li class="profile-reward">
+                {% if owned.reward.asset and owned.reward.item_type != "font" %}
+                    <img src="{% static owned.reward.asset %}" alt="">
+                {% endif %}
+                <span>{{ owned.reward.name }}</span>
+                <span class="muted">{{ owned.unlocked_time|date:"M j" }}</span>
+            </li>
+        {% empty %}
+            <li class="muted">No rewards yet. Complete a quest to earn one!</li>
+        {% endfor %}
+    </ul>
+
+
+    <!-- ============================== -->
+    <!-- RECENT QUESTS -->
+    <!-- ============================== -->
+
+    <div class="profile-section__head">
+        <h2>Recent quests</h2>
+        <a href="{% url 'quest_list' %}">See all →</a>
+    </div>
+
+    <ul class="profile-list">
+        {% for completion in recent_quests %}
+            <li>
+                <a href="{{ completion.quest.get_absolute_url }}">{{ completion.quest.title }}</a>
+                <span class="muted">· {{ completion.completed_date|date:"M j, Y" }}</span>
+            </li>
+        {% empty %}
+            <li class="muted">No quests completed yet.</li>
+        {% endfor %}
+    </ul>
+
+{% endif %}
+
+
+<!-- ============================== -->
+<!-- MY FORUMS -->
+<!-- ============================== -->
+
+<div class="profile-section__head">
+    <h2>My forums</h2>
+    <a href="{% url 'forum_list' %}">See all →</a>
+</div>
+
+<div class="quest-grid">
+    {% for forum in forums %}
+        {% include "core/_forum_card.html" %}
+    {% empty %}
+        <p class="muted">You haven't joined a forum yet.</p>
+    {% endfor %}
+</div>
+
+{% endblock %}

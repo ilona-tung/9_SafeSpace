@@ -14,7 +14,7 @@
     {{ forum.get_category_display }} ·
     {{ member_count }} member{{ member_count|pluralize }}
     {% if forum.location %}· {{ forum.location }}{% endif %}
-    {% if forum.created_by %}· started by {{ forum.created_by.username }}{% endif %}
+    {% if forum.created_by %}· started by <a href="{% url 'profile_view' forum.created_by.username %}">{{ forum.created_by.username }}</a>{% endif %}
 </p>
 
 {% if forum.description %}
@@ -81,7 +81,7 @@
         <div class="card__body">
 
             <p class="forum-post__meta muted">
-                <strong>{{ post.user.username }}</strong> · {{ post.created_at|date:"M j, Y, g:i a" }}
+                <strong><a href="{% url 'profile_view' post.user.username %}">{{ post.user.username }}</a></strong> · {{ post.created_at|date:"M j, Y, g:i a" }}
             </p>
 
             <p class="forum-post__text">{{ post.content|linebreaksbr }}</p>
@@ -99,7 +99,7 @@
                 {% for reply in post.replies.all %}
                     <div class="forum-reply">
                         <p class="forum-post__meta muted">
-                            <strong>{{ reply.user.username }}</strong> · {{ reply.created_at|date:"M j, g:i a" }}
+                            <strong><a href="{% url 'profile_view' reply.user.username %}">{{ reply.user.username }}</a></strong> · {{ reply.created_at|date:"M j, g:i a" }}
                         </p>
                         <p class="forum-post__text">{{ reply.content|linebreaksbr }}</p>
 

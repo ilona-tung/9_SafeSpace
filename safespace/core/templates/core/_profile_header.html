@@ -1,0 +1,14 @@
+<!-- Name, @username, bio and join date (shown on every profile) -->
+<section class="profile-header">
+    <span class="profile-header__avatar" aria-hidden="true">{{ person.username|first|upper }}</span>
+
+    <div>
+        <h1>{{ person.get_full_name|default:person.username }}</h1>
+        <p class="muted profile-header__meta">
+            @{{ person.username }} · Joined {{ person.date_joined|date:"M Y" }}
+        </p>
+        {% if profile.bio %}
+            <p class="profile-header__bio">{{ profile.bio }}</p>
+        {% endif %}
+    </div>
+</section>

@@ -10,6 +10,7 @@ from .models import (
     Post,
     Reply,
     Friendship,
+    Profile,
     UserReward,
 )
 
@@ -32,4 +33,5 @@ admin.site.register(Forum)
 admin.site.register(Post)
 admin.site.register(Reply)
 admin.site.register(Friendship)
+admin.site.register(Profile)
 admin.site.register(UserReward)

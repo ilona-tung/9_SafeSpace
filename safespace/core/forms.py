@@ -5,7 +5,9 @@ from django import forms
 from django.db import transaction
 from django.db.models import Q
 
-from .models import Forum, Journal, JournalSticker, Reward, UserReward
+from django.contrib.auth.models import User
+
+from .models import Forum, Journal, JournalSticker, Profile, Reward, UserReward
 
 
 class JournalAdminForm(forms.ModelForm):
@@ -306,3 +308,36 @@ class PostForm(forms.Form):
             "max_length": f"Posts and replies can be up to {FORUM_TEXT_MAX} characters.",
         },
     )
+
+
+# ============================================================
+# Profiles
+# ============================================================
+
+class NameForm(forms.ModelForm):
+    """
+    The name part of the profile (stored on the User model).
+    Username and email are not editable here.
+    """
+
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name"]
+
+
+class BioForm(forms.ModelForm):
+
+    class Meta:
+        model = Profile
+        fields = ["bio"]
+        widgets = {
+            "bio": forms.Textarea(attrs={
+                "rows": 3,
+                "maxlength": Profile.BIO_MAX,
+                "placeholder": "A few words about you",
+            }),
+        }
+        help_texts = {"bio": f"Up to {Profile.BIO_MAX} characters. Anyone logged in can see it."}
+
+    def clean_bio(self):
+        return self.cleaned_data["bio"].strip()

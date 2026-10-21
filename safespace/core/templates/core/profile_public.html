@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    {{ person.username }}
+{% endblock %}
+
+{% block content %}
+
+{% if preview %}
+    <p class="muted">This is how other people see your profile. <a href="{% url 'profile_me' %}">← Back to my profile</a></p>
+{% else %}
+    {% include "core/_people_search.html" %}
+{% endif %}
+
+{% include "core/_profile_header.html" %}
+
+
+<!-- ============================== -->
+<!-- FORUMS (public anyway) -->
+<!-- ============================== -->
+
+<h2>Forums</h2>
+
+<div class="quest-grid">
+    {% for forum in forums %}
+        {% include "core/_forum_card.html" %}
+    {% empty %}
+        <p class="muted">{{ person.username }} hasn't joined any forums yet.</p>
+    {% endfor %}
+</div>
+
+{% endblock %}

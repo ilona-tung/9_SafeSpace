@@ -1,0 +1,26 @@
+{% load static %}
+<a class="journal-card" href="{% url 'journal_detail' journal.pk %}">
+
+    <!-- Preview strip: the page background and a few of its stickers -->
+    <span class="journal-card__preview"
+          {% if journal.background.asset %}style="background-image: url('{% static journal.background.asset %}')"{% endif %}>
+        {% for sticker in journal.stickers.all|slice:":4" %}
+            {% if sticker.reward.asset %}
+                <img src="{% static sticker.reward.asset %}" alt="{{ sticker.reward.name }}">
+            {% endif %}
+        {% endfor %}
+    </span>
+
+    <span class="journal-card__body">
+        <span class="journal-card__date">{{ journal.time|date:"D, M j, Y" }}</span>
+
+        {% if journal.summary %}
+            <span class="journal-card__summary">“{{ journal.summary }}”</span>
+        {% else %}
+            <span class="journal-card__excerpt">{{ journal.content|truncatechars:110 }}</span>
+        {% endif %}
+
+        <span class="journal-card__open">Open page →</span>
+    </span>
+
+</a>

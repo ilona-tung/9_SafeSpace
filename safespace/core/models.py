@@ -598,3 +598,30 @@ class Friendship(models.Model):
             raise ValidationError(
                 "A user cannot send a friendship request to themselves."
             )
+
+class Profile(models.Model):
+    """
+    Extra public information about a user (the User model has no bio).
+    Created the first time it is needed, see Profile.for_user.
+    """
+
+    BIO_MAX = 300
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="profile"
+    )
+
+    bio = models.CharField(
+        max_length=BIO_MAX,
+        blank=True
+    )
+
+    def __str__(self):
+        return f"Profile of {self.user}"
+
+    @classmethod
+    def for_user(cls, user):
+        profile, _ = cls.objects.get_or_create(user=user)
+        return profile

@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+    Edit Profile
+{% endblock %}
+
+{% block content %}
+
+<p><a href="{% url 'profile_me' %}">← My profile</a></p>
+
+<h1>Edit profile</h1>
+
+<form method="post" class="forum-form">
+    {% csrf_token %}
+
+    {{ name_form.as_p }}
+    {{ bio_form.as_p }}
+
+    <p class="muted">Your username (@{{ user.username }}) and email can't be changed here. Your email is never shown to other people.</p>
+
+    <button type="submit" class="button-primary">Save</button>
+    <a class="button" href="{% url 'profile_me' %}">Cancel</a>
+</form>
+
+{% endblock %}

@@ -25,8 +25,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward
-from .forms import FeelingForm, JournalEditorForm, ForumForm, PostForm
+from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward, Profile
+from .forms import FeelingForm, JournalEditorForm, ForumForm, PostForm, NameForm, BioForm
 from . import ai
 from .welcome import generate_welcome_message
 
@@ -1282,6 +1282,153 @@ def user_detail(request, pk):
             "user": user,
             "completed_quests": completed_quests,
         }
+    )
+
+
+# ============================================================
+# Profiles
+# ============================================================
+
+PROFILE_RECENT_JOURNALS = 3
+PROFILE_RECENT_REWARDS = 6
+PROFILE_RECENT_QUESTS = 5
+PEOPLE_SEARCH_LIMIT = 50
+
+
+def joined_forums(user):
+    return (
+        user.forums
+        .annotate(member_count=Count("members", distinct=True), post_count=Count("posts", distinct=True))
+        .order_by("name")
+    )
+
+
+@login_required
+def profile_me(request):
+    """
+    The logged-in user's own profile: basic info plus their recent
+    journals, rewards, quests and forums, each linking to its full page.
+    """
+
+    me = request.user
+    forums = joined_forums(me)
+
+    context = {
+        "person": me,
+        "profile": Profile.for_user(me),
+        "forums": forums,
+        "joined_ids": {forum.pk for forum in forums},
+    }
+
+    # Admin accounts don't use journals, quests or rewards
+    if not me.is_staff:
+        completions = me.quest_completions.filter(completed_status=True)
+
+        context.update({
+            "quest_count": completions.count(),
+            "reward_count": me.rewards.count(),
+            "journal_count": me.journals.count(),
+            "recent_journals": (
+                me.journals.order_by("-time")
+                .select_related("background")
+                .prefetch_related("stickers__reward")[:PROFILE_RECENT_JOURNALS]
+            ),
+            "recent_rewards": me.rewards.select_related("reward")[:PROFILE_RECENT_REWARDS],
+            "recent_quests": (
+                completions.select_related("quest")
+                .order_by("-completed_date", "-pk")[:PROFILE_RECENT_QUESTS]
+            ),
+        })
+
+    return render(request, "core/profile.html", context)
+
+
+@login_required
+def profile_view(request, username):
+    """
+    Someone else's public profile: only basic info and the forums
+    they joined (forums are public anyway). Never their journals,
+    rewards, quests or email.
+    """
+
+    person = get_object_or_404(User, username=username, is_active=True)
+
+    # Your own profile opens the full version, unless you ask to preview
+    # what others see
+    preview = person == request.user and request.GET.get("preview") == "1"
+
+    if person == request.user and not preview:
+        return redirect("profile_me")
+
+    forums = joined_forums(person)
+    joined_ids = set(request.user.forums.values_list("pk", flat=True))
+
+    return render(
+        request,
+        "core/profile_public.html",
+        {
+            "person": person,
+            "profile": Profile.for_user(person),
+            "forums": forums,
+            "joined_ids": joined_ids,
+            "preview": preview,
+        }
+    )
+
+
+@login_required
+def profile_edit(request):
+
+    profile = Profile.for_user(request.user)
+
+    if request.method == "POST":
+        name_form = NameForm(request.POST, instance=request.user)
+        bio_form = BioForm(request.POST, instance=profile)
+
+        if name_form.is_valid() and bio_form.is_valid():
+            name_form.save()
+            bio_form.save()
+            messages.success(request, "Profile updated.")
+            return redirect("profile_me")
+    else:
+        name_form = NameForm(instance=request.user)
+        bio_form = BioForm(instance=profile)
+
+    return render(
+        request,
+        "core/profile_edit.html",
+        {"name_form": name_form, "bio_form": bio_form}
+    )
+
+
+@login_required
+def people_search(request):
+    """
+    Find other users by username or name. Results only link
+    to public profiles.
+    """
+
+    query = request.GET.get("q", "").strip()
+    people = User.objects.none()
+
+    if query:
+        people = (
+            User.objects
+            .filter(is_active=True)
+            .exclude(pk=request.user.pk)
+            .filter(
+                Q(username__icontains=query)
+                | Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+            )
+            .select_related("profile")
+            .order_by("username")[:PEOPLE_SEARCH_LIMIT]
+        )
+
+    return render(
+        request,
+        "core/people.html",
+        {"query": query, "people": people}
     )
 
 

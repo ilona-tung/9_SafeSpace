@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from . import ai
-from .models import Forum, Journal, JournalSticker, Post, Quest, QuestCompletion, Reply, Reward, UserReward
+from .models import Forum, Journal, JournalSticker, Post, Profile, Quest, QuestCompletion, Reply, Reward, UserReward
 from .views import DAILY_REWARD_LIMIT
 from .welcome import FALLBACK_WELCOME_MESSAGE, generate_welcome_message
 
@@ -520,6 +520,7 @@ class AccessProtectionTests(TestCase):
         "/vega-lite/bar.png", "/vega-lite/completion-timeline.png",
         "/vega-lite/bar.json", "/vega-lite/completion-timeline.json",
         "/quests/", "/rewards/",
+        "/profile/", "/profile/edit/", "/people/", "/people/someone/",
     ]
     APIS = [
         "/api/completion-timeline/",
@@ -1170,3 +1171,115 @@ class ForumTests(TestCase):
             data = self.client.get("/api/forum-nearby/", {"q": "Chicago"}).json()
 
         self.assertEqual(data["same_city"]["groups"], [{"group": "Books!", "forum_id": self.forum.pk, "post_count": 1}])
+
+
+class ProfileTests(TestCase):
+    def setUp(self):
+        self.alice = User.objects.create_user(
+            username="alice", password="pw-12345!",
+            first_name="Alice", last_name="Lee", email="alice@example.com",
+        )
+        self.bob = User.objects.create_user(username="bob", password="pw-12345!")
+        Profile.objects.create(user=self.bob, bio="I like plants.")
+
+        self.quest = Quest.objects.create(title="Drink water", category="health")
+        self.sticker = Reward.objects.create(name="Water Drop", item_type="sticker")
+        self.sticker.quests.add(self.quest)
+        completion = QuestCompletion.objects.create(
+            user=self.alice, quest=self.quest, completed_status=True,
+            quest_date=date(2026, 10, 1), completed_date=date(2026, 10, 1),
+        )
+        UserReward.objects.create(user=self.alice, reward=self.sticker, unlocked_by_completion=completion)
+        Journal.objects.create(user=self.alice, content="Secret diary text", summary="A calm day")
+
+        self.forum = Forum.objects.create(name="Books!", category="learning", created_by=self.alice)
+        self.forum.members.add(self.alice)
+
+    def test_own_profile_shows_recent_items_with_links(self):
+        self.client.login(username="alice", password="pw-12345!")
+
+        response = self.client.get("/profile/")
+
+        self.assertContains(response, "Alice Lee")
+        self.assertContains(response, "@alice")
+        self.assertContains(response, "A calm day")
+        self.assertContains(response, "Water Drop")
+        self.assertContains(response, "Drink water")
+        self.assertContains(response, "Books!")
+        for url in ["/journals/", "/rewards/", "/quests/", "/forums/"]:
+            self.assertContains(response, f'href="{url}"')
+
+    def test_public_profile_hides_private_things(self):
+        self.client.login(username="bob", password="pw-12345!")
+
+        response = self.client.get("/people/alice/")
+
+        self.assertContains(response, "Alice Lee")
+        self.assertContains(response, "Books!")
+        for private in ["A calm day", "Secret diary", "Water Drop", "Drink water", "alice@example.com"]:
+            self.assertNotContains(response, private)
+
+    def test_own_username_redirects_unless_previewing(self):
+        self.client.login(username="alice", password="pw-12345!")
+
+        self.assertRedirects(self.client.get("/people/alice/"), "/profile/")
+
+        preview = self.client.get("/people/alice/?preview=1")
+        self.assertContains(preview, "how other people see your profile")
+        self.assertNotContains(preview, "A calm day")
+
+    def test_unknown_user_is_404(self):
+        self.client.login(username="bob", password="pw-12345!")
+
+        self.assertEqual(self.client.get("/people/nobody/").status_code, 404)
+
+    def test_edit_profile_updates_name_and_bio(self):
+        self.client.login(username="alice", password="pw-12345!")
+
+        response = self.client.post("/profile/edit/", {
+            "first_name": "Ali", "last_name": "L", "bio": "  Hello <b>there</b>  ",
+            "username": "hacked", "email": "hacked@example.com",
+        })
+
+        self.assertRedirects(response, "/profile/")
+        self.alice.refresh_from_db()
+        self.assertEqual((self.alice.first_name, self.alice.username, self.alice.email),
+                         ("Ali", "alice", "alice@example.com"))
+        self.assertEqual(self.alice.profile.bio, "Hello <b>there</b>")
+        self.assertContains(self.client.get("/profile/"), "Hello &lt;b&gt;there&lt;/b&gt;")
+
+    def test_bio_too_long_is_rejected(self):
+        self.client.login(username="alice", password="pw-12345!")
+
+        response = self.client.post("/profile/edit/", {"first_name": "", "last_name": "", "bio": "x" * 301})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Profile.for_user(self.alice).bio, "")
+
+    def test_people_search_finds_by_name_and_username(self):
+        self.client.login(username="bob", password="pw-12345!")
+
+        by_name = self.client.get("/people/?q=lee")
+        self.assertEqual([p.username for p in by_name.context["people"]], ["alice"])
+        self.assertContains(by_name, 'href="/people/alice/"')
+
+        self.assertEqual(list(self.client.get("/people/?q=bob").context["people"]), [])
+        self.assertEqual(list(self.client.get("/people/").context["people"]), [])
+
+    def test_forum_names_link_to_profiles(self):
+        Post.objects.create(user=self.alice, forum=self.forum, content="Hi")
+        self.client.login(username="bob", password="pw-12345!")
+
+        response = self.client.get(f"/forums/{self.forum.pk}/")
+
+        self.assertContains(response, 'started by <a href="/people/alice/">alice</a>')
+        self.assertContains(response, '<a href="/people/alice/">alice</a></strong>')
+
+    def test_admin_profile_skips_personal_sections(self):
+        User.objects.create_user(username="admin", password="pw-12345!", is_staff=True)
+        self.client.login(username="admin", password="pw-12345!")
+
+        response = self.client.get("/profile/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Recent journals")

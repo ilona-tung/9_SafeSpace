@@ -1,0 +1,5 @@
+<form method="get" action="{% url 'people_search' %}" class="people-search">
+    <label for="people-search">Find people</label>
+    <input type="text" id="people-search" name="q" value="{{ query }}" placeholder="Username or name">
+    <button type="submit">Search</button>
+</form>
