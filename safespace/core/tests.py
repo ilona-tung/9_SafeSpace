@@ -1470,3 +1470,28 @@ class TogetherQuestTests(TestCase):
         self.client.post("/people/bob/friend/remove/")
 
         self.assertFalse(TogetherInvite.objects.exists())
+
+
+class RewardPageTests(TestCase):
+    def test_earned_rewards_are_colored_and_others_locked(self):
+        user = User.objects.create_user(username="collector", password="pw-12345!")
+        quest = Quest.objects.get(title="Take 3 deep breaths")
+        sunset = Reward.objects.get(name="Sunset Background")
+        completion = QuestCompletion.objects.create(
+            user=user, quest=quest, completed_status=True,
+            quest_date=date(2026, 10, 1), completed_date=date(2026, 10, 1),
+        )
+        completion.award_rewards()
+        self.client.login(username="collector", password="pw-12345!")
+
+        response = self.client.get("/rewards/")
+        html = response.content.decode()
+        sunset_card = html[html.index("sunset.svg") - 300:html.index("sunset.svg")]
+        coins_card = html[html.index("coins.svg") - 300:html.index("coins.svg")]
+
+        self.assertNotIn("reward-card--locked", sunset_card)
+        self.assertIn("reward-card--locked", coins_card)
+        self.assertContains(response, "Unlock with:")
+        self.assertContains(response, 'href="/quests/%d/"' % Quest.objects.get(title="Set a small savings goal").pk)
+        # Earned Sunset + the unlimited welcome sticker
+        self.assertEqual(response.context["collected"], 2)

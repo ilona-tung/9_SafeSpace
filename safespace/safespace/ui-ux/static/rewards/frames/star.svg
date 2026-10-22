@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1240" viewBox="0 0 1640 1240">
+  <rect x="30" y="30" width="1580" height="1180" rx="24" fill="none" stroke="#F2B731" stroke-width="12" stroke-dasharray="40 24"/>
+  <defs><g id="s"><path d="M0 -26 L7 -8 L26 -8 L11 4 L17 23 L0 12 L-17 23 L-11 4 L-26 -8 L-7 -8z"/></g></defs>
+  <use href="#s" transform="translate(560 34) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(1080 34) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(560 1206) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(1080 1206) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(32 440) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(32 800) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(1608 440) scale(1.5)" fill="#F7D774"/><use href="#s" transform="translate(1608 800) scale(1.5)" fill="#F7D774"/>
+  <use href="#s" transform="translate(60 70) scale(2.4)" fill="#F2B731"/><use href="#s" transform="translate(1580 70) scale(2.4)" fill="#F2B731"/><use href="#s" transform="translate(60 1180) scale(2.4)" fill="#F2B731"/><use href="#s" transform="translate(1580 1180) scale(2.4)" fill="#F2B731"/>
+</svg>

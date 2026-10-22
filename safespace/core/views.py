@@ -1073,7 +1073,7 @@ def reward_list_render(request):
 
     if request.user.is_staff:
         # Admins see how each reward is used across the whole system
-        rewards = rewards.prefetch_related("quests").annotate(
+        rewards = rewards.annotate(
             times_earned=Count("earned_by", distinct=True),
             owner_count=Count("earned_by__user", distinct=True),
             times_placed=Count("placements", distinct=True),
@@ -1090,11 +1090,27 @@ def reward_list_render(request):
             ),
         )
 
+    # Grouped by type on the page: stickers first, then backgrounds, frames, fonts
+    # (annotated queries ignore the model's default ordering)
+    type_order = {"sticker": 0, "background": 1, "frame": 2, "font": 3}
+    rewards = sorted(
+        rewards.prefetch_related("quests"),
+        key=lambda reward: (type_order.get(reward.item_type, 9), reward.name),
+    )
+
+    # Collection progress: unlimited rewards count as collected
+    collected = sum(
+        1 for reward in rewards
+        if reward.unlimited or getattr(reward, "owned_count", 0)
+    )
+
     return render(
         request,
         "core/reward_list.html",
         {
-            "rewards": rewards
+            "rewards": rewards,
+            "collected": collected,
+            "font_rewards": font_rewards(),
         }
     )
 

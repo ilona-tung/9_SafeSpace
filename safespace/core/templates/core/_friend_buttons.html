@@ -1,0 +1,35 @@
+{# Friend buttons for `person`, depending on `friend_state`: none / sent / received / friends #}
+<div class="friend-actions">
+    {% if friend_state == "friends" %}
+        <span class="friend-badge">Friends ✓</span>
+        <form method="post" action="{% url 'friend_remove' person.username %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit">Unfriend</button>
+        </form>
+    {% elif friend_state == "sent" %}
+        <span class="muted">Request sent</span>
+        <form method="post" action="{% url 'friend_decline' person.username %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit">Cancel</button>
+        </form>
+    {% elif friend_state == "received" %}
+        <form method="post" action="{% url 'friend_accept' person.username %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="button-primary">Accept</button>
+        </form>
+        <form method="post" action="{% url 'friend_decline' person.username %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit">Decline</button>
+        </form>
+    {% else %}
+        <form method="post" action="{% url 'friend_add' person.username %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="button-primary">Add friend</button>
+        </form>
+    {% endif %}
+</div>

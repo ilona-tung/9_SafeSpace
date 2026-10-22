@@ -1,42 +1,82 @@
 {% extends "core/base.html" %}
+{% load static %}
 
-{%  block title %}
+{% block title %}
 Rewards
-{%  endblock %}
+{% endblock %}
+
+{% block extra_head %}
+    {% include "core/_reward_fonts.html" %}
+{% endblock %}
 
 {% block content %}
-    <h1>Rewards</h1>
+<h1>Rewards</h1>
 
-<ul>
-{% for reward in rewards %}
-    <li>
-        {{ reward.name }} ({{ reward.get_item_type_display }})
-        {% if user.is_staff %}
-            <span class="muted">
-                {% if reward.unlimited %}
-                    — unlimited, every user has it
-                    · placed on journal pages {{ reward.times_placed }} time{{ reward.times_placed|pluralize }}
+{% if user.is_staff %}
+    <p class="muted">All rewards in SafeSpace and how they are used.</p>
+{% else %}
+    <p class="muted">
+        You've collected <strong>{{ collected }} of {{ rewards|length }}</strong> rewards.
+        Gray ones are still locked: complete one of their quests to unlock them.
+    </p>
+{% endif %}
+
+
+{% regroup rewards by get_item_type_display as reward_groups %}
+
+{% for group in reward_groups %}
+
+    <h2>{{ group.grouper }}s</h2>
+
+    <div class="reward-grid">
+        {% for reward in group.list %}
+
+            <div class="reward-card reward-card--{{ reward.item_type }}{% if not user.is_staff and not reward.unlimited and not reward.owned_count %} reward-card--locked{% endif %}">
+
+                <!-- Picture: sticker, page thumbnail, or a font sample -->
+                <div class="reward-card__picture">
+                    {% if reward.item_type == "font" %}
+                        <span class="reward-card__font" {% if reward.asset %}style="font-family: 'reward-font-{{ reward.pk }}', cursive"{% endif %}>Aa Bb</span>
+                    {% elif reward.asset %}
+                        <img src="{% static reward.asset %}" alt="" loading="lazy">
+                    {% endif %}
+                </div>
+
+                <span class="reward-card__name">{{ reward.name }}</span>
+
+                {% if user.is_staff %}
+                    <span class="muted reward-card__info">
+                        {% if reward.unlimited %}
+                            unlimited, every user has it
+                            · placed on journal pages {{ reward.times_placed }} time{{ reward.times_placed|pluralize }}
+                        {% else %}
+                            unlocked by:
+                            {% for quest in reward.quests.all %}{{ quest.title }}{% if not forloop.last %}, {% endif %}{% empty %}no quests yet{% endfor %}
+                            · earned {{ reward.times_earned }} time{{ reward.times_earned|pluralize }}
+                            by {{ reward.owner_count }} user{{ reward.owner_count|pluralize }}
+                        {% endif %}
+                    </span>
+                {% elif reward.unlimited %}
+                    <span class="reward-card__status">✓ unlimited, use it as often as you like!</span>
+                {% elif reward.owned_count %}
+                    <span class="reward-card__status">
+                        ✓ you have {{ reward.owned_count }}
+                        {% if reward.used_count %}<span class="muted">({{ reward.used_count }} used on journal pages)</span>{% endif %}
+                    </span>
                 {% else %}
-                    — unlocked by:
-                    {% for quest in reward.quests.all %}{{ quest.title }}{% if not forloop.last %}, {% endif %}{% empty %}no quests yet{% endfor %}
-                    · earned {{ reward.times_earned }} time{{ reward.times_earned|pluralize }}
-                    by {{ reward.owner_count }} user{{ reward.owner_count|pluralize }}
+                    <span class="muted reward-card__info">
+                        🔒 Unlock with:
+                        {% for quest in reward.quests.all %}<a href="{{ quest.get_absolute_url }}">{{ quest.title }}</a>{% if not forloop.last %} or {% endif %}{% empty %}no quest yet{% endfor %}
+                    </span>
                 {% endif %}
-            </span>
-        {% else %}
-            <span class="muted">
-                {% if reward.unlimited %}
-                    — unlimited, use it as often as you like!
-                {% else %}
-                    — you have {{ reward.owned_count }}
-                    {% if reward.used_count %}({{ reward.used_count }} used on journal pages){% endif %}
-                {% endif %}
-            </span>
-        {% endif %}
-    </li>
+
+            </div>
+
+        {% endfor %}
+    </div>
+
 {% empty %}
-    <li>No rewards yet!</li>
+    <p>No rewards yet!</p>
 {% endfor %}
-</ul>
 
 {% endblock %}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1240" viewBox="0 0 1640 1240">
+  <rect x="30" y="30" width="1580" height="1180" rx="24" fill="none" stroke="#6B9E5E" stroke-width="12" stroke-dasharray="40 24"/>
+  <defs><g id="s"><path d="M0 -26 C24 -14 24 14 0 26 C-24 14 -24 -14 0 -26z"/><path d="M0 -20 V20" stroke="#fff" stroke-width="3"/></g></defs>
+  <use href="#s" transform="translate(560 34) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(1080 34) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(560 1206) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(1080 1206) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(32 440) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(32 800) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(1608 440) scale(1.5)" fill="#9CC48B"/><use href="#s" transform="translate(1608 800) scale(1.5)" fill="#9CC48B"/>
+  <use href="#s" transform="translate(60 70) scale(2.4)" fill="#6B9E5E"/><use href="#s" transform="translate(1580 70) scale(2.4)" fill="#6B9E5E"/><use href="#s" transform="translate(60 1180) scale(2.4)" fill="#6B9E5E"/><use href="#s" transform="translate(1580 1180) scale(2.4)" fill="#6B9E5E"/>
+</svg>

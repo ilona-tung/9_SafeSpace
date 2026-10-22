@@ -1,0 +1,13 @@
+{% load static %}
+{# One Together quest done by `user` and `other`; `mine` / `theirs` are each person's completion #}
+<li class="together-item">
+    <span>
+        <a href="{{ invite.quest.get_absolute_url }}"><strong>{{ invite.quest.title }}</strong></a>
+        with <a href="{% url 'profile_view' other.username %}">{{ other.username }}</a>
+        <span class="muted">· {{ invite.accepted_at|date:"M j, Y" }}</span>
+    </span>
+    <span class="together-item__rewards">
+        {% include "core/_together_stickers.html" with who="You" completion=mine %}
+        {% include "core/_together_stickers.html" with who=other.username completion=theirs %}
+    </span>
+</li>

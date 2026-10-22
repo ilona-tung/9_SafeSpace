@@ -781,3 +781,85 @@ h1, h2, h3, h4, h5 {
   height: 40px;
   object-fit: contain;
 }
+
+
+/* Rewards page: a picture card per reward, gray while locked */
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: .9rem;
+  margin-bottom: 2rem;
+}
+
+.reward-card {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding: .75rem;
+  background: var(--white);
+  border: 1px solid var(--lavender);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(50, 72, 65, 0.08);
+}
+
+.reward-card__picture {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius) / 2);
+  background: var(--ghost-white);
+}
+
+.reward-card__picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.reward-card--background .reward-card__picture img {
+  object-fit: cover;
+}
+
+.reward-card--sticker .reward-card__picture img {
+  width: 80%;
+  height: 80%;
+}
+
+/* Frames are see-through: show them on paper */
+.reward-card--frame .reward-card__picture {
+  background: #FFFDF8;
+}
+
+.reward-card__font {
+  font-size: 2.2rem;
+  color: var(--dark-slate);
+}
+
+.reward-card__name {
+  font-weight: 700;
+}
+
+.reward-card__status {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #4f7a5b;
+}
+
+.reward-card__info {
+  font-size: .85rem;
+}
+
+.reward-card--locked {
+  background: #f6f6f7;
+  box-shadow: none;
+}
+
+.reward-card--locked .reward-card__picture > * {
+  filter: grayscale(1);
+  opacity: .4;
+}
+
+.reward-card--locked .reward-card__name {
+  color: #8a858c;
+}

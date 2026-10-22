@@ -1,0 +1,13 @@
+{% load static %}
+<span class="together-item__who">
+    <span class="muted">{{ who }}:</span>
+    {% for owned in completion.unlocked_rewards.all %}
+        {% if owned.reward.item_type == "sticker" and owned.reward.asset %}
+            <img src="{% static owned.reward.asset %}" alt="{{ owned.reward.name }}" title="{{ owned.reward.name }}">
+        {% else %}
+            <span class="muted">{{ owned.reward.name }}</span>
+        {% endif %}
+    {% empty %}
+        <span class="muted">no new rewards</span>
+    {% endfor %}
+</span>
