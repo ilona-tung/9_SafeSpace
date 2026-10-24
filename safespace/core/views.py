@@ -371,7 +371,7 @@ def quest_list_render(request):
 
     context["completed_today"] = completed_today_ids(request.user)
 
-    # Solo and Together quests are shown in separate sections
+    # Solo and joint quests are shown in separate sections
     context["solo_quests"] = quests.exclude(category=Quest.TOGETHER)
     context["together_quests"] = quests.filter(category=Quest.TOGETHER)
 
@@ -1250,7 +1250,7 @@ def complete_quest(request, pk):
     )
 
     if quest.is_together:
-        messages.error(request, "This is a Together quest: invite a friend to complete it with you.")
+        messages.error(request, "This is a joint quest: invite a friend to complete it with you.")
         return redirect(quest)
 
     _, already_done, new_rewards, hit_limit = complete_today(request.user, quest)
@@ -1637,10 +1637,7 @@ def together_history(user, other=None):
     if other is not None:
         invites = invites.filter(Q(from_user=other) | Q(to_user=other))
 
-    invites = invites.select_related("quest", "from_user", "to_user").prefetch_related(
-        "from_completion__unlocked_rewards__reward",
-        "to_completion__unlocked_rewards__reward",
-    ).order_by("-accepted_at")
+    invites = invites.select_related("quest", "from_user", "to_user").order_by("-accepted_at")
 
     return invites
 

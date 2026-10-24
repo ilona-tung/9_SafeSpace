@@ -591,6 +591,11 @@ h1, h2, h3, h4, h5 {
   opacity: 1;
 }
 
+/* The same search bar for "Find people" on profile pages */
+.people-find {
+  margin-bottom: 1.5rem;
+}
+
 /* "Show all" under the first row of solo quests */
 .quest-expand {
   margin: -1rem 0 2rem;
@@ -915,7 +920,7 @@ h1, h2, h3, h4, h5 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: .75rem;
 }
 
 .profile-actions .button {
@@ -1051,25 +1056,6 @@ h1, h2, h3, h4, h5 {
   background: var(--white);
   border: 1px solid var(--lavender);
   border-radius: var(--radius);
-}
-
-.together-item__rewards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .25rem 1rem;
-}
-
-.together-item__who {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  font-size: .9rem;
-}
-
-.together-item__who img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
 }
 
 

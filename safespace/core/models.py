@@ -62,6 +62,10 @@ class Quest(models.Model):
         if self.category == "other" and self.custom_category:
             return self.custom_category
 
+        # Shown as "Joint" on the site (the stored value stays "together")
+        if self.is_together:
+            return "Joint"
+
         return self.get_category_display()
 
 

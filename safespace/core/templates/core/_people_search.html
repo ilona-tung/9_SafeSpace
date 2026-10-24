@@ -1,5 +1,13 @@
-<form method="get" action="{% url 'people_search' %}" class="people-search">
-    <label for="people-search">Find people</label>
-    <input type="text" id="people-search" name="q" value="{{ query }}" placeholder="Username or name">
-    <button type="submit">Search</button>
+<form method="get" action="{% url 'people_search' %}" class="quest-search people-find" role="search">
+
+    <input type="search" id="people-search" name="q" value="{{ query }}"
+           placeholder="Find people by username or name" aria-label="Find people by username or name">
+
+    <button type="submit" class="quest-search__button" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+            <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+    </button>
+
 </form>

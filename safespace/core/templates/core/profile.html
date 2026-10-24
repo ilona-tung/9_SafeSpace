@@ -17,7 +17,7 @@
 
 <p class="profile-actions">
     <a class="button" href="{% url 'profile_edit' %}">Edit profile</a>
-    <a class="muted" href="{% url 'profile_view' person.username %}?preview=1">How others see my profile</a>
+    <a class="button button-outline" href="{% url 'profile_view' person.username %}?preview=1">How others see my profile</a>
 </p>
 
 {% if not person.is_staff %}
@@ -34,7 +34,7 @@
 
 
     <!-- ============================== -->
-    <!-- WAITING FOR YOU: friend requests and Together invites -->
+    <!-- WAITING FOR YOU: friend requests and joint quest invites -->
     <!-- ============================== -->
 
     {% if friend_requests or invites_received %}
@@ -171,7 +171,7 @@
     <!-- ============================== -->
 
     <div class="profile-section__head">
-        <h2>Together</h2>
+        <h2>Joint Quests</h2>
         <a href="{% url 'quest_list' %}">All quests →</a>
     </div>
 
@@ -182,7 +182,7 @@
         </p>
     {% endfor %}
 
-    {% include "core/_together_list.html" with empty_text="No Together quests yet. Open one and invite a friend!" %}
+    {% include "core/_together_list.html" with empty_text="No joint quests yet. Open one and invite a friend!" %}
 
 {% endif %}
 

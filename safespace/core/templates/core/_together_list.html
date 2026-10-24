@@ -2,9 +2,9 @@
 <ul class="together-list">
     {% for invite in together %}
         {% if invite.from_user == user %}
-            {% include "core/_together_row.html" with other=invite.to_user mine=invite.from_completion theirs=invite.to_completion %}
+            {% include "core/_together_row.html" with other=invite.to_user %}
         {% else %}
-            {% include "core/_together_row.html" with other=invite.from_user mine=invite.to_completion theirs=invite.from_completion %}
+            {% include "core/_together_row.html" with other=invite.from_user %}
         {% endif %}
     {% empty %}
         <li class="muted">{{ empty_text }}</li>
