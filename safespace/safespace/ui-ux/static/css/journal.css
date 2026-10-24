@@ -32,13 +32,14 @@
 /* The page: margin line + ruled lines, drawn over the background reward */
 .journal-page {
   position: relative;
+  --line: 32px; /* height of one ruled line; text below snaps to it */
   min-height: 620px;
   border-radius: 8px;
   overflow: hidden;
   background-color: var(--paper);
   background-image:
     linear-gradient(90deg, transparent 58px, var(--margin-line) 58px, var(--margin-line) 60px, transparent 60px),
-    repeating-linear-gradient(transparent 0 31px, var(--rule) 31px 32px),
+    repeating-linear-gradient(transparent 0 calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px) var(--line)),
     var(--page-bg, none);
   background-size: auto, auto, cover;
   background-position: 0 0, 0 0, center;
@@ -59,7 +60,8 @@
   position: relative;
   z-index: 2;
   margin: 0;
-  padding: 22px 56px 0 76px;
+  padding: var(--line) 56px 0 76px;
+  line-height: var(--line);
   font-size: .85rem;
   color: #8a8490;
 }
@@ -68,9 +70,9 @@
   position: relative;
   z-index: 2;
   min-height: 540px;
-  padding: 4px 56px 48px 76px;
+  padding: 0 56px var(--line) 76px;
   margin: 0;
-  line-height: 32px;
+  line-height: var(--line);
   font-size: 1.05rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -309,7 +311,8 @@
   position: relative;
   z-index: 2;
   margin: 0;
-  padding: 4px 56px 0 76px;
+  padding: 0 56px 0 76px;
+  line-height: var(--line);
   font-style: italic;
   color: var(--dark-slate);
 }
@@ -343,18 +346,21 @@
     background: radial-gradient(circle, var(--ghost-white) 3px, transparent 4px) 0 0 / 10px 20px repeat-y;
   }
 
+  .journal-page {
+    --line: 26px;
+  }
+
   .journal-date {
-    padding: 14px 16px 0 42px;
+    padding: var(--line) 16px 0 42px;
   }
 
   .journal-summary {
-    padding: 4px 16px 0 42px;
+    padding: 0 16px 0 42px;
   }
 
   .journal-text {
-    padding: 4px 16px 24px 42px;
+    padding: 0 16px var(--line) 42px;
     min-height: 360px;
-    line-height: 26px;
   }
 }
 /* ============================================================

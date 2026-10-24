@@ -7,41 +7,29 @@
 
 {% block content %}
 
-<h1>Log in</h1>
+<section class="auth-card">
 
-<form method="POST" class="card p-4 shadow-sm">
+    <h1>Welcome back</h1>
+    <p class="muted">Log in to continue your quests and journal.</p>
 
-  {% csrf_token %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-submit">Log in</button>
+    </form>
 
-  {{ form.as_p }}
+    <p class="auth-divider"><span>or</span></p>
 
-  <div class="d-grid mt-3">
-    <button type="submit" class="btn btn-primary">
-      Login
-    </button>
-  </div>
-
-  <!-- Divider -->
-  <div class="text-center my-3">
-    <span class="text-muted">OR</span>
-  </div>
-
-  <!-- Google Login Button -->
-  <div class="d-grid">
-    <a href="{% provider_login_url 'google' %}"
-       class="google-btn text-decoration-none text-center">
-       <img src="https://developers.google.com/identity/images/g-logo.png"
-            alt="Google Logo"
-            class="google-icon">
-       Sign in with Google
+    <a href="{% provider_login_url 'google' %}" class="google-btn">
+        <img src="https://developers.google.com/identity/images/g-logo.png" alt="" class="google-icon">
+        Sign in with Google
     </a>
-  </div>
 
-</form>
+    <p class="auth-switch muted">
+        New here? <a href="{% url 'register' %}">Create an account</a>
+    </p>
 
-<p class="muted">
-    New here? <a href="{% url 'register' %}">Create an account</a>.
-</p>
+</section>
 
 <script>
     // Pressing Back can show this page from the browser's memory without

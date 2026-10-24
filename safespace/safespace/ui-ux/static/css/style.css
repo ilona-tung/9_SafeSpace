@@ -298,10 +298,11 @@ h1, h2, h3, h4, h5 {
     color: #444;
     border: 1px solid #ddd;
 
-    padding: 10px;
-    border-radius: 5px;
+    padding: .6rem 1rem;
+    border-radius: 999px;
 
-    font-weight: 500;
+    font-weight: 600;
+    text-decoration: none;
     transition: all 0.2s ease-in-out;
 }
 
@@ -309,6 +310,123 @@ h1, h2, h3, h4, h5 {
     background-color: #f7f7f7;
     border-color: #ccc;
     color: #000;
+    text-decoration: none;
+}
+
+/* Log in and Sign up pages: one centered card */
+.auth-card {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 2rem 2rem 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--lavender);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(50, 72, 65, 0.08);
+}
+
+.auth-card h1 {
+  margin: 0 0 .25rem;
+  font-size: 1.8rem;
+}
+
+.auth-card > .muted {
+  margin: 0 0 1.5rem;
+}
+
+.auth-card form p {
+  margin: 0 0 1rem;
+}
+
+.auth-card label {
+  display: block;
+  margin-bottom: .3rem;
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--dark-slate);
+}
+
+.auth-card input[type="text"],
+.auth-card input[type="email"],
+.auth-card input[type="password"] {
+  width: 100%;
+  border: 1px solid var(--lavender);
+  border-radius: 10px;
+  padding: .6rem .75rem;
+  background: var(--ghost-white);
+  color: var(--shadow-grey);
+}
+
+.auth-card input:focus {
+  outline: none;
+  border-color: var(--ash-grey);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(173, 194, 175, 0.35);
+}
+
+/* Django's password rules and field errors */
+/* (the browser moves Django's password <ul> out of its .helptext span) */
+.auth-card .helptext,
+.auth-card form ul:not(.errorlist) {
+  display: block;
+  margin: .35rem 0 1rem;
+  font-size: .8rem;
+  color: #726c74;
+}
+
+.auth-card form ul:not(.errorlist) {
+  padding-left: 1.1rem;
+}
+
+.auth-card form ul:not(.errorlist) li {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.auth-card .errorlist {
+  margin: 0 0 .5rem;
+  padding: .5rem .75rem;
+  list-style: none;
+  font-size: .85rem;
+  color: #9b2c2c;
+  background: #fbeaea;
+  border-radius: 8px;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: .5rem;
+  padding: .7rem 1rem;
+  background: var(--dark-slate);
+  border-color: var(--dark-slate);
+  color: var(--white);
+}
+
+/* "or" with a line on each side */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 1.25rem 0;
+  font-size: .85rem;
+  color: #8a8490;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--lavender);
+}
+
+.auth-card .auth-switch {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: .9rem;
+}
+
+.auth-switch a {
+  font-weight: 600;
 }
 
 .google-icon {

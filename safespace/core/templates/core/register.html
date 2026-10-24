@@ -7,28 +7,29 @@
 
 {% block content %}
 
-<h1>Sign up</h1>
+<section class="auth-card">
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign up</button>
+    <h1>Join SafeSpace</h1>
+    <p class="muted">Create an account to start your first quest.</p>
 
-    <div class="d-grid">
-      <a href="{% provider_login_url 'google' %}"
-         class="google-btn text-decoration-none text-center">
-         <img src="https://developers.google.com/identity/images/g-logo.png"
-              alt="Google Logo"
-              class="google-icon">
-         Continue with Google
-      </a>
-    </div>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-submit">Sign up</button>
+    </form>
 
-</form>
+    <p class="auth-divider"><span>or</span></p>
 
-<p class="muted">
-    Already have an account? <a href="{% url 'login' %}">Log in</a>.
-</p>
+    <a href="{% provider_login_url 'google' %}" class="google-btn">
+        <img src="https://developers.google.com/identity/images/g-logo.png" alt="" class="google-icon">
+        Continue with Google
+    </a>
+
+    <p class="auth-switch muted">
+        Already have an account? <a href="{% url 'login' %}">Log in</a>
+    </p>
+
+</section>
 
 <script>
     // Pressing Back can show this page from the browser's memory without
