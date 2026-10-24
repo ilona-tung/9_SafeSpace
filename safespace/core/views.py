@@ -371,6 +371,10 @@ def quest_list_render(request):
 
     context["completed_today"] = completed_today_ids(request.user)
 
+    # Solo and Together quests are shown in separate sections
+    context["solo_quests"] = quests.exclude(category=Quest.TOGETHER)
+    context["together_quests"] = quests.filter(category=Quest.TOGETHER)
+
     if not request.user.is_staff:
         context["feeling_form"] = FeelingForm(user=request.user)
         # Shown once, right after asking: one quest per input

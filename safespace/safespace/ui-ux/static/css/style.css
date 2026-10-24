@@ -536,6 +536,80 @@ h1, h2, h3, h4, h5 {
 }
 
 /* Quest list: each quest is a clickable card */
+/* Quest search: an outlined pill with the magnifier inside */
+.quest-search {
+  display: flex;
+  align-items: center;
+  max-width: 420px;
+  margin-bottom: .75rem;
+  padding: .2rem .4rem .2rem 1.25rem;
+  background: var(--white);
+  border: 2px solid var(--ash-grey);
+  border-radius: 999px;
+  box-shadow: inset 0 2px 4px rgba(50, 72, 65, 0.08);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.quest-search:focus-within {
+  border-color: var(--dark-slate);
+  box-shadow: inset 0 2px 4px rgba(50, 72, 65, 0.08), 0 0 0 3px rgba(173, 194, 175, 0.35);
+}
+
+.quest-search input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: .55rem 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.05rem;
+}
+
+.quest-search input[type="search"]::placeholder {
+  color: #9a9ca0;
+}
+
+.quest-search__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ash-grey);
+  transition: color .2s ease, background-color .2s ease;
+}
+
+.quest-search__button:hover,
+.quest-search__button:focus-visible {
+  color: var(--dark-slate);
+  background: var(--ghost-white);
+  opacity: 1;
+}
+
+/* "Show all" under the first row of solo quests */
+.quest-expand {
+  margin: -1rem 0 2rem;
+  text-align: center;
+}
+
+.quest-card[hidden] {
+  display: none;
+}
+
+.quest-search__result {
+  margin: 0 0 1.5rem;
+  font-size: .9rem;
+}
+
+.quest-search__result a {
+  font-weight: 600;
+}
+
 .quest-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -578,21 +652,119 @@ h1, h2, h3, h4, h5 {
 
 
 /* Forums: Community Board, forum page, posts and replies */
-.forum-search {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0 1rem;
-  align-items: end;
-}
-
-.forum-search input,
-.forum-search select {
-  width: 100%;
-}
-
-.forum-search__buttons {
+/* Page title with an action button on the right (e.g. Forums) */
+.page-head {
   display: flex;
-  gap: .5rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-head h1 {
+  margin: 0;
+}
+
+/* Forum search: the same outlined pill as the quest search,
+   split into name | category | near, with the magnifier at the end */
+.forum-search {
+  display: flex;
+  align-items: center;
+  max-width: 820px;
+  margin-bottom: .75rem;
+  padding: .2rem .4rem .2rem .5rem;
+  background: var(--white);
+  border: 2px solid var(--ash-grey);
+  border-radius: 999px;
+  box-shadow: inset 0 2px 4px rgba(50, 72, 65, 0.08);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.forum-search:focus-within {
+  border-color: var(--dark-slate);
+  box-shadow: inset 0 2px 4px rgba(50, 72, 65, 0.08), 0 0 0 3px rgba(173, 194, 175, 0.35);
+}
+
+.forum-search input[type="search"],
+.forum-search select {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: .55rem .75rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--shadow-grey);
+}
+
+.forum-search input::placeholder {
+  color: #9a9ca0;
+}
+
+/* Thin divider between the parts */
+.forum-search select,
+.forum-search #forum-near {
+  border-left: 1px solid var(--lavender);
+}
+
+.forum-search select {
+  flex: 0 1 190px;
+  cursor: pointer;
+}
+
+.forum-search input:focus,
+.forum-search select:focus {
+  outline: none;
+}
+
+.forum-search__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ash-grey);
+  transition: color .2s ease, background-color .2s ease;
+}
+
+.forum-search__button:hover,
+.forum-search__button:focus-visible {
+  color: var(--dark-slate);
+  background: var(--ghost-white);
+  opacity: 1;
+}
+
+/* Phones: stack the parts inside one rounded box */
+@media (max-width: 640px) {
+  .forum-search {
+    flex-wrap: wrap;
+    border-radius: 18px;
+    padding: .3rem .5rem;
+  }
+
+  .forum-search input[type="search"],
+  .forum-search select {
+    flex: 1 1 100%;
+    border-left: 0;
+  }
+
+  .forum-search select,
+  .forum-search #forum-near {
+    border-top: 1px solid var(--lavender);
+  }
+
+  .forum-search #forum-near {
+    flex-basis: calc(100% - 48px);
+  }
 }
 
 .forum-near__place {

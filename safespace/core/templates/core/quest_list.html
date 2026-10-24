@@ -87,54 +87,108 @@
 
 <h2>Search Quests</h2>
 
-<form method="get">
-
-    <label for="quest-search">
-        Search by quest title:
-    </label>
+<form method="get" class="quest-search" role="search">
 
     <input
-        type="text"
+        type="search"
         id="quest-search"
         name="q"
         value="{{ query }}"
-        placeholder="e.g. water"
+        placeholder="Search"
+        aria-label="Search quests by title"
     >
 
-    <button type="submit">
-        Search
+    <button type="submit" class="quest-search__button" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+            <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
     </button>
 
 </form>
 
+{% if query %}
+    <p class="quest-search__result muted">
+        {{ quests|length }} quest{{ quests|length|pluralize }} matching “{{ query }}”
+        · <a href="{% url 'quest_list' %}">Clear search</a>
+    </p>
+{% endif %}
+
 
 <!-- ============================== -->
-<!-- QUEST LIST -->
+<!-- SOLO QUESTS -->
 <!-- ============================== -->
 
-<h2>Quest List</h2>
+<h2>Solo Quests</h2>
 
 <p class="muted">Click a quest to open it and mark it as done.</p>
 
+<div class="quest-grid" id="solo-quests"{% if not query %} data-collapsible{% endif %}>
+
+    {% for quest in solo_quests %}
+        {% include "core/_quest_card.html" %}
+    {% empty %}
+        <p>No solo quests found.</p>
+    {% endfor %}
+
+</div>
+
+<p class="quest-expand" hidden>
+    <button type="button" class="button button-outline" id="solo-quests-toggle" aria-controls="solo-quests" aria-expanded="false">
+        Show all {{ solo_quests|length }} quests
+    </button>
+</p>
+
+<script>
+    // Show only the first row of solo quests until "Show all" is pressed.
+    // (While searching, every match is shown.)
+    (function () {
+        const grid = document.getElementById("solo-quests");
+        const toggle = document.getElementById("solo-quests-toggle");
+        if (!grid.hasAttribute("data-collapsible")) return;
+
+        const cards = grid.querySelectorAll(".quest-card");
+        const showAllText = toggle.textContent.trim();
+        let expanded = false;
+
+        function update() {
+            // How many cards fit in one row at the current screen width
+            const columns = getComputedStyle(grid).gridTemplateColumns.split(" ").length;
+
+            cards.forEach(function (card, index) {
+                card.hidden = !expanded && index >= columns;
+            });
+
+            toggle.parentElement.hidden = cards.length <= columns;
+            toggle.textContent = expanded ? "Show less" : showAllText;
+            toggle.setAttribute("aria-expanded", expanded);
+        }
+
+        toggle.addEventListener("click", function () {
+            expanded = !expanded;
+            update();
+        });
+
+        window.addEventListener("resize", update);
+        update();
+    })();
+</script>
+
+
+<!-- ============================== -->
+<!-- TOGETHER QUESTS -->
+<!-- ============================== -->
+
+<h2>Together Quests</h2>
+
+<p class="muted">Do these with a friend: open one, invite a friend, and it counts for both of you once they accept.</p>
+
 <div class="quest-grid">
 
-    {% for quest in quests %}
-
-        <a class="quest-card{% if quest.pk in completed_today %} quest-card--done{% endif %}"
-           href="{{ quest.get_absolute_url }}">
-            <span class="quest-card__category">{{ quest.display_category }}</span>
-            <span class="quest-card__title">{{ quest.title }}</span>
-            {% if quest.pk in completed_today %}
-                <span class="quest-card__done">✓ done today</span>
-            {% else %}
-                <span class="quest-card__open">Open quest →</span>
-            {% endif %}
-        </a>
-
+    {% for quest in together_quests %}
+        {% include "core/_quest_card.html" %}
     {% empty %}
-
-        <p>No quests found.</p>
-
+        <p>No Together quests found.</p>
     {% endfor %}
 
 </div>

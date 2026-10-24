@@ -6,7 +6,10 @@
 
 {% block content %}
 
-<h1>Forums</h1>
+<div class="page-head">
+    <h1>Forums</h1>
+    <a class="button" href="{% url 'forum_new' %}">+ Start a forum</a>
+</div>
 
 <p class="muted">
     Join forums to post and reply. Use "Near" to find forums around a city,
@@ -18,40 +21,36 @@
 <!-- GET SEARCH: name, category, near a place -->
 <!-- ============================== -->
 
-<form method="get" class="forum-search">
+<form method="get" class="forum-search" role="search">
 
-    <div>
-        <label for="forum-search">Search forums</label>
-        <input type="text" id="forum-search" name="q" value="{{ query }}" placeholder="e.g. books">
-    </div>
+    <input type="search" id="forum-search" name="q" value="{{ query }}"
+           placeholder="Search forums" aria-label="Search forums by name">
 
-    <div>
-        <label for="forum-category">Category</label>
-        <select id="forum-category" name="category">
-            <option value="">All categories</option>
-            {% for value, label in categories %}
-                <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-    </div>
+    <select id="forum-category" name="category" aria-label="Category">
+        <option value="">All categories</option>
+        {% for value, label in categories %}
+            <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
 
-    <div>
-        <label for="forum-near">Near</label>
-        <input type="text" id="forum-near" name="near" value="{{ near }}" placeholder="e.g. 61820, Chicago, UIUC">
-    </div>
+    <input type="search" id="forum-near" name="near" value="{{ near }}"
+           placeholder="Near: 61820, Chicago, UIUC" aria-label="Near a city, zip code, or landmark">
 
-    <div class="forum-search__buttons">
-        <button type="submit" class="button-primary">Search</button>
-        {% if query or category or near %}
-            <a class="button" href="{% url 'forum_list' %}">Clear</a>
-        {% endif %}
-    </div>
+    <button type="submit" class="forum-search__button" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+            <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+    </button>
 
 </form>
 
-<p>
-    <a class="button" href="{% url 'forum_new' %}">+ Start a forum</a>
-</p>
+{% if query or category or near %}
+    <p class="quest-search__result muted">
+        Showing filtered forums · <a href="{% url 'forum_list' %}">Clear search</a>
+    </p>
+{% endif %}
+
 
 
 {% if near %}

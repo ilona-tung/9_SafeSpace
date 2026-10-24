@@ -1,0 +1,11 @@
+{# One quest card on the Quests page. Expects "quest" and "completed_today". #}
+<a class="quest-card{% if quest.pk in completed_today %} quest-card--done{% endif %}"
+   href="{{ quest.get_absolute_url }}">
+    <span class="quest-card__category">{{ quest.display_category }}</span>
+    <span class="quest-card__title">{{ quest.title }}</span>
+    {% if quest.pk in completed_today %}
+        <span class="quest-card__done">✓ done today</span>
+    {% else %}
+        <span class="quest-card__open">Open quest →</span>
+    {% endif %}
+</a>

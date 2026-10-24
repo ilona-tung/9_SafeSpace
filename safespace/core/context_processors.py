@@ -1,5 +1,7 @@
 import time
 
+from django.conf import settings
+
 
 # Changes every time the server (re)starts, e.g. after "Reload" on
 # PythonAnywhere, so browsers download the new CSS/JS instead of
@@ -11,6 +13,11 @@ def static_version(request):
     """
     Adds {{ ts }} to every template, used as ?v={{ ts }} on static links.
     """
+
+    # While developing, CSS edits don't restart the server, so use a
+    # new value on every page load instead
+    if settings.DEBUG:
+        return {"ts": str(int(time.time()))}
 
     return {"ts": STATIC_VERSION}
 
