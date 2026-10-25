@@ -1,0 +1,31 @@
+| No. | Embedding Dimensions | Att. Heads | Transf. Layers | Feed Dim. | Ctx Len. | Batch Size | Learn Rate | Params | Loss | Time | Generated text |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| B | 48 | 2 | 1 | 192 | 32 | 16 | 0.001 | 32,523 | 0.1395 | 187.29 | students learn python programming.<br>students d... |
+| 1 | 24 | 2 | 1 | 96 | 32 | 16 | 0.001 | 9,363 | 0.1353 | 165.48 | students learn python programming.<br>students d... |
+| 2 | 48 | 2 | 1 | 192 | 32 | 16 | 0.001 | 32,523 | 0.1395 | 187.29 | students learn python programming.<br>students d... |
+| 3 | 48 | 4 | 1 | 192 | 32 | 16 | 0.001 | 32,523 | 0.1349 | 201.84 | students learn python programming.<br>students d... |
+| 4 | 48 | 2 | 2 | 192 | 32 | 16 | 0.001 | 60,795 | 0.1271 | 326.76 | students learn python programming.<br>students d... |
+| 5 | 96 | 4 | 2 | 384 | 32 | 16 | 0.001 | 232,155 | 0.1251 | 525.45 | students create innovative startup application... |
+
+Using experiment 2
+
+| Temp | Genned Text | Observations |
+| .2 | Run 1: 'students create innovative startup appl'
+Run 2: 'students create innovative startup appl'
+Run 3: 'students create innovative startup appl' | All runs are the same. |
+| .5 | Run 1: 'students build django applications.\nstu'
+Run 2: 'students develop artificial intelligenc'
+Run 3: 'students create innovative startup appl' | standard sentences, not much editorializing. |
+| 1 | Run 1: 'students are building useful software p'
+Run 2: 'students create innovative startup appl'
+Run 3: 'students experiment with language model' | Standard sentences, all are rephrasing of the same idea. |
+| 2 | Run 1: 'students experimeners use attention mec'
+Run 2: 'students experate text.\nthe models use '
+Run 3: 'students build django applications.\nsmi' | Text breaks down, adds symbols that don’t make sense. |
+
+The 5th experiment model had the most parameters.
+Attention heads didn’t impact parameter counts.
+The results largely returned the same text with no real difference.
+The 5th experiment model took the most training time.
+No, all results were nearly identical.
+Low temperatures gave nearly-identical results, high temperatures had more variation, but caused the sentences to break down.
