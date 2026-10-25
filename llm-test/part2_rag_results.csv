@@ -1,0 +1,61 @@
+Question,Top-K,Retrieved Documents,Correct Doc Retrieved,Input Length (chars),Visible to SLM,Evidence Chars Visible,Generated Response,Response Quality (1-10)
+Q1,1,D1 (0.42),True,89,"urnal.
+who can read my journal.
+",7,django applications use models and views.,2.0
+Q1,2,D1 (0.42),True,89,"urnal.
+who can read my journal.
+",7,django applications use models and views.,2.0
+Q1,3,D1 (0.42),True,89,"urnal.
+who can read my journal.
+",7,django applications use models and views.,2.0
+Q1,5,D1 (0.42),True,89,"urnal.
+who can read my journal.
+",7,django applications use models and views.,2.0
+Q2,1,D2 (0.40),True,88," frame.
+what is my task reward.
+",8,the profes artificial intelligence.,2.0
+Q2,2,"D2 (0.40), D5 (0.15)",True,129,"er day.
+what is my task reward.
+",8,the profes artificial intelligence.,2.0
+Q2,3,"D2 (0.40), D5 (0.15), D4 (0.11)",True,196,"cepted.
+what is my task reward.
+",8,the profes artificial intelligence.,2.0
+Q2,5,"D2 (0.40), D5 (0.15), D4 (0.11)",True,196,"cepted.
+what is my task reward.
+",8,the profes artificial intelligence.,2.0
+Q3,1,D3 (0.47),True,78,"eply.
+how do i post in a forum.
+",6,students develop artificial intelligence.,2.0
+Q3,2,D3 (0.47),True,78,"eply.
+how do i post in a forum.
+",6,students develop artificial intelligence.,2.0
+Q3,3,D3 (0.47),True,78,"eply.
+how do i post in a forum.
+",6,students develop artificial intelligence.,2.0
+Q3,5,D3 (0.47),True,78,"eply.
+how do i post in a forum.
+",6,students develop artificial intelligence.,2.0
+Q4,1,D4 (0.56),True,95,"ed.
+how does a joint task work.
+",4,inference uses previously learned parameters.,2.0
+Q4,2,"D4 (0.56), D2 (0.16)",True,159,"me.
+how does a joint task work.
+",4,inference uses previously learned parameters.,2.0
+Q4,3,"D4 (0.56), D2 (0.16), D5 (0.11)",True,200,"ay.
+how does a joint task work.
+",4,inference uses previously learned parameters.,2.0
+Q4,5,"D4 (0.56), D2 (0.16), D5 (0.11)",True,200,"ay.
+how does a joint task work.
+",4,inference uses previously learned parameters.,2.0
+Q5,1,D6 (0.58),True,65,"ine eight eight.
+i feel unsafe.
+",17,students are building useful software products.,2.0
+Q5,2,D6 (0.58),True,65,"ine eight eight.
+i feel unsafe.
+",17,students are building useful software products.,2.0
+Q5,3,D6 (0.58),True,65,"ine eight eight.
+i feel unsafe.
+",17,students are building useful software products.,2.0
+Q5,5,D6 (0.58),True,65,"ine eight eight.
+i feel unsafe.
+",17,students are building useful software products.,2.0

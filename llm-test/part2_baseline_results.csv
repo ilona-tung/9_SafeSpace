@@ -1,0 +1,6 @@
+Question,Question Text,SLM Response Without RAG,Response Quality (1-10)
+Q1,who can read my journal.,django applications use models and views.,2.0
+Q2,what is my task reward.,inference uses previously learned parameters.,2.0
+Q3,how do i post in a forum.,students develop artificial intelligence.,2.0
+Q4,how does a joint task work.,inference uses previously learned parameters.,2.0
+Q5,i feel unsafe.,students learn python programming.,2.0
