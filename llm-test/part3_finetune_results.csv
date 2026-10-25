@@ -1,0 +1,6 @@
+Question,Before Fine-Tuning,After Fine-Tuning,Quality Before,Quality After
+Q1,django applications use models and views.,safespace journals are private. only you can read your journal.,2.0,10.0
+Q2,inference uses previously learned parameters.,each completed task unlocks a reward like a sticker or a frame.,2.0,10.0
+Q3,students develop artificial intelligence.,you must join a forum before you can post or reply.,2.0,10.0
+Q4,inference uses previously learned parameters.,a joint task counts for both friends after the invite is accepted.,2.0,10.0
+Q5,students learn python programming.,if you feel unsafe call or text nine eight eight.,2.0,10.0

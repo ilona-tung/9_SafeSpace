@@ -1,0 +1,6 @@
+Question,Baseline SLM,Baseline Consistency,SLM + RAG,RAG Consistency,RAG Top-K
+Q1,django applications use models and views.,1.0,django applications use models and views.,1.0,1
+Q2,inference uses previously learned parameters.,0.8,the profes artificial intelligence.,0.8,1
+Q3,students develop artificial intelligence.,0.4,students develop artificial intelligence.,0.6,1
+Q4,inference uses previously learned parameters.,1.0,inference uses previously learned parameters.,1.0,1
+Q5,students learn python programming.,0.6,students are building useful software products.,1.0,1
