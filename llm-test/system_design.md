@@ -288,9 +288,9 @@ Based on the selected pricing models and assumed token-usage, the representative
 ---
 
 ## Step 3.3: Evaluate the Strategy
-**Contains:**
-* Architectural reasoning
-* Cost analysis
-* Routing design
+The strategy reduces latency by using fallback options in cases where a cloud service is unavailable or when demand is too high for it to handle. More capable cloud models would handle requests when demand is medium or low, offloading work to local models when demand is too high. This reduces strain on cloud models, which reduces latency during peak hours. Secondly, simple and low-priority tasks are handled by local models instead of the cloud service, which further reduces traffic.
 
+The strategy reduces cost by minimizing dependency on paid services. The same strategies that offload work to local models also saves money by not requiring a paid API to handle all of the work. This means that the cost per user is heavily reduced, and users that don't use features that require cloud models are effectively free.
+
+The strategy preserves output quality by assigning models based on task priority and simplicity. Local models are assigned to simple tasks where error are already unlikely, and any mistakes would be simple and unimportant. Larger tasks that handle more information or are more important are assigned to larger models built for them, which keeps quality high. In either case, the model chosen is likely to handle the task with little issue. The fallback options also prevent errors by ensuring that tasks are still handled by a temporary model until the API is available again.
 ---
