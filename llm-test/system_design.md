@@ -1,4 +1,5 @@
 # Part 2: Cost Comparison and Infrastructure Planning
+* Section 2 Google Docs version: https://docs.google.com/document/d/10EnxP_87JUFiS7d1rKdHoSIoO0ETv2hlHGMmibkv_nk/edit?usp=sharing
 
 ## Step 2.1: Estimate Token Usage (5 pts)
 
