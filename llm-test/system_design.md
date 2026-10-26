@@ -293,4 +293,4 @@ The strategy reduces cost by minimizing dependency on paid services. The same st
 
 --- 
 The strategy preserves output quality by assigning models based on task priority and simplicity. Local models are assigned to simple tasks where error are already unlikely, and any mistakes would be simple and unimportant. Larger tasks that handle more information or are more important are assigned to larger models built for them, which keeps quality high. In either case, the model chosen is likely to handle the task with little issue. The fallback options also prevent errors by ensuring that tasks are still handled by a temporary model until the API is available again.
----
+
