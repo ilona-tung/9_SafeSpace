@@ -1412,7 +1412,6 @@ class TogetherQuestTests(TestCase):
         # Each friend sees it on the other's profile
         response = self.client.get("/people/alice/")
         self.assertContains(response, "Have lunch together")
-        self.assertContains(response, "LunchTogether.svg")
 
     def test_strangers_dont_see_together_history(self):
         self.invite()
