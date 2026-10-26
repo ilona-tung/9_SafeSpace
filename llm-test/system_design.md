@@ -161,7 +161,6 @@ These calculations explain the relationship between the spreadsheet columns. Tot
 
 The table below shows the 90-row comparison, covering all 15 models and 6 traffic categories.
 
-<!-- Add the 90-row local-hosting table (or an image of it) here. -->
 
 *Note: The 90-row local-hosting comparison uses the token workload assumptions established in Section 2.2, preliminary model-specific throughput estimates, and an assumed 20% capacity utilization factor. Since the benchmarks were conducted on a Colab T4 rather than the selected Google Cloud L4 configuration, the throughput assumptions have not been tested on the actual hosting setup.The machine counts and hosting costs should be treated as preliminary estimates.*
 
@@ -292,5 +291,6 @@ The strategy reduces latency by using fallback options in cases where a cloud se
 
 The strategy reduces cost by minimizing dependency on paid services. The same strategies that offload work to local models also saves money by not requiring a paid API to handle all of the work. This means that the cost per user is heavily reduced, and users that don't use features that require cloud models are effectively free.
 
+--- 
 The strategy preserves output quality by assigning models based on task priority and simplicity. Local models are assigned to simple tasks where error are already unlikely, and any mistakes would be simple and unimportant. Larger tasks that handle more information or are more important are assigned to larger models built for them, which keeps quality high. In either case, the model chosen is likely to handle the task with little issue. The fallback options also prevent errors by ensuring that tasks are still handled by a temporary model until the API is available again.
 ---
