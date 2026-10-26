@@ -164,7 +164,7 @@ The table below shows the 90-row comparison, covering all 15 models and 6 traffi
 
 *Note: The 90-row local-hosting comparison uses the token workload assumptions established in Section 2.2, preliminary model-specific throughput estimates, and an assumed 20% capacity utilization factor. Since the benchmarks were conducted on a Colab T4 rather than the selected Google Cloud L4 configuration, the throughput assumptions have not been tested on the actual hosting setup.The machine counts and hosting costs should be treated as preliminary estimates.*
 
-Chart: <https://docs.google.com/spreadsheets/d/1_q2TpbFxaDtvCcH-ktgABc0MdFwOuJvyoSDd0e91omQ/edit?usp=sharing>
+Chart (tab 1): <https://docs.google.com/spreadsheets/d/1_q2TpbFxaDtvCcH-ktgABc0MdFwOuJvyoSDd0e91omQ/edit?usp=sharing>
 
 ### Limitations
 
@@ -221,7 +221,7 @@ For example, at 1,000 DAU:
 | 10,000,000 | 12,000,000,000 | \$180.00 | \$5,400.00 |
 | 100,000,000 | 120,000,000,000 | \$1,800.00 | \$54,000.00 |
 
-Chart: <https://docs.google.com/spreadsheets/d/1_q2TpbFxaDtvCcH-ktgABc0MdFwOuJvyoSDd0e91omQ/edit?usp=sharing>
+Chart (tab 2): <https://docs.google.com/spreadsheets/d/1_q2TpbFxaDtvCcH-ktgABc0MdFwOuJvyoSDd0e91omQ/edit?usp=sharing>
 
 Note: The chart shows that estimated API costs increase with daily active users and total token usage. With the chosen Nscale pricing, costs range from \$0.018 per day at 1,000 DAU to \$1,800 per day at 100 million DAU. These estimates use one hosted model as a pricing baseline and may vary with provider pricing and actual token usage. Machine requirements are listed as N/A because the hosted API provider manages the inference infrastructure. SafeSpace pays for API usage rather than calculating the number of machines required for local hosting.
 
