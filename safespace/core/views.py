@@ -1975,6 +1975,7 @@ def forum_detail(request, pk):
             "forum": forum,
             "posts": posts,
             "member_count": forum.members.count(),
+            "members": forum.members.order_by("username"),
             "is_member": is_member(request.user, forum),
             "can_manage": can_manage(request.user, forum.created_by_id),
             "post_form": PostForm(),

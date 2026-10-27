@@ -793,6 +793,63 @@ h1, h2, h3, h4, h5 {
   margin: 0;
 }
 
+/* Forum member count: a pill that opens the member list */
+.forum-members {
+  margin: -.25rem 0 1rem;
+}
+
+.forum-members summary {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .9rem;
+  border: 1px solid var(--ash-grey);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--dark-slate);
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.forum-members summary::-webkit-details-marker {
+  display: none;
+}
+
+.forum-members summary:hover,
+.forum-members summary:focus-visible {
+  background: var(--lavender);
+  border-color: var(--dark-slate);
+}
+
+.forum-members__chevron {
+  transition: transform .15s;
+}
+
+.forum-members[open] .forum-members__chevron {
+  transform: rotate(180deg);
+}
+
+.forum-members__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .6rem;
+  margin: .6rem 0 0;
+  padding: .75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--white);
+  list-style: none;
+}
+
+.forum-members__list a {
+  font-weight: 600;
+}
+
+.forum-members__empty {
+  margin: .5rem 0 0;
+}
+
 .forum-form input[type="text"],
 .forum-form textarea,
 .forum-form select {

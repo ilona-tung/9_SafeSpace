@@ -11,11 +11,31 @@
 <h1>{{ forum.name }}</h1>
 
 <p class="muted">
-    {{ forum.get_category_display }} ·
-    {{ member_count }} member{{ member_count|pluralize }}
+    {{ forum.get_category_display }}
     {% if forum.location %}· {{ forum.location }}{% endif %}
     {% if forum.created_by %}· started by <a href="{% url 'profile_view' forum.created_by.username %}">{{ forum.created_by.username }}</a>{% endif %}
 </p>
+
+<!-- Member count: click to show who is in the forum -->
+<details class="forum-members">
+    <summary>
+        {{ member_count }} member{{ member_count|pluralize }}
+        <span class="forum-members__chevron" aria-hidden="true">▾</span>
+    </summary>
+    {% if members %}
+        <ul class="forum-members__list">
+            {% for member in members %}
+                <li>
+                    <a href="{% url 'profile_view' member.username %}">{{ member.username }}</a>
+                    {% if member == request.user %}<span class="muted">(you)</span>{% endif %}
+                    {% if member.pk == forum.created_by_id %}<span class="muted">· started it</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted forum-members__empty">No members yet.</p>
+    {% endif %}
+</details>
 
 {% if forum.description %}
     <p>{{ forum.description|linebreaksbr }}</p>
