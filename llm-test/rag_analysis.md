@@ -1,4 +1,4 @@
-# SafeSpace RAG System
+# SafeSpace RAG Analysis
 
 ## Step 1.1: Define the Knowledge Base
 
