@@ -1,0 +1,41 @@
+{# Sage banner with name, @username, join date, bio, buttons and avatar. `own` = the logged-in user's own profile. #}
+<section class="profile-banner">
+
+    {% include "core/_leaf_pattern.html" %}
+
+    <div class="profile-banner__inner">
+
+        <div class="profile-banner__text">
+
+            {% if own %}
+                <h2 class="profile-banner__title">Welcome back, {{ person.get_full_name|default:person.username }}!</h2>
+            {% else %}
+                <h1 class="profile-banner__title">{{ person.get_full_name|default:person.username }}</h1>
+            {% endif %}
+
+            <p class="profile-banner__meta">@{{ person.username }} · Joined {{ person.date_joined|date:"M Y" }}</p>
+
+            {% if profile.bio %}
+                <p class="profile-banner__bio">{{ profile.bio }}</p>
+            {% elif own %}
+                <a class="profile-banner__nudge" href="{% url 'profile_edit' %}">✎ Add a short bio so friends know you</a>
+            {% endif %}
+
+            {% if own %}
+                <p class="profile-banner__actions">
+                    <a class="button" href="{% url 'profile_edit' %}">Edit profile</a>
+                    <a class="button" href="{% url 'profile_view' person.username %}?preview=1">How others see my profile</a>
+                </p>
+            {% elif can_friend %}
+                <div class="profile-banner__actions">
+                    {% include "core/_friend_buttons.html" %}
+                </div>
+            {% endif %}
+
+        </div>
+
+        <span class="profile-banner__avatar" aria-hidden="true">{{ person.username|first|upper }}</span>
+
+    </div>
+
+</section>

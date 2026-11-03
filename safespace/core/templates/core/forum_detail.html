@@ -4,152 +4,187 @@
     {{ forum.name }}
 {% endblock %}
 
+{% block main_class %} container--wide{% endblock %}
+
 {% block content %}
 
-<p><a href="{% url 'forum_list' %}">← Forums</a></p>
+<p class="forum-back"><a href="{% url 'forum_list' %}">← Forums</a></p>
 
-<h1>{{ forum.name }}</h1>
+<div class="forum-layout forum-layout--detail">
 
-<p class="muted">
-    {{ forum.get_category_display }}
-    {% if forum.location %}· {{ forum.location }}{% endif %}
-    {% if forum.created_by %}· started by <a href="{% url 'profile_view' forum.created_by.username %}">{{ forum.created_by.username }}</a>{% endif %}
-</p>
+    <section class="forum-feed">
 
-<!-- Member count: click to show who is in the forum -->
-<details class="forum-members">
-    <summary>
-        {{ member_count }} member{{ member_count|pluralize }}
-        <span class="forum-members__chevron" aria-hidden="true">▾</span>
-    </summary>
-    {% if members %}
-        <ul class="forum-members__list">
-            {% for member in members %}
-                <li>
-                    <a href="{% url 'profile_view' member.username %}">{{ member.username }}</a>
-                    {% if member == request.user %}<span class="muted">(you)</span>{% endif %}
-                    {% if member.pk == forum.created_by_id %}<span class="muted">· started it</span>{% endif %}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="muted forum-members__empty">No members yet.</p>
-    {% endif %}
-</details>
+        <!-- ============================== -->
+        <!-- FORUM INFO -->
+        <!-- ============================== -->
 
-{% if forum.description %}
-    <p>{{ forum.description|linebreaksbr }}</p>
-{% endif %}
+        <header class="forum-head">
 
+            <span class="forum-dot forum-dot--big" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
 
-<!-- ============================== -->
-<!-- JOIN / LEAVE -->
-<!-- ============================== -->
+            <div>
+                <h1 class="forum-head__title">{{ forum.name }}</h1>
 
-<div class="forum-actions">
-    {% if is_member %}
-        <form method="post" action="{% url 'forum_leave' forum.pk %}">
-            {% csrf_token %}
-            <button type="submit">Leave forum</button>
-        </form>
-    {% else %}
-        <form method="post" action="{% url 'forum_join' forum.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="button-primary">Join forum</button>
-        </form>
-    {% endif %}
+                <p class="muted forum-head__meta">
+                    {{ forum.get_category_display }}
+                    {% if forum.location %}· {{ forum.location }}{% endif %}
+                    {% if forum.created_by %}· started by <a href="{% url 'profile_view' forum.created_by.username %}">{{ forum.created_by.username }}</a>{% endif %}
+                </p>
 
-    {% if can_manage %}
-        <form method="post" action="{% url 'forum_delete' forum.pk %}"
-              onsubmit="return confirm('Delete this forum and all of its posts?');">
-            {% csrf_token %}
-            <button type="submit" class="button-danger">Delete forum</button>
-        </form>
-    {% endif %}
-</div>
-
-
-<!-- ============================== -->
-<!-- NEW POST (members only) -->
-<!-- ============================== -->
-
-{% if is_member %}
-    <section class="card forum-new-post">
-        <div class="card__header">Write a post</div>
-        <div class="card__body">
-            <form method="post" action="{% url 'post_create' forum.pk %}">
-                {% csrf_token %}
-                {{ post_form.content }}
-                <button type="submit" class="button-primary">Post</button>
-            </form>
-        </div>
-    </section>
-{% else %}
-    <p class="muted">Join this forum to post and reply.</p>
-{% endif %}
-
-
-<!-- ============================== -->
-<!-- POSTS + REPLIES -->
-<!-- ============================== -->
-
-<h2>Posts</h2>
-
-{% for post in posts %}
-
-    <article class="card forum-post" id="post-{{ post.pk }}">
-        <div class="card__body">
-
-            <p class="forum-post__meta muted">
-                <strong><a href="{% url 'profile_view' post.user.username %}">{{ post.user.username }}</a></strong> · {{ post.created_at|date:"M j, Y, g:i a" }}
-            </p>
-
-            <p class="forum-post__text">{{ post.content|linebreaksbr }}</p>
-
-            {% if user.is_staff or post.user_id == user.pk %}
-                <form method="post" action="{% url 'post_delete' post.pk %}" class="forum-delete"
-                      onsubmit="return confirm('Delete this post?');">
-                    {% csrf_token %}
-                    <button type="submit" class="button-danger">Delete post</button>
-                </form>
-            {% endif %}
-
-            <!-- Replies -->
-            <div class="forum-replies">
-                {% for reply in post.replies.all %}
-                    <div class="forum-reply">
-                        <p class="forum-post__meta muted">
-                            <strong><a href="{% url 'profile_view' reply.user.username %}">{{ reply.user.username }}</a></strong> · {{ reply.created_at|date:"M j, g:i a" }}
-                        </p>
-                        <p class="forum-post__text">{{ reply.content|linebreaksbr }}</p>
-
-                        {% if user.is_staff or reply.user_id == user.pk %}
-                            <form method="post" action="{% url 'reply_delete' reply.pk %}" class="forum-delete"
-                                  onsubmit="return confirm('Delete this reply?');">
-                                {% csrf_token %}
-                                <button type="submit" class="button-danger">Delete reply</button>
-                            </form>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-
-                {% if is_member %}
-                    <form method="post" action="{% url 'reply_create' post.pk %}" class="forum-reply-form">
-                        {% csrf_token %}
-                        <label for="reply-{{ post.pk }}" class="muted">Reply</label>
-                        <textarea id="reply-{{ post.pk }}" name="content" rows="2" maxlength="1000" required></textarea>
-                        <button type="submit">Reply</button>
-                    </form>
+                {% if forum.description %}
+                    <p class="forum-head__text">{{ forum.description|linebreaksbr }}</p>
                 {% endif %}
             </div>
 
+        </header>
+
+
+        <!-- ============================== -->
+        <!-- NEW POST (members only) -->
+        <!-- ============================== -->
+
+        {% if is_member %}
+            <form method="post" action="{% url 'post_create' forum.pk %}" class="forum-compose">
+                {% csrf_token %}
+                <label for="{{ post_form.content.id_for_label }}">Write a post</label>
+                {{ post_form.content }}
+                <button type="submit" class="forum-item__reply">Post</button>
+            </form>
+        {% else %}
+            <p class="forum-compose forum-compose--locked muted">Join this forum to post and reply.</p>
+        {% endif %}
+
+
+        <!-- ============================== -->
+        <!-- POSTS + REPLIES -->
+        <!-- ============================== -->
+
+        {% for post in posts %}
+
+            <article class="forum-item" id="post-{{ post.pk }}">
+
+                <span class="forum-avatar" data-tone="{{ post.user_id|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ post.user.username|first|upper }}</span>
+
+                <div class="forum-item__body">
+
+                    <p class="forum-item__meta">
+                        <strong><a href="{% url 'profile_view' post.user.username %}">{{ post.user.username }}</a></strong> · {{ post.created_at|date:"M j, Y, g:i a" }}
+                    </p>
+
+                    <p class="forum-item__text">{{ post.content|linebreaksbr }}</p>
+
+                    {% if user.is_staff or post.user_id == user.pk %}
+                        <form method="post" action="{% url 'post_delete' post.pk %}" class="forum-delete"
+                              onsubmit="return confirm('Delete this post?');">
+                            {% csrf_token %}
+                            <button type="submit" class="button-danger">Delete post</button>
+                        </form>
+                    {% endif %}
+
+                    <!-- Replies -->
+                    <div class="forum-replies">
+                        {% for reply in post.replies.all %}
+                            <div class="forum-reply">
+                                <span class="forum-dot forum-dot--round" data-tone="{{ reply.user_id|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ reply.user.username|first|upper }}</span>
+                                <div>
+                                    <p class="forum-item__meta">
+                                        <strong><a href="{% url 'profile_view' reply.user.username %}">{{ reply.user.username }}</a></strong> · {{ reply.created_at|date:"M j, g:i a" }}
+                                    </p>
+                                    <p class="forum-post__text">{{ reply.content|linebreaksbr }}</p>
+
+                                    {% if user.is_staff or reply.user_id == user.pk %}
+                                        <form method="post" action="{% url 'reply_delete' reply.pk %}" class="forum-delete"
+                                              onsubmit="return confirm('Delete this reply?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="button-danger">Delete reply</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        {% if is_member %}
+                            <form method="post" action="{% url 'reply_create' post.pk %}" class="forum-reply-form">
+                                {% csrf_token %}
+                                <label for="reply-{{ post.pk }}" class="sr-only">Reply to {{ post.user.username }}</label>
+                                <textarea id="reply-{{ post.pk }}" name="content" rows="1" maxlength="1000" required placeholder="Write a reply…"></textarea>
+                                <button type="submit" class="forum-item__reply">Reply</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </article>
+
+        {% empty %}
+
+            <p class="muted forum-feed__empty">No posts yet. {% if is_member %}Be the first to say hi!{% endif %}</p>
+
+        {% endfor %}
+
+    </section>
+
+
+    <!-- ============================== -->
+    <!-- RIGHT: join/leave, stats, members -->
+    <!-- ============================== -->
+
+    <aside class="forum-aside" aria-label="About this forum">
+
+        <div class="forum-actions">
+            {% if is_member %}
+                <form method="post" action="{% url 'forum_leave' forum.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="forum-aside__leave">Leave forum</button>
+                </form>
+            {% else %}
+                <form method="post" action="{% url 'forum_join' forum.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="button-primary forum-aside__start">Join forum</button>
+                </form>
+            {% endif %}
         </div>
-    </article>
 
-{% empty %}
+        <div class="forum-box forum-stats">
+            <div><small>Members</small><b>{{ member_count }}</b></div>
+            <div><small>Posts</small><b>{{ posts|length }}</b></div>
+        </div>
 
-    <p class="muted">No posts yet. {% if is_member %}Be the first to say hi!{% endif %}</p>
+        <!-- Member list: click to show who is in the forum -->
+        <details class="forum-box forum-members">
+            <summary>
+                See who's here
+                <span class="forum-members__chevron" aria-hidden="true">▾</span>
+            </summary>
+            {% if members %}
+                <ul class="forum-box__list">
+                    {% for member in members %}
+                        <li>
+                            <span class="forum-dot forum-dot--round" data-tone="{{ member.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ member.username|first|upper }}</span>
+                            <div>
+                                <a href="{% url 'profile_view' member.username %}">{{ member.username }}</a>
+                                {% if member == request.user %}<span class="muted">(you)</span>{% endif %}
+                                {% if member.pk == forum.created_by_id %}<small>started it</small>{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="muted forum-members__empty">No members yet.</p>
+            {% endif %}
+        </details>
 
-{% endfor %}
+        {% if can_manage %}
+            <form method="post" action="{% url 'forum_delete' forum.pk %}" class="forum-actions"
+                  onsubmit="return confirm('Delete this forum and all of its posts?');">
+                {% csrf_token %}
+                <button type="submit" class="button-danger">Delete forum</button>
+            </form>
+        {% endif %}
+
+    </aside>
+
+</div>
 
 {% endblock %}

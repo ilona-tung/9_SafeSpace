@@ -1,0 +1,11 @@
+{# One forum in a profile's side panel #}
+<li class="activity-item">
+    <span class="activity-face activity-face--square" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
+    <span>
+        <a href="{{ forum.get_absolute_url }}">{{ forum.name }}</a>
+        <small>
+            {{ forum.member_count }} member{{ forum.member_count|pluralize }}{% if forum.location %} · {{ forum.location }}{% endif %}
+            {% if show_joined and forum.pk in joined_ids %}· ✓ you joined{% endif %}
+        </small>
+    </span>
+</li>

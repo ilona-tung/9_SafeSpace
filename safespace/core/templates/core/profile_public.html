@@ -4,45 +4,68 @@
     {{ person.username }}
 {% endblock %}
 
+{% block main_class %} container--wide{% endblock %}
+
 {% block content %}
 
 {% if preview %}
-    <p class="muted">This is how other people see your profile. <a href="{% url 'profile_me' %}">← Back to my profile</a></p>
-{% else %}
-    {% include "core/_people_search.html" %}
+    <p class="profile-preview-note">This is how other people see your profile. <a href="{% url 'profile_me' %}">← Back to my profile</a></p>
 {% endif %}
 
-{% include "core/_profile_header.html" %}
-
-{% if can_friend %}
-    {% include "core/_friend_buttons.html" %}
-{% endif %}
-
-{% if friend_state == "friends" and not preview %}
+<div class="profile-layout">
 
     <!-- ============================== -->
-    <!-- TOGETHER (only friends see this) -->
+    <!-- LEFT: banner, joint quests (friends only) -->
     <!-- ============================== -->
 
-    <h2>Joint Quests</h2>
+    <div class="profile-main">
 
-    {% include "core/_together_list.html" with empty_text="You haven't done a joint quest yet." %}
+        {% include "core/_profile_banner.html" with own=False %}
 
-{% endif %}
+        {% if friend_state == "friends" and not preview %}
+
+            <!-- ============================== -->
+            <!-- TOGETHER (only friends see this) -->
+            <!-- ============================== -->
+
+            <section class="profile-section">
+                <div class="profile-section__head">
+                    <h2>Joint Quests</h2>
+                    <span>with you</span>
+                </div>
+
+                {% include "core/_together_list.html" with empty_text="You haven't done a joint quest yet." %}
+            </section>
+
+        {% endif %}
+
+    </div>
 
 
-<!-- ============================== -->
-<!-- FORUMS (public anyway) -->
-<!-- ============================== -->
+    <!-- ============================== -->
+    <!-- RIGHT: forums (public anyway) -->
+    <!-- ============================== -->
 
-<h2>Forums</h2>
+    <aside class="profile-activity" aria-label="{{ person.username }}'s forums">
 
-<div class="quest-grid">
-    {% for forum in forums %}
-        {% include "core/_forum_card.html" %}
-    {% empty %}
-        <p class="muted">{{ person.username }} hasn't joined any forums yet.</p>
-    {% endfor %}
+        <div class="activity-head activity-head--first">
+            <h2>Forums</h2>
+        </div>
+
+        <ul class="activity-list">
+            {% for forum in forums %}
+                {% include "core/_forum_activity_row.html" with show_joined=True %}
+            {% empty %}
+                <li class="activity-empty">{{ person.username }} hasn't joined any forums yet.</li>
+            {% endfor %}
+        </ul>
+
+        {% if not preview %}
+            {% include "core/_people_search.html" %}
+        {% endif %}
+
+    </aside>
+
 </div>
 
 {% endblock %}

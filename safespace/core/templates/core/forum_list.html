@@ -4,139 +4,264 @@
     Forums
 {% endblock %}
 
+{% block main_class %} container--wide{% endblock %}
+
 {% block content %}
 
-<div class="page-head">
-    <h1>Forums</h1>
-    <a class="button" href="{% url 'forum_new' %}">+ Start a forum</a>
-</div>
+<h1 class="sr-only">Forums</h1>
 
-<p class="muted">
-    Join forums to post and reply. Use "Near" to find forums around a city,
-    zip code, or landmark (looked up with the OpenStreetMap location API).
-</p>
-
-
-<!-- ============================== -->
-<!-- GET SEARCH: name, category, near a place -->
-<!-- ============================== -->
-
-<form method="get" class="forum-search" role="search">
-
-    <input type="search" id="forum-search" name="q" value="{{ query }}"
-           placeholder="Search forums" aria-label="Search forums by name">
-
-    <select id="forum-category" name="category" aria-label="Category">
-        <option value="">All categories</option>
-        {% for value, label in categories %}
-            <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-    </select>
-
-    <input type="search" id="forum-near" name="near" value="{{ near }}"
-           placeholder="Near: 61820, Chicago, UIUC" aria-label="Near a city, zip code, or landmark">
-
-    <button type="submit" class="forum-search__button" aria-label="Search">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
-            <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-    </button>
-
-</form>
-
-{% if query or category or near %}
-    <p class="quest-search__result muted">
-        Showing filtered forums · <a href="{% url 'forum_list' %}">Clear search</a>
-    </p>
-{% endif %}
-
-
-
-{% if near %}
+<div class="forum-layout">
 
     <!-- ============================== -->
-    <!-- NEAR A PLACE (external API + forum posts) -->
+    <!-- LEFT: browse links and my forums -->
     <!-- ============================== -->
 
-    {% if near_error %}
+    <aside class="forum-side" aria-label="Forum menu">
 
-        <p>{{ near_error }}</p>
+        <h2 class="forum-side__heading">Browse</h2>
+        <ul class="forum-side__list">
+            <li>
+                <a href="{% url 'forum_list' %}" {% if tab != "forums" and not near %}aria-current="page"{% endif %}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
+                    All posts
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'forum_list' %}?tab=forums" {% if tab == "forums" and not near %}aria-current="page"{% endif %}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                    Discover forums
+                </a>
+            </li>
+            <li>
+                <a href="#forum-near" {% if near %}aria-current="page"{% endif %}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+                    Forums near me
+                </a>
+            </li>
+        </ul>
 
-    {% else %}
+        <h2 class="forum-side__heading">My forums</h2>
+        <ul class="forum-side__list">
+            {% for forum in my_forums %}
+                <li>
+                    <a href="{{ forum.get_absolute_url }}">
+                        <span class="forum-dot" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
+                        <span class="forum-side__name">{{ forum.name }}</span>
+                        <span class="forum-side__count" title="Posts">{{ forum.post_count }}</span>
+                    </a>
+                </li>
+            {% empty %}
+                <li class="muted forum-side__empty">You haven't joined a forum yet.</li>
+            {% endfor %}
+        </ul>
 
-        <h2>Near {{ resolved_place.city|default:resolved_place.state }}</h2>
+    </aside>
 
-        <p class="muted forum-near__place">{{ resolved_place.display_name }}</p>
 
-        <p>
-            {{ same_state.post_count }} of {{ total_posts_with_location }} posts with a location
-            are in {{ resolved_place.state }} ({% widthratio state_share 1 100 %}%),
-            from {{ same_state.user_count }} member{{ same_state.user_count|pluralize }}.
-        </p>
+    <!-- ============================== -->
+    <!-- MIDDLE: tabs, search and the feed -->
+    <!-- ============================== -->
 
-        {% if resolved_place.city %}
-            <h3>In {{ resolved_place.city }}</h3>
+    <section class="forum-feed">
 
-            <div class="quest-grid">
-                {% for forum in in_city %}
-                    {% include "core/_forum_card.html" %}
-                {% empty %}
-                    <p class="muted">No forums in {{ resolved_place.city }} yet.</p>
-                {% endfor %}
+        <nav class="forum-tabs" aria-label="Sort posts">
+            {% for key, label in tabs.items %}
+                <a href="?tab={{ key }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}{% if category %}&amp;category={{ category|urlencode }}{% endif %}"
+                   {% if key == tab and not near %}aria-current="page"{% endif %}>{{ label }}</a>
+            {% endfor %}
+        </nav>
+
+        <!-- GET search: name or post text, category, near a place -->
+        <div class="forum-feed__search">
+
+            <form method="get" class="forum-search" role="search">
+
+                <input type="hidden" name="tab" value="{{ tab }}">
+
+                <input type="search" id="forum-search" name="q" value="{{ query }}"
+                       placeholder="Search posts" aria-label="Search forums and posts">
+
+                <select id="forum-category" name="category" aria-label="Category">
+                    <option value="">All categories</option>
+                    {% for value, label in categories %}
+                        <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <input type="search" id="forum-near" name="near" value="{{ near }}"
+                       placeholder="Near: 61820, Chicago, UIUC" aria-label="Near a city, zip code, or landmark">
+
+                <button type="submit" class="forum-search__button" aria-label="Search">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
+                        <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                </button>
+
+            </form>
+
+            {% if query or category or near %}
+                <p class="quest-search__result muted">
+                    Showing filtered results · <a href="{% url 'forum_list' %}">Clear search</a>
+                </p>
+            {% endif %}
+
+        </div>
+
+
+        {% if near %}
+
+            <!-- ============================== -->
+            <!-- NEAR A PLACE (external API + forum posts) -->
+            <!-- ============================== -->
+
+            <div class="forum-feed__section">
+
+                {% if near_error %}
+
+                    <p>{{ near_error }}</p>
+
+                {% else %}
+
+                    <h2>Near {{ resolved_place.city|default:resolved_place.state }}</h2>
+
+                    <p class="muted forum-near__place">{{ resolved_place.display_name }}</p>
+
+                    <p>
+                        {{ same_state.post_count }} of {{ total_posts_with_location }} posts with a location
+                        are in {{ resolved_place.state }} ({% widthratio state_share 1 100 %}%),
+                        from {{ same_state.user_count }} member{{ same_state.user_count|pluralize }}.
+                    </p>
+
+                    {% if resolved_place.city %}
+                        <h3>In {{ resolved_place.city }}</h3>
+
+                        <div class="quest-grid">
+                            {% for forum in in_city %}
+                                {% include "core/_forum_card.html" %}
+                            {% empty %}
+                                <p class="muted">No forums in {{ resolved_place.city }} yet.</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <h3>{% if resolved_place.city %}Elsewhere in{% else %}In{% endif %} {{ resolved_place.state }}</h3>
+
+                    <div class="quest-grid">
+                        {% for forum in in_state %}
+                            {% include "core/_forum_card.html" %}
+                        {% empty %}
+                            <p class="muted">No {% if resolved_place.city %}other {% endif %}forums in {{ resolved_place.state }} yet.</p>
+                        {% endfor %}
+                    </div>
+
+                    <p class="muted">
+                        JSON version:
+                        <a href="{% url 'forum_nearby_api' %}?q={{ near|urlencode }}">/api/forum-nearby/?q={{ near }}</a>
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        {% elif tab == "forums" %}
+
+            <!-- ============================== -->
+            <!-- ALL FORUMS: my forums, then the ones to discover -->
+            <!-- ============================== -->
+
+            <div class="forum-feed__section">
+
+                <h2>My forums</h2>
+
+                <div class="quest-grid">
+                    {% for forum in joined %}
+                        {% include "core/_forum_card.html" %}
+                    {% empty %}
+                        <p class="muted">
+                            {% if query or category %}None of your forums match.{% else %}You haven't joined a forum yet.{% endif %}
+                        </p>
+                    {% endfor %}
+                </div>
+
+                <h2>Discover</h2>
+
+                <div class="quest-grid">
+                    {% for forum in discover %}
+                        {% include "core/_forum_card.html" %}
+                    {% empty %}
+                        <p class="muted">No other forums found.</p>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+        {% else %}
+
+            <!-- ============================== -->
+            <!-- POST FEED -->
+            <!-- ============================== -->
+
+            {% for post in posts %}
+                {% include "core/_forum_post_card.html" %}
+            {% empty %}
+                <p class="muted forum-feed__empty">
+                    {% if query or category %}
+                        No posts match your search.
+                    {% elif tab == "mine" %}
+                        No posts in your forums yet. <a href="?tab=forums">Find a forum to join</a>.
+                    {% else %}
+                        No posts yet.
+                    {% endif %}
+                </p>
+            {% endfor %}
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- ============================== -->
+    <!-- RIGHT: start a forum, stats, forums to discover -->
+    <!-- ============================== -->
+
+    <aside class="forum-aside" aria-label="Forum overview">
+
+        <a class="button forum-aside__start" href="{% url 'forum_new' %}">+ Start a forum</a>
+
+        <div class="forum-box forum-stats">
+            <div><small>Forums</small><b>{{ forum_total }}</b></div>
+            <div><small>Posts</small><b>{{ post_total }}</b></div>
+        </div>
+
+        {% if suggested and not near %}
+            <div class="forum-box">
+                <h2 class="forum-box__title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                    Forums to discover
+                </h2>
+                <ul class="forum-box__list">
+                    {% for forum in suggested %}
+                        <li>
+                            <span class="forum-dot forum-dot--round" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
+                            <div>
+                                <a href="{{ forum.get_absolute_url }}">{{ forum.name }}</a>
+                                <small>
+                                    {% if forum.location %}{{ forum.location }} · {% endif %}{{ forum.member_count }} member{{ forum.member_count|pluralize }}
+                                </small>
+                            </div>
+                            <form method="post" action="{% url 'forum_join' forum.pk %}">
+                                {% csrf_token %}
+                                <button type="submit" class="forum-box__join">Join</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
         {% endif %}
 
-        <h3>{% if resolved_place.city %}Elsewhere in{% else %}In{% endif %} {{ resolved_place.state }}</h3>
+    </aside>
 
-        <div class="quest-grid">
-            {% for forum in in_state %}
-                {% include "core/_forum_card.html" %}
-            {% empty %}
-                <p class="muted">No {% if resolved_place.city %}other {% endif %}forums in {{ resolved_place.state }} yet.</p>
-            {% endfor %}
-        </div>
-
-        <p class="muted">
-            JSON version:
-            <a href="{% url 'forum_nearby_api' %}?q={{ near|urlencode }}">/api/forum-nearby/?q={{ near }}</a>
-        </p>
-
-    {% endif %}
-
-{% else %}
-
-    <!-- ============================== -->
-    <!-- MY FORUMS -->
-    <!-- ============================== -->
-
-    <h2>My forums</h2>
-
-    <div class="quest-grid">
-        {% for forum in joined %}
-            {% include "core/_forum_card.html" %}
-        {% empty %}
-            <p class="muted">
-                {% if query or category %}None of your forums match.{% else %}You haven't joined a forum yet.{% endif %}
-            </p>
-        {% endfor %}
-    </div>
-
-
-    <!-- ============================== -->
-    <!-- DISCOVER (not joined yet) -->
-    <!-- ============================== -->
-
-    <h2>Discover</h2>
-
-    <div class="quest-grid">
-        {% for forum in discover %}
-            {% include "core/_forum_card.html" %}
-        {% empty %}
-            <p class="muted">No other forums found.</p>
-        {% endfor %}
-    </div>
-
-{% endif %}
+</div>
 
 {% endblock %}

@@ -1,8 +1,8 @@
-{# One Together quest done by `user` and `other` #}
-<li class="together-item">
+{# One Together quest done by `user` and `other`, with a date badge #}
+<li class="activity-item together-item">
+    <span class="activity-date" aria-hidden="true"><b>{{ invite.accepted_at|date:"j" }}</b><small>{{ invite.accepted_at|date:"M" }}</small></span>
     <span>
         <a href="{{ invite.quest.get_absolute_url }}"><strong>{{ invite.quest.title }}</strong></a>
-        with <a href="{% url 'profile_view' other.username %}">{{ other.username }}</a>
+        <small>with <a href="{% url 'profile_view' other.username %}">{{ other.username }}</a> · done ✓ {{ invite.accepted_at|date:"M j, Y" }}</small>
     </span>
-    <span class="muted">✓ {{ invite.accepted_at|date:"M j, Y" }}</span>
 </li>

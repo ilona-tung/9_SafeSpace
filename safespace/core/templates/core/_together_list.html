@@ -1,5 +1,5 @@
 {# Together history: `together` is a list of accepted invites involving `user` #}
-<ul class="together-list">
+<ul class="activity-list together-list">
     {% for invite in together %}
         {% if invite.from_user == user %}
             {% include "core/_together_row.html" with other=invite.to_user %}
@@ -7,6 +7,6 @@
             {% include "core/_together_row.html" with other=invite.from_user %}
         {% endif %}
     {% empty %}
-        <li class="muted">{{ empty_text }}</li>
+        <li class="activity-empty">{{ empty_text }}</li>
     {% endfor %}
 </ul>

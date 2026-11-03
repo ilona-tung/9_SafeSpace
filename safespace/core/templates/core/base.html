@@ -68,7 +68,7 @@
     {% block hero %}{% endblock %}
 
     <!-- Main Content Area -->
-    <main class="container section">
+    <main class="container section{% block main_class %}{% endblock %}">
         {% if messages %}
             <ul class="messages">
                 {% for message in messages %}

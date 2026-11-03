@@ -1160,6 +1160,40 @@ class ForumTests(TestCase):
         self.assertEqual([forum.name for forum in by_name.context["discover"]], ["Books!"])
         self.assertEqual([forum.name for forum in by_category.context["discover"]], ["Casual"])
 
+    def test_feed_shows_posts_with_reply_preview(self):
+        Reply.objects.create(post=self.post, user=self.owner, content="Try Dune")
+        self.client.login(username="member", password="pw-12345!")
+
+        response = self.client.get("/forums/")
+
+        self.assertEqual(list(response.context["posts"]), [self.post])
+        self.assertEqual(response.context["posts"][0].latest_reply.content, "Try Dune")
+        self.assertContains(response, "Any book ideas?")
+        self.assertContains(response, "1 reply")
+        self.assertNotContains(response, "Recent activity")
+
+    def test_feed_tabs_and_search(self):
+        casual = Forum.objects.create(name="Casual", category="social")
+        busy = Post.objects.create(user=self.other, forum=casual, content="Hello all")
+        Reply.objects.create(post=busy, user=self.other, content="bump")
+        self.client.login(username="member", password="pw-12345!")
+
+        mine = self.client.get("/forums/", {"tab": "mine"}).context["posts"]
+        by_replies = self.client.get("/forums/", {"tab": "replies"}).context["posts"]
+        by_text = self.client.get("/forums/", {"q": "hello"}).context["posts"]
+
+        self.assertEqual(mine, [self.post])
+        self.assertEqual(by_replies, [busy, self.post])
+        self.assertEqual(by_text, [busy])
+
+    def test_feed_offers_join_for_forums_not_joined(self):
+        self.client.login(username="other", password="pw-12345!")
+
+        response = self.client.get("/forums/")
+
+        self.assertContains(response, "Join to reply")
+        self.assertContains(response, f'action="/forums/{self.forum.pk}/join/"')
+
     def test_create_forum_makes_creator_a_member(self):
         self.client.login(username="other", password="pw-12345!")
 
@@ -1337,6 +1371,29 @@ class ProfileTests(TestCase):
         self.assertContains(response, "Books!")
         for url in ["/journals/", "/rewards/", "/quests/", "/forums/"]:
             self.assertContains(response, f'href="{url}"')
+
+    def test_own_profile_shows_quest_chart_and_numbers(self):
+        self.client.login(username="alice", password="pw-12345!")
+
+        response = self.client.get("/profile/")
+
+        self.assertEqual(response.context["quest_mix"], [
+            {"category": "health", "count": 1, "color": "#8A8490", "percent": 100},
+        ])
+        self.assertEqual(response.context["friend_count"], 0)
+        self.assertContains(response, 'id="quest-mix-spec"')
+        self.assertContains(response, "Add a short bio")
+
+        self.client.login(username="bob", password="pw-12345!")
+        self.assertNotContains(self.client.get("/people/alice/"), "quest-mix")
+
+    def test_profile_forums_count_every_member(self):
+        self.forum.members.add(self.bob)
+        self.client.login(username="alice", password="pw-12345!")
+
+        forums = self.client.get("/profile/").context["forums"]
+
+        self.assertEqual([(forum.name, forum.member_count) for forum in forums], [("Books!", 2)])
 
     def test_public_profile_hides_private_things(self):
         self.client.login(username="bob", password="pw-12345!")

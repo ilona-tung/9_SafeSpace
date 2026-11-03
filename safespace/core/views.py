@@ -1366,9 +1366,76 @@ PROFILE_RECENT_TOGETHER = 5
 PEOPLE_SEARCH_LIMIT = 50
 
 
+# One fixed color per category, so a category looks the same on every profile
+PROFILE_CATEGORY_COLORS = {
+    "General Self-Care": "#324841",
+    "Diet & Wellness": "#ADC2AF",
+    "Social": "#E8B4B8",
+    "Joint": "#9C95C9",
+    "Learning": "#F2C46D",
+    "Exploration": "#7FB3D5",
+    "Budgeting": "#C9A38A",
+}
+PROFILE_OTHER_COLOR = "#8A8490"
+
+
+def quest_mix(completions):
+    """
+    Completed quests per category, biggest first, for the profile chart:
+    [{"category", "count", "color", "percent"}], percent of the biggest category.
+    """
+
+    counts = Counter(completion.quest.display_category() for completion in completions)
+    top = max(counts.values(), default=0)
+
+    return [
+        {
+            "category": category,
+            "count": count,
+            "color": PROFILE_CATEGORY_COLORS.get(category, PROFILE_OTHER_COLOR),
+            "percent": round(count / top * 100),
+        }
+        for category, count in counts.most_common()
+    ]
+
+
+def quest_mix_chart_spec(mix):
+    """
+    Vega-Lite donut of the profile's quest categories (the bars beside it are HTML).
+    """
+
+    return {
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+        "width": 220,
+        "height": 220,
+        "background": None,
+        "view": {"stroke": None},
+        "data": {"values": [{"category": row["category"], "count": row["count"]} for row in mix]},
+        "mark": {"type": "arc", "innerRadius": 66, "outerRadius": 104, "padAngle": 0.02, "cornerRadius": 4},
+        "encoding": {
+            "theta": {"field": "count", "type": "quantitative", "stack": True},
+            "order": {"field": "count", "sort": "descending"},
+            "color": {
+                "field": "category",
+                "type": "nominal",
+                "legend": None,
+                "scale": {
+                    "domain": [row["category"] for row in mix],
+                    "range": [row["color"] for row in mix],
+                },
+            },
+            "tooltip": [
+                {"field": "category", "title": "Category"},
+                {"field": "count", "title": "Quests"},
+            ],
+        },
+    }
+
+
 def joined_forums(user):
+    # Filter by id first: annotating user.forums directly would only count this user as a member
     return (
-        user.forums
+        Forum.objects.filter(pk__in=user.forums.values("pk"))
         .annotate(member_count=Count("members", distinct=True), post_count=Count("posts", distinct=True))
         .order_by("name")
     )
@@ -1377,8 +1444,9 @@ def joined_forums(user):
 @login_required
 def profile_me(request):
     """
-    The logged-in user's own profile: basic info plus their recent
-    journals, rewards, quests and forums, each linking to its full page.
+    The logged-in user's own profile: a banner, quick numbers, a chart of
+    completed quests by category, and recent journals, rewards and quests.
+    The "My activity" panel has requests, joint quests, friends and forums.
     """
 
     me = request.user
@@ -1394,9 +1462,14 @@ def profile_me(request):
     # Admin accounts don't use journals, quests or rewards
     if not me.is_staff:
         completions = me.quest_completions.filter(completed_status=True)
+        friends = Friendship.friends_of(me)
+        mix = quest_mix(completions.select_related("quest"))
 
         context.update({
             "quest_count": completions.count(),
+            "friend_count": len(friends),
+            "quest_mix": mix,
+            "quest_mix_spec": quest_mix_chart_spec(mix),
             "reward_count": me.rewards.count(),
             "journal_count": me.journals.count(),
             "recent_journals": (
@@ -1411,7 +1484,7 @@ def profile_me(request):
             ),
 
             # Friends and Together quests
-            "friends": Friendship.friends_of(me),
+            "friends": friends,
             "friend_requests": me.friendship_requests_received.filter(status="pending").select_related("user_from"),
             "sent_requests": me.friendship_requests_sent.filter(status="pending").select_related("user_to"),
             "invites_received": me.together_invites_received.filter(status="pending").select_related("quest", "from_user"),
@@ -1876,11 +1949,25 @@ def location_search(request):
 # Forums: communities users join, with posts and replies
 # ============================================================
 
+FORUM_TABS = {
+    "recent": "Recent posts",
+    "replies": "Most replies",
+    "mine": "My forums",
+    "forums": "All forums",
+}
+
+FEED_SIZE = 30
+
+
 @login_required
 def forum_list(request):
     """
-    Forums page: the forums the user joined, and the ones they haven't
-    joined yet. Search by name, filter by category, or search near a place.
+    Forums page: a feed of posts in the middle, the user's forums on the left,
+    and stats and forums to discover on the right.
+
+    Tabs: recent posts, posts with the most replies, posts in my forums,
+    or all forums as cards (the ones the user joined, then the rest).
+    Search by name or post text, filter by category, or search near a place.
 
     "Near" looks the place up with the OpenStreetMap location API, then
     shows forums in the same city and elsewhere in the same state, plus
@@ -1890,6 +1977,10 @@ def forum_list(request):
     query = request.GET.get("q", "").strip()
     category = request.GET.get("category", "")
     near = request.GET.get("near", "").strip()
+    tab = request.GET.get("tab", "recent")
+
+    if tab not in FORUM_TABS:
+        tab = "recent"
 
     forums = Forum.objects.annotate(
         member_count=Count("members", distinct=True),
@@ -1906,14 +1997,56 @@ def forum_list(request):
 
     joined_ids = set(request.user.forums.values_list("pk", flat=True))
 
+    posts = (
+        Post.objects
+        .select_related("user", "forum")
+        .prefetch_related("replies__user")
+        .annotate(
+            reply_count=Count("replies", distinct=True),
+            member_count=Count("forum__members", distinct=True),
+        )
+    )
+
+    if query:
+        posts = posts.filter(
+            Q(content__icontains=query)
+            | Q(forum__name__icontains=query)
+            | Q(forum__description__icontains=query)
+        )
+
+    if category in dict(Quest.CATEGORY_CHOICES):
+        posts = posts.filter(forum__category=category)
+
+    if tab == "mine":
+        posts = posts.filter(forum__in=joined_ids)
+
+    if tab == "replies":
+        posts = posts.order_by("-reply_count", "-created_at")
+
+    posts = list(posts[:FEED_SIZE])
+
+    # The newest reply, shown as a preview under each post
+    for post in posts:
+        replies = list(post.replies.all())
+        post.latest_reply = replies[-1] if replies else None
+
+    discover = [forum for forum in forums if forum.pk not in joined_ids]
+
     context = {
         "joined": [forum for forum in forums if forum.pk in joined_ids],
-        "discover": [forum for forum in forums if forum.pk not in joined_ids],
+        "discover": discover,
         "joined_ids": joined_ids,
         "query": query,
         "category": category,
         "near": near,
         "categories": Quest.CATEGORY_CHOICES,
+        "tab": tab,
+        "tabs": FORUM_TABS,
+        "posts": posts,
+        "my_forums": request.user.forums.annotate(post_count=Count("posts")),
+        "suggested": discover[:4],
+        "forum_total": Forum.objects.count(),
+        "post_total": Post.objects.count(),
     }
 
     if near:

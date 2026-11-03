@@ -5,203 +5,302 @@
     My Profile
 {% endblock %}
 
-{% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
-{% endblock %}
+{% block main_class %} container--wide{% endblock %}
 
 {% block content %}
 
-{% include "core/_people_search.html" %}
-
-{% include "core/_profile_header.html" %}
-
-<p class="profile-actions">
-    <a class="button" href="{% url 'profile_edit' %}">Edit profile</a>
-    <a class="button button-outline" href="{% url 'profile_view' person.username %}?preview=1">How others see my profile</a>
-</p>
-
-{% if not person.is_staff %}
+<div class="profile-layout">
 
     <!-- ============================== -->
-    <!-- QUICK NUMBERS -->
+    <!-- LEFT: my profile -->
     <!-- ============================== -->
 
-    <ul class="profile-stats">
-        <li><strong>{{ quest_count }}</strong> quest{{ quest_count|pluralize }} completed</li>
-        <li><strong>{{ reward_count }}</strong> reward{{ reward_count|pluralize }} earned</li>
-        <li><strong>{{ journal_count }}</strong> journal entr{{ journal_count|pluralize:"y,ies" }}</li>
-    </ul>
+    <div class="profile-main">
+
+        <h1 class="profile-title">My profile</h1>
+
+        {% include "core/_profile_banner.html" with own=True %}
+
+        {% if not person.is_staff %}
+
+            <!-- ============================== -->
+            <!-- QUICK NUMBERS -->
+            <!-- ============================== -->
+
+            <ul class="profile-stats">
+                <li><a href="{% url 'quest_list' %}"><b>{{ quest_count }}</b><small>Quest{{ quest_count|pluralize }} done</small></a></li>
+                <li><a href="{% url 'reward_list' %}"><b>{{ reward_count }}</b><small>Reward{{ reward_count|pluralize }}</small></a></li>
+                <li><a href="{% url 'journal_list' %}"><b>{{ journal_count }}</b><small>Journal entr{{ journal_count|pluralize:"y,ies" }}</small></a></li>
+                <li><a href="#friends"><b>{{ friend_count }}</b><small>Friend{{ friend_count|pluralize }}</small></a></li>
+            </ul>
+
+
+            <!-- ============================== -->
+            <!-- QUESTS BY CATEGORY: Vega-Lite donut + bars -->
+            <!-- ============================== -->
+
+            <section class="profile-section">
+                <div class="profile-section__head">
+                    <h2>My quests by category</h2>
+                    <span>{{ quest_count }} quest{{ quest_count|pluralize }}</span>
+                </div>
+
+                {% if quest_mix %}
+                    <div class="profile-chart">
+                        <div class="profile-chart__donut">
+                            <div id="quest-mix-chart"></div>
+                            <div class="profile-chart__center" aria-hidden="true"><b>{{ quest_count }}</b><small>done</small></div>
+                        </div>
+
+                        <ul class="profile-bars">
+                            {% for row in quest_mix %}
+                                <li>
+                                    <div class="profile-bars__row">
+                                        <span><i style="background: {{ row.color }}"></i>{{ row.category }}</span>
+                                        <span>{{ row.count }}</span>
+                                    </div>
+                                    <div class="profile-bars__track">
+                                        <div class="profile-bars__fill" style="width: {{ row.percent }}%; background: {{ row.color }}"></div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    {{ quest_mix_spec|json_script:"quest-mix-spec" }}
+                {% else %}
+                    <p class="muted">No quests completed yet. <a href="{% url 'quest_list' %}">Pick a small one for today</a>.</p>
+                {% endif %}
+            </section>
+
+
+            <!-- ============================== -->
+            <!-- RECENT JOURNALS -->
+            <!-- ============================== -->
+
+            <section class="profile-section">
+                <div class="profile-section__head">
+                    <h2>Recent journals</h2>
+                    <a href="{% url 'journal_list' %}">See all →</a>
+                </div>
+
+                <ul class="profile-journals">
+                    {% for journal in recent_journals %}
+                        <li>
+                            <a class="profile-journal" href="{% url 'journal_detail' journal.pk %}">
+                                <span class="profile-journal__page" aria-hidden="true"
+                                      {% if journal.background.asset %}style="background-image: url('{% static journal.background.asset %}')"{% endif %}></span>
+                                <span>
+                                    <small>{{ journal.time|date:"D, M j, Y" }}</small>
+                                    {% if journal.summary %}
+                                        <em>“{{ journal.summary }}”</em>
+                                    {% else %}
+                                        <span>{{ journal.content|truncatechars:110 }}</span>
+                                    {% endif %}
+                                </span>
+                            </a>
+                        </li>
+                    {% empty %}
+                        <li class="muted">No journal entries yet. <a href="{% url 'journal_new' %}">Write your first page</a>.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+
+            <!-- ============================== -->
+            <!-- RECENT REWARDS -->
+            <!-- ============================== -->
+
+            <section class="profile-section">
+                <div class="profile-section__head">
+                    <h2>Recent rewards</h2>
+                    <a href="{% url 'reward_list' %}">See all →</a>
+                </div>
+
+                <ul class="profile-rewards">
+                    {% for owned in recent_rewards %}
+                        <li class="profile-reward">
+                            {% if owned.reward.asset and owned.reward.item_type != "font" %}
+                                <img src="{% static owned.reward.asset %}" alt="">
+                            {% else %}
+                                <span class="profile-reward__font" aria-hidden="true">Aa</span>
+                            {% endif %}
+                            <span>{{ owned.reward.name }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="muted">No rewards yet. Complete a quest to earn one!</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+
+            <!-- ============================== -->
+            <!-- RECENT QUESTS -->
+            <!-- ============================== -->
+
+            <section class="profile-section">
+                <div class="profile-section__head">
+                    <h2>Recent quests</h2>
+                    <a href="{% url 'quest_list' %}">See all →</a>
+                </div>
+
+                <ul class="profile-quests">
+                    {% for completion in recent_quests %}
+                        <li>
+                            <span class="profile-quests__check" aria-hidden="true">✓</span>
+                            <a href="{{ completion.quest.get_absolute_url }}">{{ completion.quest.title }}</a>
+                            <span class="profile-quests__category">{{ completion.quest.display_category }}</span>
+                            <span class="profile-quests__date">{{ completion.completed_date|date:"M j" }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="muted">No quests completed yet.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+        {% endif %}
+
+    </div>
 
 
     <!-- ============================== -->
-    <!-- WAITING FOR YOU: friend requests and joint quest invites -->
+    <!-- RIGHT: my activity -->
     <!-- ============================== -->
 
-    {% if friend_requests or invites_received %}
-        <section class="profile-inbox" id="inbox">
-            <h2>Waiting for you</h2>
+    <aside class="profile-activity" aria-label="My activity">
 
-            <ul class="profile-list">
-                {% for request_ in friend_requests %}
-                    <li class="inbox-item">
+        <h2 class="profile-activity__title">My activity</h2>
+
+        {% if not person.is_staff %}
+
+            <!-- Waiting for you: friend requests and joint quest invites -->
+            {% if friend_requests or invites_received %}
+                <section id="inbox">
+                    <div class="activity-head"><h3>Waiting for you</h3></div>
+                    <ul class="activity-list">
+                        {% for request_ in friend_requests %}
+                            <li class="activity-item">
+                                <span class="activity-face" data-tone="{{ request_.user_from.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ request_.user_from.username|first|upper }}</span>
+                                <span>
+                                    <a href="{% url 'profile_view' request_.user_from.username %}">{{ request_.user_from.username }}</a>
+                                    wants to be friends.
+                                    {% include "core/_friend_buttons.html" with person=request_.user_from friend_state="received" %}
+                                </span>
+                            </li>
+                        {% endfor %}
+
+                        {% for invite in invites_received %}
+                            <li class="activity-item">
+                                <span class="activity-date" aria-hidden="true"><b>{{ invite.created_at|date:"j" }}</b><small>{{ invite.created_at|date:"M" }}</small></span>
+                                <span>
+                                    <a href="{% url 'profile_view' invite.from_user.username %}">{{ invite.from_user.username }}</a>
+                                    invited you to <a href="{{ invite.quest.get_absolute_url }}">{{ invite.quest.title }}</a>.
+                                    <small>Accept once you've done it together.</small>
+                                    <span class="friend-actions">
+                                        <form method="post" action="{% url 'together_accept' invite.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="button-primary">We did it!</button>
+                                        </form>
+                                        <form method="post" action="{% url 'together_decline' invite.pk %}">
+                                            {% csrf_token %}
+                                            <button type="submit">Decline</button>
+                                        </form>
+                                    </span>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+
+            <!-- Joint quests: waiting for a friend, then the ones done together -->
+            <div class="activity-head">
+                <h3>Joint quests</h3>
+                <a href="{% url 'quest_list' %}">All quests</a>
+            </div>
+
+            {% if invites_sent %}
+                <ul class="activity-list">
+                    {% for invite in invites_sent %}
+                        <li class="activity-item">
+                            <span class="activity-date activity-date--waiting" aria-hidden="true"><b>{{ invite.created_at|date:"j" }}</b><small>{{ invite.created_at|date:"M" }}</small></span>
+                            <span>
+                                <a href="{{ invite.quest.get_absolute_url }}"><strong>{{ invite.quest.title }}</strong></a>
+                                <small>Waiting for <a href="{% url 'profile_view' invite.to_user.username %}">{{ invite.to_user.username }}</a> to accept</small>
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% include "core/_together_list.html" with empty_text="No joint quests yet. Open one and invite a friend!" %}
+
+            <!-- Friends (only you see this list) -->
+            <div class="activity-head" id="friends">
+                <h3>Friends</h3>
+                <a href="{% url 'people_search' %}">Find people</a>
+            </div>
+
+            <ul class="activity-list">
+                {% for friend in friends %}
+                    <li class="activity-item">
+                        <span class="activity-face" data-tone="{{ friend.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ friend.username|first|upper }}</span>
                         <span>
-                            <a href="{% url 'profile_view' request_.user_from.username %}">{{ request_.user_from.username }}</a>
-                            wants to be friends.
+                            <a href="{% url 'profile_view' friend.username %}">{{ friend.get_full_name|default:friend.username }}</a>
+                            <small>@{{ friend.username }}</small>
                         </span>
-                        {% include "core/_friend_buttons.html" with person=request_.user_from friend_state="received" %}
                     </li>
+                {% empty %}
+                    <li class="activity-empty">No friends yet. Search for people below and send a request.</li>
                 {% endfor %}
 
-                {% for invite in invites_received %}
-                    <li class="inbox-item">
+                {% for sent in sent_requests %}
+                    <li class="activity-item activity-item--muted">
+                        <span class="activity-face" data-tone="{{ sent.user_to.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ sent.user_to.username|first|upper }}</span>
                         <span>
-                            <a href="{% url 'profile_view' invite.from_user.username %}">{{ invite.from_user.username }}</a>
-                            invited you to <a href="{{ invite.quest.get_absolute_url }}">{{ invite.quest.title }}</a>.
-                            <span class="muted">Accept once you've done it together.</span>
+                            <a href="{% url 'profile_view' sent.user_to.username %}">{{ sent.user_to.username }}</a>
+                            <small>Request sent</small>
                         </span>
-                        <div class="friend-actions">
-                            <form method="post" action="{% url 'together_accept' invite.pk %}">
-                                {% csrf_token %}
-                                <button type="submit" class="button-primary">We did it!</button>
-                            </form>
-                            <form method="post" action="{% url 'together_decline' invite.pk %}">
-                                {% csrf_token %}
-                                <button type="submit">Decline</button>
-                            </form>
-                        </div>
                     </li>
                 {% endfor %}
             </ul>
-        </section>
-    {% endif %}
 
+        {% endif %}
 
-    <!-- ============================== -->
-    <!-- RECENT JOURNALS -->
-    <!-- ============================== -->
+        <!-- My forums -->
+        <div class="activity-head">
+            <h3>My forums</h3>
+            <a href="{% url 'forum_list' %}">See all</a>
+        </div>
 
-    <div class="profile-section__head">
-        <h2>Recent journals</h2>
-        <a href="{% url 'journal_list' %}">See all →</a>
-    </div>
+        <ul class="activity-list">
+            {% for forum in forums %}
+                {% include "core/_forum_activity_row.html" %}
+            {% empty %}
+                <li class="activity-empty">You haven't joined a forum yet.</li>
+            {% endfor %}
+        </ul>
 
-    <div class="journal-grid">
-        {% for journal in recent_journals %}
-            {% include "core/_journal_card.html" %}
-        {% empty %}
-            <p class="muted">No journal entries yet. <a href="{% url 'journal_new' %}">Write your first page</a>.</p>
-        {% endfor %}
-    </div>
+        {% include "core/_people_search.html" %}
 
+    </aside>
 
-    <!-- ============================== -->
-    <!-- RECENT REWARDS -->
-    <!-- ============================== -->
+</div>
 
-    <div class="profile-section__head">
-        <h2>Recent rewards</h2>
-        <a href="{% url 'reward_list' %}">See all →</a>
-    </div>
+{% if quest_mix %}
+    <script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
 
-    <ul class="profile-rewards">
-        {% for owned in recent_rewards %}
-            <li class="profile-reward">
-                {% if owned.reward.asset and owned.reward.item_type != "font" %}
-                    <img src="{% static owned.reward.asset %}" alt="">
-                {% endif %}
-                <span>{{ owned.reward.name }}</span>
-                <span class="muted">{{ owned.unlocked_time|date:"M j" }}</span>
-            </li>
-        {% empty %}
-            <li class="muted">No rewards yet. Complete a quest to earn one!</li>
-        {% endfor %}
-    </ul>
-
-
-    <!-- ============================== -->
-    <!-- RECENT QUESTS -->
-    <!-- ============================== -->
-
-    <div class="profile-section__head">
-        <h2>Recent quests</h2>
-        <a href="{% url 'quest_list' %}">See all →</a>
-    </div>
-
-    <div class="quest-grid">
-        {% for completion in recent_quests %}
-            <a class="quest-card" href="{{ completion.quest.get_absolute_url }}">
-                <span class="quest-card__category">{{ completion.quest.display_category }}</span>
-                <span class="quest-card__title">{{ completion.quest.title }}</span>
-                <span class="muted">✓ {{ completion.completed_date|date:"M j, Y" }}</span>
-                <span class="quest-card__open">Open quest →</span>
-            </a>
-        {% empty %}
-            <p class="muted">No quests completed yet.</p>
-        {% endfor %}
-    </div>
-
-
-
-    <!-- ============================== -->
-    <!-- FRIENDS (only you see this list) -->
-    <!-- ============================== -->
-
-    <div class="profile-section__head">
-        <h2>Friends</h2>
-        <a href="{% url 'people_search' %}">Find people →</a>
-    </div>
-
-    <ul class="profile-list">
-        {% for friend in friends %}
-            <li><a href="{% url 'profile_view' friend.username %}">{{ friend.get_full_name|default:friend.username }}</a> <span class="muted">@{{ friend.username }}</span></li>
-        {% empty %}
-            <li class="muted">No friends yet. Search for people above and send a request.</li>
-        {% endfor %}
-
-        {% for sent in sent_requests %}
-            <li class="muted">
-                Request sent to <a href="{% url 'profile_view' sent.user_to.username %}">{{ sent.user_to.username }}</a>
-            </li>
-        {% endfor %}
-    </ul>
-
-
-    <!-- ============================== -->
-    <!-- TOGETHER QUESTS -->
-    <!-- ============================== -->
-
-    <div class="profile-section__head">
-        <h2>Joint Quests</h2>
-        <a href="{% url 'quest_list' %}">All quests →</a>
-    </div>
-
-    {% for invite in invites_sent %}
-        <p class="muted">
-            Waiting for <a href="{% url 'profile_view' invite.to_user.username %}">{{ invite.to_user.username }}</a>
-            to accept <a href="{{ invite.quest.get_absolute_url }}">{{ invite.quest.title }}</a>.
-        </p>
-    {% endfor %}
-
-    {% include "core/_together_list.html" with empty_text="No joint quests yet. Open one and invite a friend!" %}
-
+    <script>
+        vegaEmbed(
+            "#quest-mix-chart",
+            JSON.parse(document.getElementById("quest-mix-spec").textContent),
+            { actions: false, renderer: "svg" }
+        ).catch(function (error) {
+            console.error("Quest chart error:", error);
+        });
+    </script>
 {% endif %}
-
-
-<!-- ============================== -->
-<!-- MY FORUMS -->
-<!-- ============================== -->
-
-<div class="profile-section__head">
-    <h2>My forums</h2>
-    <a href="{% url 'forum_list' %}">See all →</a>
-</div>
-
-<div class="quest-grid">
-    {% for forum in forums %}
-        {% include "core/_forum_card.html" %}
-    {% empty %}
-        <p class="muted">You haven't joined a forum yet.</p>
-    {% endfor %}
-</div>
 
 {% endblock %}
