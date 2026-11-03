@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.static_version',
                 'core.context_processors.pending_counts',
+                'core.context_processors.nav_section',
             ],
         },
     },
@@ -148,6 +149,9 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 # Local Hugging Face model for AI quest suggestions (core/ai.py).
 # Chosen in llm-test/ai_prototype.ipynb; downloaded automatically on first use.
 AI_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+
+# Embedding model for health tips (core/rag.py), the small BGE model from llm-test/rag_system.ipynb.
+AI_EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/

@@ -1,4 +1,5 @@
-# Extra packages for the local AI quest suggestions (core/ai.py).
+# Extra packages for the local AI quest suggestions (core/ai.py) and health tips (core/rag.py).
 #   pip install -r requirements-ai.txt
+sentence-transformers>=5.0
 torch>=2.9
 transformers>=4.56

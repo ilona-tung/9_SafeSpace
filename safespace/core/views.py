@@ -28,7 +28,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Quest, Reward, Journal, QuestCompletion, Forum, Post, Reply, UserReward, Profile, Friendship, TogetherInvite
 from .forms import FeelingForm, JournalEditorForm, ForumForm, PostForm, NameForm, BioForm
-from . import ai
+from . import ai, rag
 from .welcome import generate_welcome_message
 
 import matplotlib
@@ -399,7 +399,8 @@ AI_RESULT_KEY = "ai_quest_suggestion"
 def quest_suggest(request):
     """
     The user writes how they feel and/or picks one of their journal
-    entries; the local LLM (core/ai.py) suggests one of our quests.
+    entries; the local LLM (core/ai.py) suggests one of our quests,
+    and core/rag.py adds a health tip based on our NIH knowledge base.
     One quest per input: the result is shown once on the Quests page.
     """
 
@@ -414,6 +415,16 @@ def quest_suggest(request):
     result = ai.suggest_quest(request.user, feeling, journal=journal)
     quest = result["quest"]
 
+    # A health tip from our NIH knowledge base (core/rag.py), only after a
+    # normal suggestion: never for crisis, injection or missing AI packages
+    tip = {"status": "skipped", "tip": "", "sources": []}
+
+    if result["status"] in ("ok", "fallback"):
+        tip = rag.grounded_tip(feeling, journal=journal)
+
+    # Each article once (a tip can use several sections of one article)
+    articles = list({source["doc"]: source for source in tip["sources"]}.values())
+
     request.session[AI_RESULT_KEY] = {
         "feeling": feeling,
         "journal_label": form.fields["journal"].label_from_instance(journal) if journal else "",
@@ -421,6 +432,11 @@ def quest_suggest(request):
         "status": result["status"],
         "quest_title": quest.title if quest else "",
         "quest_url": quest.get_absolute_url() if quest else "",
+        "quest_category": quest.display_category() if quest else "",
+        "tip_status": tip["status"],
+        "tip": tip["tip"],
+        "tip_sources": tip["sources"],
+        "tip_articles": articles,
     }
 
     return redirect(reverse("quest_list") + "#ask-safespace")

@@ -10,7 +10,7 @@ from django.test import Client
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from . import ai
+from . import ai, rag
 from .models import Forum, Friendship, Journal, JournalSticker, Post, Profile, Quest, QuestCompletion, Reply, Reward, TogetherInvite, UserReward
 from .views import DAILY_REWARD_LIMIT
 from .welcome import FALLBACK_WELCOME_MESSAGE, generate_welcome_message
@@ -738,7 +738,7 @@ class AccessProtectionTests(TestCase):
 
         response = self.client.get("/")
 
-        self.assertContains(response, "Log out (member)")
+        self.assertContains(response, 'title="Signed in as member">Log out</button>')
         self.assertNotContains(response, 'href="/login/"')
         for url in ["/journals/", "/forums/"]:
             self.assertContains(response, f'href="{url}"')
@@ -812,13 +812,14 @@ class AccessProtectionTests(TestCase):
         for url in ["/quests/", "/rewards/", "/journals/", "/forums/"]:
             self.assertNotContains(response, f'href="{url}"')
 
-    def test_menu_is_hidden_until_button_pressed(self):
+    def test_navbar_shows_page_links_and_marks_the_current_page(self):
         self.client.login(username="member", password="pw-12345!")
 
-        response = self.client.get("/")
+        response = self.client.get("/quests/")
 
-        self.assertContains(response, 'class="nav-toggle" aria-expanded="false"')
-        self.assertContains(response, 'id="site-nav" hidden')
+        self.assertContains(response, 'class="nav-links"')
+        self.assertContains(response, '<a href="/quests/" aria-current="page">')
+        self.assertContains(response, '<a href="/">Home</a>')
 
     def test_logged_in_user_is_sent_home_from_login_and_signup(self):
         self.client.login(username="member", password="pw-12345!")
@@ -852,6 +853,11 @@ class AIQuestSuggestionTests(TestCase):
         self.user = User.objects.create_user(username="feeler", password="pw-12345!")
         self.walk = Quest.objects.create(title="Take a walk", category="diet")
         self.clouds = Quest.objects.create(title="Observe the clouds", category="general")
+
+        # Health tips have their own tests (HealthTipTests): no retrieval here
+        retrieve = patch("core.rag.retrieve", return_value=[])
+        retrieve.start()
+        self.addCleanup(retrieve.stop)
 
     def fake_generate(self, answer):
         return patch("core.ai.generate", return_value=answer)
@@ -999,6 +1005,118 @@ class AIQuestSuggestionTests(TestCase):
 
         fake.assert_not_called()
         self.assertNotContains(self.client.get("/quests/"), "Private thoughts")
+
+
+class HealthTipTests(TestCase):
+    """
+    Health tips from the NIH knowledge base (core/rag.py). Retrieval and the
+    model are replaced by fakes, so these tests are fast and don't need torch.
+    """
+
+    def setUp(self):
+        Quest.objects.all().delete()
+        self.user = User.objects.create_user(username="sleeper", password="pw-12345!")
+        Quest.objects.create(title="Take a walk", category="diet")
+        self.sleep_chunk = {
+            "doc": "Good Sleep for Good Health", "section": "Tips for a better night's sleep",
+            "url": "https://newsinhealth.nih.gov/2021/04/good-sleep-good-health",
+            "body": "Stick to a sleep schedule. Limit electronics before bed.",
+        }
+
+    def fake_retrieve(self, score):
+        return patch("core.rag.retrieve", return_value=[(score, self.sleep_chunk)])
+
+    def fake_generate(self, answer):
+        return patch("core.ai.generate", return_value=answer)
+
+    def test_knowledge_base_is_chunked_by_section(self):
+        chunks = rag.load_chunks()
+
+        self.assertEqual(len({chunk["doc"] for chunk in chunks}), 6)
+        self.assertTrue(all(chunk["url"].startswith("https://") for chunk in chunks))
+        self.assertTrue(all(len(chunk["body"].split()) <= rag.MAX_CHUNK_WORDS for chunk in chunks))
+        self.assertTrue(all(chunk["text"].startswith(f"{chunk['doc']} > {chunk['section']}") for chunk in chunks))
+
+    def test_good_tip_is_shown_with_its_source(self):
+        with self.fake_retrieve(0.7), self.fake_generate("Try to keep a regular sleep schedule. Put screens away before bed."):
+            result = rag.grounded_tip("I can't sleep.")
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["tip"], "Try to keep a regular sleep schedule. Put screens away before bed.")
+        self.assertEqual(result["sources"][0]["url"], self.sleep_chunk["url"])
+
+    def test_no_relevant_passage_never_reaches_the_model(self):
+        with self.fake_retrieve(0.51), self.fake_generate("A pasta recipe.") as fake:
+            result = rag.grounded_tip("What is a good pasta recipe?")
+
+        fake.assert_not_called()
+        self.assertEqual(result["status"], "no_match")
+        self.assertEqual(result["tip"], "")
+
+    def test_broken_tips_fall_back_to_the_sources(self):
+        for answer in [
+            "",
+            '{"quest": "Take a walk"}',
+            "1. Sleep more\n2. Drink less coffee",
+            "Have a glass of wine, you lazy thing.",
+            "This sentence never ends because the model ran out of tokens and kept",
+        ]:
+            with self.subTest(answer=answer), self.fake_retrieve(0.7), self.fake_generate(answer):
+                result = rag.grounded_tip("I can't sleep.")
+
+                self.assertEqual(result["status"], "sources_only")
+                self.assertEqual(result["tip"], "")
+                self.assertEqual(len(result["sources"]), 1)
+
+    def test_blocked_word_is_allowed_when_the_source_uses_it(self):
+        self.sleep_chunk["body"] += " Avoid alcohol and large meals before bedtime."
+
+        with self.fake_retrieve(0.7), self.fake_generate("Avoid alcohol before bedtime."):
+            self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "ok")
+
+        with self.fake_retrieve(0.7), self.fake_generate("Don't be lazy about sleep."):
+            self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "sources_only")
+
+    def test_long_tips_are_cut_to_three_sentences(self):
+        answer = "One. Two. Three. Four."
+
+        with self.fake_retrieve(0.7), self.fake_generate(answer):
+            self.assertEqual(rag.grounded_tip("I can't sleep.")["tip"], "One. Two. Three.")
+
+    def test_missing_ai_packages_give_no_tip(self):
+        with patch("core.rag.load_index", side_effect=ai.AIUnavailable):
+            self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "unavailable")
+
+    def test_chosen_journal_is_used_when_nothing_is_typed(self):
+        journal = Journal.objects.create(user=self.user, summary="Sleepless week", content="Up until 3am again.")
+
+        with self.fake_retrieve(0.7) as fake, self.fake_generate("Keep a regular bedtime."):
+            rag.grounded_tip("", journal=journal)
+
+        self.assertEqual(fake.call_args.args[0], "Sleepless week Up until 3am again.")
+
+    def test_view_shows_tip_under_the_quest(self):
+        self.client.login(username="sleeper", password="pw-12345!")
+        answers = ['{"quest": "Take a walk", "message": "Fresh air helps."}', "Keep a regular sleep schedule."]
+
+        with self.fake_retrieve(0.7), patch("core.ai.generate", side_effect=answers):
+            self.client.post("/quests/suggest/", {"feeling": "I can't sleep."})
+
+        page = self.client.get("/quests/")
+        self.assertContains(page, "Fresh air helps.")
+        self.assertContains(page, "Diet &amp; Wellness")  # the quest's category
+        self.assertContains(page, "Keep a regular sleep schedule.")
+        self.assertContains(page, "Tips for a better night&#x27;s sleep")  # the source section as the tip's title
+        self.assertContains(page, f'href="{self.sleep_chunk["url"]}"')
+
+    def test_crisis_input_gets_no_tip(self):
+        self.client.login(username="sleeper", password="pw-12345!")
+
+        with patch("core.rag.grounded_tip") as tip:
+            self.client.post("/quests/suggest/", {"feeling": "I want to kill myself."})
+
+        tip.assert_not_called()
+        self.assertContains(self.client.get("/quests/"), "988")
 
 
 class ForumTests(TestCase):

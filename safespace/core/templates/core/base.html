@@ -21,42 +21,36 @@
 
 <body>
 
-    <!-- Header & Branded Navigation Bar -->
+    <!-- Header: brand on the left, page links in the middle, Log out on the right -->
     <header class="site-header">
         <div class="container">
-            <a href="{% url 'home' %}" class="brand">
-                <span class="brand__title">SafeSpace</span>
-            </a>
+            <a href="{% url 'home' %}" class="brand">SafeSpace</a>
 
             {% if user.is_authenticated %}
 
-                <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="site-nav">
-                    ☰ Menu
-                </button>
-
-                <!-- Logged-in menu: only opens when the Menu button is pressed -->
-                <nav class="nav" id="site-nav" hidden>
-                    <a href="{% url 'home' %}">Home</a>
-                    <a href="{% url 'quest_list' %}">Quests</a>
-                    <a href="{% url 'reward_list' %}">Rewards</a>
-                    <a href="{% url 'forum_list' %}">Forums</a>
-                    <a href="{% url 'profile_me' %}">Profile{% if pending_count %} <span class="nav__badge" title="Friend requests and invites">{{ pending_count }}</span>{% endif %}</a>
+                <nav class="nav-links" aria-label="Main pages">
+                    <a href="{% url 'home' %}"{% if nav_section == "home" %} aria-current="page"{% endif %}>Home</a>
+                    <a href="{% url 'quest_list' %}"{% if nav_section == "quests" %} aria-current="page"{% endif %}>Quests{% if not user.is_staff %} <span class="nav-links__tag">AI</span>{% endif %}</a>
 
                     {% if user.is_staff %}
                         <!-- Admin only -->
-                        <a href="{% url 'user_list' %}">Users</a>
-                        <a href="{% url 'vega_lite_charts' %}">Vega-Lite</a>
-                        <a href="{% url 'reports_page' %}">Reports</a>
+                        <a href="{% url 'user_list' %}"{% if nav_section == "users" %} aria-current="page"{% endif %}>Users</a>
+                        <a href="{% url 'reports_page' %}"{% if nav_section == "reports" %} aria-current="page"{% endif %}>Reports</a>
+                        <a href="{% url 'vega_lite_charts' %}"{% if nav_section == "vega" %} aria-current="page"{% endif %}>Vega-Lite</a>
                     {% else %}
                         <!-- Regular users only -->
-                        <a href="{% url 'journal_list' %}">My Journal</a>
+                        <a href="{% url 'journal_list' %}"{% if nav_section == "journal" %} aria-current="page"{% endif %}>My Journal</a>
                     {% endif %}
 
-                    <form method="post" action="{% url 'logout' %}" class="nav__form">
-                        {% csrf_token %}
-                        <button type="submit">Log out ({{ user.username }})</button>
-                    </form>
+                    <a href="{% url 'reward_list' %}"{% if nav_section == "rewards" %} aria-current="page"{% endif %}>Rewards</a>
+                    <a href="{% url 'forum_list' %}"{% if nav_section == "forums" %} aria-current="page"{% endif %}>Forums</a>
+                    <a href="{% url 'profile_me' %}"{% if nav_section == "profile" %} aria-current="page"{% endif %}>Profile{% if pending_count %} <span class="nav__badge" title="Friend requests and invites">{{ pending_count }}</span>{% endif %}</a>
                 </nav>
+
+                <form method="post" action="{% url 'logout' %}" class="nav-logout">
+                    {% csrf_token %}
+                    <button type="submit" title="Signed in as {{ user.username }}">Log out</button>
+                </form>
 
             {% else %}
 
@@ -70,7 +64,8 @@
         </div>
     </header>
 
-    <hr class="hr">
+    <!-- Full-width banner above the page (used by the home page) -->
+    {% block hero %}{% endblock %}
 
     <!-- Main Content Area -->
     <main class="container section">
@@ -87,37 +82,6 @@
         {% endblock %}
     </main>
 
-    {% if user.is_authenticated %}
-    <!-- Open/close the menu with the Menu button -->
-    <script>
-        (function () {
-            const toggle = document.querySelector(".nav-toggle");
-            const nav = document.getElementById("site-nav");
-
-            function setOpen(open) {
-                nav.hidden = !open;
-                toggle.setAttribute("aria-expanded", String(open));
-            }
-
-            toggle.addEventListener("click", function () {
-                setOpen(nav.hidden);
-            });
-
-            // Close when clicking outside the menu or pressing Escape
-            document.addEventListener("click", function (event) {
-                if (!nav.hidden && !nav.contains(event.target) && !toggle.contains(event.target)) {
-                    setOpen(false);
-                }
-            });
-
-            document.addEventListener("keydown", function (event) {
-                if (event.key === "Escape") {
-                    setOpen(false);
-                }
-            });
-        })();
-    </script>
-    {% endif %}
 
 </body>
 </html>

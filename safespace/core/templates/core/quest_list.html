@@ -15,54 +15,177 @@
 <!-- ASK SAFESPACE (local AI, regular users only) -->
 <!-- ============================== -->
 
-<section class="ask-safespace card" id="ask-safespace">
+<section class="ask-safespace" id="ask-safespace">
 
-    <div class="card__header">
-        Ask SafeSpace for a quest
+    <!-- Header: what you share and the two things you get back -->
+    <div class="ask__head">
+        <span class="ask__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></span>
+        <div>
+            <h2 class="ask__title">Ask SafeSpace for a quest</h2>
+            <p class="ask__subtitle">Tell us how you're feeling. We'll pick a small quest for you.</p>
+            <ol class="ask__steps">
+                <li><b>1</b>You share</li>
+                <li><b>2</b>A quest for you</li>
+                <li><b>3</b>A health tip from NIH</li>
+            </ol>
+        </div>
     </div>
 
-    <div class="card__body">
+    <div class="ask__body">
 
         {% if ai_result %}
-            <div class="suggestion suggestion--{{ ai_result.status }}">
-                <p class="suggestion__input muted">
+            {% if ai_result.feeling or ai_result.journal_label %}
+                <p class="ai-input muted">
                     {% if ai_result.feeling %}You wrote: “{{ ai_result.feeling }}”{% endif %}
                     {% if ai_result.feeling and ai_result.journal_label %}<br>{% endif %}
                     {% if ai_result.journal_label %}📓 {{ ai_result.journal_label }}{% endif %}
                 </p>
+            {% endif %}
 
-                {% if ai_result.quest_url %}
-                    <a href="{{ ai_result.quest_url }}" class="suggestion__quest">
-                        {{ ai_result.quest_title }} →
-                    </a>
+            <!-- One card per AI feature: the quest (core/ai.py) and the health tip (core/rag.py) -->
+            <div class="ai-results">
+
+                {% if ai_result.status == "crisis" %}
+                    <div class="ai-card ai-card--crisis">
+                        <div class="ai-card__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+                        </div>
+                        <div class="ai-card__body">
+                            <p class="ai-card__title">You deserve support right now</p>
+                            <p class="ai-card__text">{{ ai_result.message }}</p>
+                        </div>
+                        <div class="ai-card__side">
+                            <span class="ai-card__pill ai-card__pill--crisis">Call or text 988</span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="ai-card">
+                        <div class="ai-card__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 15c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/></svg>
+                        </div>
+                        <div class="ai-card__body">
+                            {% if ai_result.quest_url %}
+                                <p class="ai-card__kicker">Your quest for today</p>
+                                <p class="ai-card__title">{{ ai_result.quest_title }}</p>
+                            {% endif %}
+                            <p class="ai-card__text">{{ ai_result.message }}</p>
+                            {% if ai_result.quest_category %}
+                                <p class="ai-card__meta">{{ ai_result.quest_category }}</p>
+                            {% endif %}
+                        </div>
+                        {% if ai_result.quest_url %}
+                            <div class="ai-card__side">
+                                {% if ai_result.status == "ok" %}
+                                    <span class="ai-card__pill">Picked for you</span>
+                                {% else %}
+                                    <span class="ai-card__pill ai-card__pill--plain">Suggested</span>
+                                {% endif %}
+                                <a href="{{ ai_result.quest_url }}" class="ai-card__go" aria-label="Open {{ ai_result.quest_title }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+                            </div>
+                        {% endif %}
+                    </div>
                 {% endif %}
 
-                <p class="suggestion__message">{{ ai_result.message }}</p>
+                {% if ai_result.tip %}
+                    <div class="ai-card ai-card--tip">
+                        <div class="ai-card__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+                        </div>
+                        <div class="ai-card__body">
+                            <p class="ai-card__kicker">Health tip</p>
+                            <p class="ai-card__title">{{ ai_result.tip_sources.0.section }}</p>
+                            <p class="ai-card__text">{{ ai_result.tip }}</p>
+                            <p class="ai-card__meta">
+                                Based on
+                                {% for article in ai_result.tip_articles %}
+                                    {% if article.url %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.doc }}</a>{% else %}{{ article.doc }}{% endif %}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                        </div>
+                        <div class="ai-card__side">
+                            <span class="ai-card__pill ai-card__pill--tip">From NIH</span>
+                            {% if ai_result.tip_sources.0.url %}
+                                <a href="{{ ai_result.tip_sources.0.url }}" class="ai-card__go" target="_blank" rel="noopener" aria-label="Read the article"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% elif ai_result.tip_sources %}
+                    <!-- The tip failed its checks: show the articles it would have used -->
+                    <div class="ai-card ai-card--tip">
+                        <div class="ai-card__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>
+                        </div>
+                        <div class="ai-card__body">
+                            <p class="ai-card__kicker">These articles may help</p>
+                            <p class="ai-card__meta">
+                                {% for source in ai_result.tip_sources %}
+                                    {% if source.url %}<a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.title }}</a>{% else %}{{ source.title }}{% endif %}{% if not forloop.last %}<br>{% endif %}
+                                {% endfor %}
+                            </p>
+                        </div>
+                        <div class="ai-card__side">
+                            <span class="ai-card__pill ai-card__pill--tip">From NIH</span>
+                        </div>
+                    </div>
+                {% elif ai_result.tip_status == "no_match" %}
+                    <div class="ai-card ai-card--quiet">
+                        <div class="ai-card__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+                        </div>
+                        <div class="ai-card__body">
+                            <p class="ai-card__text muted">No matching health article for this one, so there is no extra tip.</p>
+                        </div>
+                        <div class="ai-card__side">
+                            <span class="ai-card__pill ai-card__pill--plain">No tip</span>
+                        </div>
+                    </div>
+                {% endif %}
+
             </div>
         {% endif %}
 
         <form method="post" action="{% url 'quest_suggest' %}" class="ask-form">
             {% csrf_token %}
 
-            <label for="{{ feeling_form.feeling.id_for_label }}">
+            <label class="ask-form__label" for="{{ feeling_form.feeling.id_for_label }}">
                 {{ feeling_form.feeling.label }}
             </label>
 
-            {{ feeling_form.feeling }}
+            <div class="ask-form__feeling">
+                {{ feeling_form.feeling }}
+                <span class="ask-form__counter" aria-live="polite"><span data-count>0</span> / 300</span>
+            </div>
 
-            <label for="{{ feeling_form.journal.id_for_label }}">
-                {{ feeling_form.journal.label }}
+            <div class="ask-form__chips" aria-label="Quick feelings">
+                <span class="ask-form__chips-label">Or start with:</span>
+                <button type="button" class="ask-form__chip" data-starter="I'm feeling stressed">😮‍💨 Stressed</button>
+                <button type="button" class="ask-form__chip" data-starter="I can't sleep well lately">🌙 Can't sleep</button>
+                <button type="button" class="ask-form__chip" data-starter="I feel lonely">🫂 Lonely</button>
+                <button type="button" class="ask-form__chip" data-starter="I feel tired all the time">🔋 Tired</button>
+                <button type="button" class="ask-form__chip" data-starter="I feel overwhelmed">🌊 Overwhelmed</button>
+            </div>
+
+            <label class="ask-form__label ask-form__label--journal" for="{{ feeling_form.journal.id_for_label }}">
+                {{ feeling_form.journal.label }} <span class="ask-form__optional">optional</span>
             </label>
 
-            {{ feeling_form.journal }}
+            <div class="ask-form__select">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>
+                {{ feeling_form.journal }}
+            </div>
 
-            <p class="muted ask-form__hint">
-                Write how you feel, choose a journal entry, or both.
-                Without a choice, your 3 most recent entries are used as background.
-                Everything runs on this computer.
-            </p>
+            <p class="ask-form__hint">Without a choice, your 3 most recent entries are used as background.</p>
 
-            <button type="submit">Suggest a quest</button>
+            <div class="ask-form__foot">
+                <span class="ask-form__privacy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                    Private: everything runs on this computer
+                </span>
+                <button type="submit" class="ask-form__submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/></svg>
+                    Suggest a quest
+                </button>
+            </div>
         </form>
 
     </div>
@@ -70,12 +193,36 @@
 </section>
 
 <script>
-    // The local model takes a few seconds: show that it is working
-    document.querySelector(".ask-form").addEventListener("submit", function (event) {
-        const button = event.target.querySelector("button");
-        button.disabled = true;
-        button.textContent = "Thinking…";
-    });
+    (function () {
+        const form = document.querySelector(".ask-form");
+        const box = form.querySelector("textarea");
+        const count = form.querySelector("[data-count]");
+
+        // Live character counter (the form allows up to 300)
+        function updateCounter() {
+            count.textContent = box.value.length;
+            count.parentElement.classList.toggle("ask-form__counter--warn", box.value.length > 270);
+        }
+
+        box.addEventListener("input", updateCounter);
+        updateCounter();
+
+        // Chips start the sentence; the user can finish it
+        form.querySelectorAll("[data-starter]").forEach(function (chip) {
+            chip.addEventListener("click", function () {
+                box.value = chip.dataset.starter + " ";
+                box.focus();
+                updateCounter();
+            });
+        });
+
+        // The local model takes a few seconds: show that it is working
+        form.addEventListener("submit", function () {
+            const button = form.querySelector(".ask-form__submit");
+            button.disabled = true;
+            button.innerHTML = '<span class="ask-form__spinner" aria-hidden="true"></span> Thinking…';
+        });
+    })();
 </script>
 
 {% endif %}

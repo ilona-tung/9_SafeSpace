@@ -4,112 +4,174 @@
     Home
 {% endblock %}
 
+{% block hero %}
+
+<!-- Banner: sage with line-art leaves, the greeting and the AI welcome message -->
+<section class="hero">
+
+    {% include "core/_leaf_pattern.html" %}
+
+    <div class="container hero__inner">
+
+        {% if user.is_authenticated %}
+
+            <h1 class="hero__title">Welcome back,<br>{{ user.username }}!</h1>
+
+            <p class="hero__intro">
+                SafeSpace turns daily life into a personal archive.
+                Pick <strong>small</strong> &amp; <strong>low-pressure</strong> steps for today.
+                Where would you like to go?
+            </p>
+
+            <p class="hero__note welcome-message">
+                <small>A note for you</small>
+                {{ welcome_message }}
+            </p>
+
+        {% else %}
+
+            <h1 class="hero__title">Welcome to<br>SafeSpace!</h1>
+
+            <p class="hero__intro">
+                SafeSpace is a self-care app that turns daily life into a personal archive.
+                Pick <strong>low-pressure</strong> quests, earn rewards to decorate your journal,
+                and build <strong>small</strong> habits that make every day a little more special.
+            </p>
+
+            <p class="hero__intro">
+                No streaks, no leaderboards: you never lose anything by missing a day.
+            </p>
+
+            <p class="hero__actions">
+                <a class="button hero__button" href="{% url 'register' %}">Sign up</a>
+                <a class="button button-outline" href="{% url 'login' %}">Log in</a>
+            </p>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+{% endblock %}
+
 {% block content %}
 
 {% if user.is_authenticated %}
 
-    <h1>Welcome back, {{ user.username }}!</h1>
-
-    <p class="welcome-message">{{ welcome_message }}</p>
-
-    <p>Where would you like to go today?</p>
-
-    <!-- Shortcuts: the same pages as the Menu, but easy to see -->
+    <!-- Shortcuts: round icons sitting on the banner's edge -->
     <nav class="shortcuts" aria-label="Main pages">
 
         <a class="shortcut" href="{% url 'quest_list' %}">
-            <span class="shortcut__icon" aria-hidden="true">🌱</span>
+            <span class="shortcut__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 15c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/></svg>
+            </span>
             <span class="shortcut__title">Quests</span>
-            <span class="shortcut__text">Pick a small step for today</span>
+            <span class="shortcut__text">Pick a small step for today{% if not user.is_staff %}, or ask SafeSpace to suggest one{% endif %}.</span>
         </a>
 
         {% if user.is_staff %}
 
             <a class="shortcut" href="{% url 'user_list' %}">
-                <span class="shortcut__icon" aria-hidden="true">👥</span>
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18 14.8c1.8.7 3 2.5 3.5 5.2"/></svg>
+                </span>
                 <span class="shortcut__title">Users</span>
-                <span class="shortcut__text">See member accounts</span>
+                <span class="shortcut__text">See member accounts.</span>
             </a>
 
             <a class="shortcut" href="{% url 'reports_page' %}">
-                <span class="shortcut__icon" aria-hidden="true">📊</span>
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+                </span>
                 <span class="shortcut__title">Reports</span>
-                <span class="shortcut__text">Quest and reward statistics</span>
+                <span class="shortcut__text">Quest and reward statistics.</span>
             </a>
 
             <a class="shortcut" href="{% url 'vega_lite_charts' %}">
-                <span class="shortcut__icon" aria-hidden="true">📈</span>
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+                </span>
                 <span class="shortcut__title">Vega-Lite</span>
-                <span class="shortcut__text">Charts from our APIs</span>
+                <span class="shortcut__text">Charts from our APIs.</span>
             </a>
 
         {% else %}
 
             <a class="shortcut" href="{% url 'journal_list' %}">
-                <span class="shortcut__icon" aria-hidden="true">📓</span>
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>
+                </span>
                 <span class="shortcut__title">My Journal</span>
-                <span class="shortcut__text">Write and decorate your day</span>
+                <span class="shortcut__text">Write about your day and decorate the page with your rewards.</span>
             </a>
 
             <a class="shortcut" href="{% url 'reward_list' %}">
-                <span class="shortcut__icon" aria-hidden="true">⭐</span>
+                <span class="shortcut__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.5 6 .8-4.4 4.1 1.1 5.9L12 16.4l-5.3 2.9 1.1-5.9L3.4 9.3l6-.8z"/></svg>
+                </span>
                 <span class="shortcut__title">Rewards</span>
-                <span class="shortcut__text">See the stickers you earned</span>
+                <span class="shortcut__text">See the stickers, frames and fonts you've earned.</span>
             </a>
 
         {% endif %}
 
         <a class="shortcut" href="{% url 'forum_list' %}">
-            <span class="shortcut__icon" aria-hidden="true">💬</span>
+            <span class="shortcut__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z"/></svg>
+            </span>
             <span class="shortcut__title">Forums</span>
-            <span class="shortcut__text">Join forums and talk</span>
+            <span class="shortcut__text">Join forums near you and talk with other members.</span>
         </a>
 
     </nav>
 
-{% else %}
-
-    <h1>Welcome to SafeSpace!</h1>
-
-    <p>
-        SafeSpace is a self-care app that turns daily life into a personal archive.
-        Pick low-pressure quests, earn rewards to decorate your journal,
-        and build small habits that make every day a little more special.
-    </p>
-
-    <p>
-        No streaks, no leaderboards: you never lose anything by missing a day.
-    </p>
-
-    <p>
-        <a class="button button-primary" href="{% url 'register' %}">Sign up</a>
-        <a class="button" href="{% url 'login' %}">Log in</a>
-    </p>
-
 {% endif %}
 
-<section class="quest-showcase">
+<!-- The quest chart on a sage panel, with the text beside it -->
+<section class="quest-showcase{% if not user.is_authenticated %} quest-showcase--guest{% endif %}">
 
-    <h2>Look at the quests we have!</h2>
+    <div class="quest-showcase__picture">
+        <div id="quest-chart" class="quest-chart"></div>
+    </div>
 
-    <p>
-        Our 6 most popular quests, colored by category.
-        Each bar shows how many SafeSpace members have completed it.
+    <div class="quest-showcase__text">
+
+        <h2>Look at the quests we have!</h2>
+
+        <p>
+            Our 6 most popular quests, colored by category.
+            Each bar shows how many SafeSpace members have completed it.
+        </p>
+
         {% if user.is_authenticated %}
-            <a href="{% url 'quest_list' %}">See all quests →</a>
+            <p>No streaks, no leaderboards: you never lose anything by missing a day.</p>
+            <a class="button quest-showcase__button" href="{% url 'quest_list' %}">See all quests →</a>
         {% else %}
-            Log in to see all of them!
+            <p>Log in to see all of them!</p>
         {% endif %}
-    </p>
 
-    <div id="quest-chart" class="quest-chart"></div>
+        <p class="text-muted">
+            Data comes live from our public API:
+            <a href="{% url 'quest_summary_api' %}">{{ request.scheme }}://{{ request.get_host }}{% url 'quest_summary_api' %}</a>
+        </p>
 
-    <p class="text-muted">
-        Data comes live from our public API:
-        <a href="{% url 'quest_summary_api' %}">{{ request.scheme }}://{{ request.get_host }}{% url 'quest_summary_api' %}</a>
-    </p>
+    </div>
 
 </section>
+
+{% if user.is_authenticated and not user.is_staff %}
+
+    <!-- Pointer to the AI feature on the Quests page -->
+    <section class="home-closing">
+        <span class="home-closing__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+        </span>
+        <p>Not sure where to start? Tell SafeSpace how you feel, and get a quest plus a health tip from NIH.</p>
+        <a class="home-closing__link" href="{% url 'quest_list' %}#ask-safespace">Ask SafeSpace for a quest ›</a>
+    </section>
+
+{% endif %}
 
 {{ quest_chart_spec|json_script:"quest-chart-spec" }}
 

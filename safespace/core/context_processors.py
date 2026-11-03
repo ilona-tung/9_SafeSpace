@@ -39,3 +39,28 @@ def pending_counts(request):
             + user.together_invites_received.filter(status="pending").count()
         )
     }
+
+
+# First part of the URL -> navbar link that gets the "current page" dot
+NAV_SECTIONS = {
+    "quests": "quests",
+    "invites": "quests",
+    "journals": "journal",
+    "rewards": "rewards",
+    "forums": "forums",
+    "profile": "profile",
+    "people": "profile",
+    "users": "users",
+    "reports": "reports",
+    "vega-lite": "vega",
+}
+
+
+def nav_section(request):
+    """
+    {{ nav_section }}: which navbar link is the current page ("home", "quests", ...).
+    """
+
+    first = request.path.strip("/").split("/")[0]
+
+    return {"nav_section": "home" if not first else NAV_SECTIONS.get(first, "")}

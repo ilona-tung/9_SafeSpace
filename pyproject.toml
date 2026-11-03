@@ -11,8 +11,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Local AI quest suggestions: uv sync --extra ai
+# Local AI quest suggestions and health tips: uv sync --extra ai
 ai = [
+    "sentence-transformers>=5.0",
     "torch>=2.9",
     "transformers>=4.56",
 ]
