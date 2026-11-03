@@ -68,7 +68,7 @@ We introduced a preprocessing step that maps conversational user queries into cl
 * **Before Query:** `"I'm feeling overwhelmed. Are there any relaxation tips?"`
 * **Before Result (`large | hybrid`):** Included the definition chunk *"What stress is"* at Rank #2 (Score: **0.627**).
 * **After Query:** `"How can I relax and reduce stress?"`
-* **After Result (`large | hybrid`):** Retrieved strictly actionable sections (*Ways to de-stress*: **0.725**, *Ways to manage stress*: **0.720**, *Just breathe*: **0.692**). The definition chunk was **completely eliminated from the top-3** ✅.
+* **After Result (`large | hybrid`):** Retrieved strictly actionable sections (*Ways to de-stress*: **0.725**, *Ways to manage stress*: **0.720**, *Just breathe*: **0.692**). The definition chunk was **completely eliminated from the top-3**.
 
 ### Fix 2: Relevance Threshold & Prompt Guardrails (Resolves Failure 4)
 We enforced a similarity check (`min_score=0.5`) on retrieval scores before invoking the generator.
