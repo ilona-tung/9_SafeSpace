@@ -792,8 +792,8 @@ To scale for 10k users, RAG and Fine-tuning would be the best combination on our
 graph TD;
     User[Start] --> Query(User asks a question);
     Query --> Embedding(Convert text to vectors);
-    Embedding --> Vector Store(Top-k search);
-    Vector Store --> Retrieved Content(Top-k chunks);
-    Retrieved Content --> LLM(Query + context);
+    Embedding --> Vector_Store(Top-k search);
+    Vector_Store --> Retrieved_Content(Top-k chunks);
+    Retrieved_Content --> LLM(Query + context);
     LLM --> Response(Answer)[end];
 ```
