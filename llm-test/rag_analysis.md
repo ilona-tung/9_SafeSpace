@@ -778,15 +778,17 @@ We enforced a similarity check (`min_score=0.5`) on retrieval scores before invo
 ## Part 4: System Design Reflection
 
 ### 4.1: Cost awareness
-In terms of total cost, top-k retrieval and chunk size tend to contribute the most cost. Since the total amount of tokens used is O(kn) where n = chunk size, this creates a high inference cost the more users send prompts to the LLM. Different chunking strategies and top-k retrievals generally had the largest impact on response time, with embedding size having a small overall impact.
+In terms of total cost, top-k retrieval and chunk size tend to contribute the most cost. Since the total amount of tokens used is O(kn) where k = number of retrieved chunks and n = chunk size, this creates a high inference cost the more users send prompts to the LLM. Different chunking strategies had a small impact on response time, while embedding size had the largest (with hybrid chunking, 9.26 ms for the small model vs. 21.02 ms for the large model). We kept top-k at 3 in every test, so its effect on response time was not measured.
 
 ### 4.2: RAG and alternatives
-Pure prompts: Best for when the model already has the information from training and doesn't need additional modifications. Alternatively, it can work when necessary context is small enough to be included or attached to the prompt, like when uploading an image to a chatGPT message.
-RAG: Worked best for cases where the LLM needed to reference a larger set of outside documents. For example, RAG can work for LLMs that can google results or have access to a large datapase. The experiments here showed that RAG allowed the models to get information from the information we provided instead of replying with the generic information the other methods gave us. 
-Fine-tuning: Fine tuning seems to work for modifying the LLMs behavior and outputs, but not the information it has. Essentially, it works for modifying the format of an LLMs output for tone or readability, but won't provide the outside context RAG does.
+Pure prompts: Best for when the model already has the information from training and doesn't need additional modifications. Alternatively, it can work when necessary context is small enough to be included or attached to the prompt, like when uploading an image to a ChatGPT message.
+
+RAG: Worked best for cases where the LLM needed to reference a larger set of outside documents. For example, RAG can work for LLMs that can google results or have access to a large database. The experiments here showed that RAG allowed the models to get information from the information we provided instead of replying with the generic information the other methods gave us (see "RAG vs. no RAG" above).
+
+Fine-tuning: Fine-tuning seems to work for modifying the LLM's behavior and outputs, but not the information it has. Essentially, it works for modifying the format of an LLM's output for tone or readability, but won't provide the outside context RAG does. We did not test fine-tuning in this assignment.
 
 ### 4.3: System design
-To scale for 10k users, RAG and Fine-tuning would be the best combination on our end, while the user would be responsible for pure prompting, since trying to attach more text to their prompts cannot cover every possible situation. For small requests like a basic description or welcome message, we can use a small local model directly in the app, offloading some of the demand from the cloud system. For larger tasks, like a tech support chatbot, we can test top-k option and various chunk sizes to find the smallest options while maintaining quality. 
+To scale for 10k users, RAG and fine-tuning would be the best combination on our end, while the user would be responsible for pure prompting, since trying to attach more text to their prompts cannot cover every possible situation. For small requests like a basic description or welcome message, we can use a small local model directly in the app, offloading some of the demand from the cloud system. For larger tasks, like a tech support chatbot, we can test top-k options and various chunk sizes to find the smallest options while maintaining quality. We would also embed the knowledge base once and reuse it, use the small embedding model since it was the fastest in our tests, and keep the Part 3 relevance threshold so off-topic questions skip the generator.
 
 ```mermaid
 graph TD;
