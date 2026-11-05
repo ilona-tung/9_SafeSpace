@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🌿 SafeSpace
+<img src="safespace/docs/banner.svg" alt="SafeSpace: small quests, a decorated journal, friendly forums" width="100%">
 
 ### A low-pressure self-care app that turns daily life into a personal archive
 
-Small quests, a decorated journal, and friendly forums. No streaks, no leaderboards: you never lose anything by missing a day.
+No streaks, no leaderboards: you never lose anything by missing a day.
 
 ![Python](https://img.shields.io/badge/Python-3.14-324841?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-6.1-324841?logo=django&logoColor=white)

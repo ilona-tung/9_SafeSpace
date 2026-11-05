@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-label="SafeSpace">
+  <!-- README banner: the homepage's sage background with line-art leaves (core/_leaf_pattern.html) -->
+  <style>
+    .lf path { fill: none; stroke: #F4F6EE; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+    text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; text-anchor: middle; }
+  </style>
+  <defs>
+    <pattern id="leaf-pattern" width="960" height="384" patternUnits="userSpaceOnUse" patternTransform="scale(0.8)">
+        
+        <g transform="translate(64 80) rotate(-20) scale(1.6)"><g class="lf"><path d="M0 -40 L7 -19 L25 -27 L18 -7 L37 -2 L17 8 L23 27 L5 17 L0 34 L-5 17 L-23 27 L-17 8 L-37 -2 L-18 -7 L-25 -27 L-7 -19 Z"/><path d="M0 46 V-30 M0 4 L20 -18 M0 4 L-20 -18 M0 14 L18 20 M0 14 L-18 20 M0 -6 L28 -2 M0 -6 L-28 -2"/></g></g>
+        <g transform="translate(240 64) rotate(60) scale(1.44)"><g class="lf"><path d="M0 -40 C 22 -22, 22 20, 0 40 C -22 20, -22 -22, 0 -40 Z"/><path d="M0 54 V-32 M0 -14 L12 -24 M0 -14 L-12 -24 M0 2 L14 -8 M0 2 L-14 -8 M0 18 L12 8 M0 18 L-12 8"/></g></g>
+        <g transform="translate(400 112) rotate(-35) scale(1.44)"><g class="lf"><path d="M0 50 C 2 20, -2 -10, 0 -44"/><path d="M0 -44 C 8 -52, 8 -60, 0 -66 C -8 -60, -8 -52, 0 -44 Z"/><path d="M1 -22 C 14 -20, 22 -28, 26 -38 C 14 -38, 5 -32, 1 -22 Z"/><path d="M-1 -6 C -14 -4, -22 -12, -26 -22 C -14 -22, -5 -16, -1 -6 Z"/><path d="M1 10 C 14 12, 22 4, 26 -6 C 14 -6, 5 0, 1 10 Z"/><path d="M-1 26 C -14 28, -22 20, -26 10 C -14 10, -5 16, -1 26 Z"/></g></g>
+        <g transform="translate(576 96) rotate(25) scale(1.36)"><g class="lf"><path d="M0 -40 L7 -19 L25 -27 L18 -7 L37 -2 L17 8 L23 27 L5 17 L0 34 L-5 17 L-23 27 L-17 8 L-37 -2 L-18 -7 L-25 -27 L-7 -19 Z"/><path d="M0 46 V-30 M0 4 L20 -18 M0 4 L-20 -18 M0 14 L18 20 M0 14 L-18 20 M0 -6 L28 -2 M0 -6 L-28 -2"/></g></g>
+        <g transform="translate(736 80) rotate(-50) scale(1.6)"><g class="lf"><path d="M0 -40 C 22 -22, 22 20, 0 40 C -22 20, -22 -22, 0 -40 Z"/><path d="M0 54 V-32 M0 -14 L12 -24 M0 -14 L-12 -24 M0 2 L14 -8 M0 2 L-14 -8 M0 18 L12 8 M0 18 L-12 8"/></g></g>
+        <g transform="translate(896 96) rotate(40) scale(1.52)"><g class="lf"><path d="M0 50 C 2 20, -2 -10, 0 -44"/><path d="M0 -44 C 8 -52, 8 -60, 0 -66 C -8 -60, -8 -52, 0 -44 Z"/><path d="M1 -22 C 14 -20, 22 -28, 26 -38 C 14 -38, 5 -32, 1 -22 Z"/><path d="M-1 -6 C -14 -4, -22 -12, -26 -22 C -14 -22, -5 -16, -1 -6 Z"/><path d="M1 10 C 14 12, 22 4, 26 -6 C 14 -6, 5 0, 1 10 Z"/><path d="M-1 26 C -14 28, -22 20, -26 10 C -14 10, -5 16, -1 26 Z"/></g></g>
+        <g transform="translate(160 272) rotate(15) scale(1.44)"><g class="lf"><path d="M0 -40 L7 -19 L25 -27 L18 -7 L37 -2 L17 8 L23 27 L5 17 L0 34 L-5 17 L-23 27 L-17 8 L-37 -2 L-18 -7 L-25 -27 L-7 -19 Z"/><path d="M0 46 V-30 M0 4 L20 -18 M0 4 L-20 -18 M0 14 L18 20 M0 14 L-18 20 M0 -6 L28 -2 M0 -6 L-28 -2"/></g></g>
+        <g transform="translate(320 304) rotate(80) scale(1.36)"><g class="lf"><path d="M0 50 C 2 20, -2 -10, 0 -44"/><path d="M0 -44 C 8 -52, 8 -60, 0 -66 C -8 -60, -8 -52, 0 -44 Z"/><path d="M1 -22 C 14 -20, 22 -28, 26 -38 C 14 -38, 5 -32, 1 -22 Z"/><path d="M-1 -6 C -14 -4, -22 -12, -26 -22 C -14 -22, -5 -16, -1 -6 Z"/><path d="M1 10 C 14 12, 22 4, 26 -6 C 14 -6, 5 0, 1 10 Z"/><path d="M-1 26 C -14 28, -22 20, -26 10 C -14 10, -5 16, -1 26 Z"/></g></g>
+        <g transform="translate(480 272) rotate(20) scale(1.52)"><g class="lf"><path d="M0 -40 C 22 -22, 22 20, 0 40 C -22 20, -22 -22, 0 -40 Z"/><path d="M0 54 V-32 M0 -14 L12 -24 M0 -14 L-12 -24 M0 2 L14 -8 M0 2 L-14 -8 M0 18 L12 8 M0 18 L-12 8"/></g></g>
+        <g transform="translate(672 304) rotate(-30) scale(1.6)"><g class="lf"><path d="M0 -40 L7 -19 L25 -27 L18 -7 L37 -2 L17 8 L23 27 L5 17 L0 34 L-5 17 L-23 27 L-17 8 L-37 -2 L-18 -7 L-25 -27 L-7 -19 Z"/><path d="M0 46 V-30 M0 4 L20 -18 M0 4 L-20 -18 M0 14 L18 20 M0 14 L-18 20 M0 -6 L28 -2 M0 -6 L-28 -2"/></g></g>
+        <g transform="translate(832 280) rotate(70) scale(1.36)"><g class="lf"><path d="M0 -40 C 22 -22, 22 20, 0 40 C -22 20, -22 -22, 0 -40 Z"/><path d="M0 54 V-32 M0 -14 L12 -24 M0 -14 L-12 -24 M0 2 L14 -8 M0 2 L-14 -8 M0 18 L12 8 M0 18 L-12 8"/></g></g>
+        <g transform="translate(48 320) rotate(-60) scale(1.28)"><g class="lf"><path d="M0 50 C 2 20, -2 -10, 0 -44"/><path d="M0 -44 C 8 -52, 8 -60, 0 -66 C -8 -60, -8 -52, 0 -44 Z"/><path d="M1 -22 C 14 -20, 22 -28, 26 -38 C 14 -38, 5 -32, 1 -22 Z"/><path d="M-1 -6 C -14 -4, -22 -12, -26 -22 C -14 -22, -5 -16, -1 -6 Z"/><path d="M1 10 C 14 12, 22 4, 26 -6 C 14 -6, 5 0, 1 10 Z"/><path d="M-1 26 C -14 28, -22 20, -26 10 C -14 10, -5 16, -1 26 Z"/></g></g>
+      </pattern>
+    <radialGradient id="fade" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#B4C6B6" stop-opacity=".95"/>
+      <stop offset=".55" stop-color="#B4C6B6" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#B4C6B6" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="card"><rect width="1200" height="280" rx="20"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="1200" height="280" fill="#B4C6B6"/>
+    <rect width="1200" height="280" fill="url(#leaf-pattern)"/>
+    <ellipse cx="600" cy="140" rx="420" ry="150" fill="url(#fade)"/>
+  </g>
+  <text x="600" y="140" font-size="64" font-weight="700" fill="#324841">SafeSpace</text>
+  <text x="600" y="188" font-size="22" fill="#22332D">Small quests · a decorated journal · friendly forums</text>
+</svg>
