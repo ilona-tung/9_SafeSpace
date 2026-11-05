@@ -15,25 +15,52 @@
 
 {% block content %}
 
-<p>
-    <a href="{% url 'journal_list' %}">← Back to My Journal</a>
-</p>
+<div class="journal-read">
 
-<article class="journal-entry">
-    {% include "core/_journal_page.html" %}
-</article>
+    <!-- Back to this day in the calendar, and flip to the older/newer page -->
+    <nav class="journal-read__nav" aria-label="Journal pages">
+        <a href="{% url 'journal_list' %}?month={{ journal.time|date:'Y-m' }}&amp;day={{ journal.time|date:'Y-m-d' }}">← My Journal</a>
+
+        <span class="journal-read__flip">
+            {% if older %}
+                <a href="{% url 'journal_detail' older.pk %}">‹ Older · {{ older.time|date:"M j" }}</a>
+            {% else %}
+                <span class="journal-read__off">‹ Older</span>
+            {% endif %}
+
+            {% if newer %}
+                <a href="{% url 'journal_detail' newer.pk %}">Newer · {{ newer.time|date:"M j" }} ›</a>
+            {% else %}
+                <span class="journal-read__off">Newer ›</span>
+            {% endif %}
+        </span>
+    </nav>
+
+    <article class="journal-entry">
+        {% include "core/_journal_page.html" %}
+    </article>
 
 
-<!-- ============================== -->
-<!-- DELETE -->
-<!-- ============================== -->
+    <!-- ============================== -->
+    <!-- DELETE (a quiet text button) -->
+    <!-- ============================== -->
 
-<form method="post"
-      action="{% url 'journal_delete' journal.pk %}"
-      class="journal-delete"
-      onsubmit="return confirm('Delete this journal entry? This cannot be undone. Its stickers will go back to your rewards.');">
-    {% csrf_token %}
-    <button type="submit" class="button-danger">Delete this entry</button>
-</form>
+    <div class="journal-read__actions">
+        <form method="post"
+              action="{% url 'journal_delete' journal.pk %}"
+              class="journal-delete"
+              onsubmit="return confirm('Delete this journal entry? This cannot be undone. Its stickers will go back to your rewards.');">
+            {% csrf_token %}
+            <button type="submit" class="journal-delete__button">Delete this page</button>
+        </form>
+
+        {% with count=journal.stickers.all|length %}
+            <span class="muted">
+                {{ count }} sticker{{ count|pluralize }}{% if journal.background %} · {{ journal.background.name }}{% endif %}
+            </span>
+        {% endwith %}
+    </div>
+
+</div>
 
 {% endblock %}

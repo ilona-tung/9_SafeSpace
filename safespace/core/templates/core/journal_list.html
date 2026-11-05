@@ -7,38 +7,144 @@ My Journal
 {% endblock %}
 
 
+{% block main_class %} container--wide{% endblock %}
+
+
 {% block extra_head %}
     <link rel="stylesheet" href="{% static 'css/journal.css' %}?v={{ ts }}">
+    {% include "core/_reward_fonts.html" %}
 {% endblock %}
 
 
 {% block content %}
-<h1>My Journal</h1>
 
-<p>
-    <a class="button button-primary" href="{% url 'journal_new' %}">Write a new page</a>
-</p>
+<header class="journal-head">
+    <div>
+        <h1>My Journal</h1>
+        <p class="muted">Every mark is a day you wrote. Missing days are fine.</p>
+    </div>
+    <a class="journal-head__write" href="{% url 'journal_new' %}">+ Write today's page</a>
+</header>
 
 
-<!-- ============================== -->
-<!-- PAST ENTRIES -->
-<!-- ============================== -->
+<div class="journal-cal-layout">
 
-{% if journals %}
-    <p class="muted">Click an entry to open the full page.</p>
-{% endif %}
+    <!-- ============================== -->
+    <!-- CALENDAR: one mark per day with a page -->
+    <!-- ============================== -->
 
-<div class="journal-grid">
+    <section class="journal-cal" aria-labelledby="journal-month">
 
-    {% for journal in journals %}
+        <div class="journal-cal__nav">
+            <a href="?month={{ prev_month|date:'Y-m' }}" aria-label="{{ prev_month|date:'F Y' }}">‹</a>
+            <h2 id="journal-month">{{ month_start|date:"F Y" }}</h2>
+            {% if next_month %}
+                <a href="?month={{ next_month|date:'Y-m' }}" aria-label="{{ next_month|date:'F Y' }}">›</a>
+            {% else %}
+                <span class="journal-cal__off" aria-hidden="true">›</span>
+            {% endif %}
+        </div>
 
-        {% include "core/_journal_card.html" %}
+        <div class="journal-cal__weekdays" aria-hidden="true">
+            {% for name in weekdays %}<span>{{ name }}</span>{% endfor %}
+        </div>
 
-    {% empty %}
+        <div class="journal-cal__days">
+            {% for week in weeks %}
+                {% for cell in week %}
 
-        <p class="muted">No journal entries yet. Write your first page and decorate it with your rewards!</p>
+                    {% if not cell.in_month %}
+                        <span class="journal-day journal-day--blank"></span>
 
-    {% endfor %}
+                    {% elif cell.pages %}
+                        <a class="journal-day journal-day--page{% if cell.is_selected %} is-selected{% endif %}"
+                           href="?month={{ month_start|date:'Y-m' }}&amp;day={{ cell.date|date:'Y-m-d' }}"
+                           {% if cell.is_selected %}aria-current="date"{% endif %}
+                           aria-label="{{ cell.date|date:'l, F j' }}: {{ cell.pages|length }} page{{ cell.pages|length|pluralize }}">
+                            <span class="journal-day__num{% if cell.is_today %} is-today{% endif %}">{{ cell.date.day }}</span>
+
+                            {% if cell.mark.kind == "sticker" %}
+                                <img class="journal-day__sticker" src="{% static cell.mark.asset %}" alt="">
+                            {% elif cell.mark.kind == "paper" %}
+                                <span class="journal-day__paper" style="background-image: url('{% static cell.mark.asset %}')"></span>
+                            {% else %}
+                                <span class="journal-day__leaf">
+                                    <svg viewBox="-30 -50 60 100" aria-hidden="true"><path d="M0 -40 C 22 -22, 22 20, 0 40 C -22 20, -22 -22, 0 -40 Z"/><path d="M0 50 V-30 M0 -10 L12 -20 M0 -10 L-12 -20 M0 8 L14 -2 M0 8 L-14 -2"/></svg>
+                                </span>
+                            {% endif %}
+
+                            {% if cell.pages|length > 1 %}
+                                <small class="journal-day__count">×{{ cell.pages|length }}</small>
+                            {% endif %}
+                        </a>
+
+                    {% elif cell.is_today %}
+                        <a class="journal-day journal-day--today" href="{% url 'journal_new' %}" aria-label="Today: write a page">
+                            <span class="journal-day__num is-today">{{ cell.date.day }}</span>
+                            <small>+ write</small>
+                        </a>
+
+                    {% else %}
+                        <span class="journal-day{% if cell.is_future %} journal-day--future{% endif %}">
+                            <span class="journal-day__num">{{ cell.date.day }}</span>
+                        </span>
+                    {% endif %}
+
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <p class="journal-cal__total muted">
+            {{ month_count }} page{{ month_count|pluralize }} this month · {{ total_count }} in total
+        </p>
+
+    </section>
+
+
+    <!-- ============================== -->
+    <!-- THE CHOSEN DAY'S PAGE -->
+    <!-- ============================== -->
+
+    <aside class="journal-day-preview" aria-label="Chosen page">
+
+        {% if selected_page %}
+
+            <p class="journal-day-preview__date">{{ selected_day|date:"l, F j" }}</p>
+
+            <a class="journal-preview" href="{% url 'journal_detail' selected_page.pk %}"
+               aria-label="Open the page from {{ selected_day|date:'F j' }}">
+                {% include "core/_journal_page.html" with journal=selected_page %}
+            </a>
+
+            <p class="journal-day-preview__open">
+                <a href="{% url 'journal_detail' selected_page.pk %}">Open page →</a>
+            </p>
+
+            {% if same_day_pages %}
+                <p class="muted journal-day-preview__more">
+                    Also this day:
+                    {% for page in same_day_pages %}
+                        <a href="{% url 'journal_detail' page.pk %}">{{ page.time|date:"g:i A" }}</a>{% if not forloop.last %} · {% endif %}
+                    {% endfor %}
+                </p>
+            {% endif %}
+
+        {% elif latest %}
+
+            <p class="journal-day-preview__empty">
+                No pages in {{ month_start|date:"F" }}.
+                <a href="?month={{ latest.time|date:'Y-m' }}&amp;day={{ latest.time|date:'Y-m-d' }}">See your latest page ({{ latest.time|date:"M j" }})</a>
+            </p>
+
+        {% else %}
+
+            <p class="journal-day-preview__empty">
+                No journal entries yet. Write your first page and decorate it with your rewards!
+            </p>
+
+        {% endif %}
+
+    </aside>
 
 </div>
 

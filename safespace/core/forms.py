@@ -53,9 +53,10 @@ class JournalEditorForm(forms.Form):
 
     MAX_STICKERS = 40
 
+    # Not required on its own: a page with only the one-line summary is fine (see clean)
     content = forms.CharField(
         widget=forms.Textarea,
-        error_messages={"required": "Write something before saving your entry."},
+        required=False,
     )
 
     summary = forms.CharField(
@@ -76,6 +77,19 @@ class JournalEditorForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+
+    def clean(self):
+        cleaned = super().clean()
+        content = cleaned.get("content", "")
+        summary = cleaned.get("summary", "")
+
+        # Only the line under the date was written: keep it as the page's text
+        if not content and summary:
+            cleaned["content"], cleaned["summary"] = summary, ""
+        elif not content:
+            self.add_error("content", "Write something before saving your entry.")
+
+        return cleaned
 
     def clean_layout(self):
         raw = self.cleaned_data.get("layout") or "{}"

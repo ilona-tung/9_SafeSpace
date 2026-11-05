@@ -6,108 +6,117 @@
 
 {% block main_class %} container--wide{% endblock %}
 
-{% block content %}
+{% block hero %}
 
-<h1 class="sr-only">Forums</h1>
+<!-- Banner: the homepage's sage leaves with the search on top -->
+<section class="hero forum-hero">
 
-<div class="forum-layout">
+    {% include "core/_leaf_pattern.html" %}
 
-    <!-- ============================== -->
-    <!-- LEFT: browse links and my forums -->
-    <!-- ============================== -->
+    <div class="container container--wide hero__inner forum-hero__inner">
 
-    <aside class="forum-side" aria-label="Forum menu">
+        <div class="forum-hero__main">
 
-        <h2 class="forum-side__heading">Browse</h2>
-        <ul class="forum-side__list">
-            <li>
-                <a href="{% url 'forum_list' %}" {% if tab != "forums" and not near %}aria-current="page"{% endif %}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
-                    All posts
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'forum_list' %}?tab=forums" {% if tab == "forums" and not near %}aria-current="page"{% endif %}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-                    Discover forums
-                </a>
-            </li>
-            <li>
-                <a href="#forum-near" {% if near %}aria-current="page"{% endif %}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
-                    Forums near me
-                </a>
-            </li>
-        </ul>
+            <p class="forum-hero__eyebrow">Forums</p>
+            <h1 class="hero__title forum-hero__title">Find your people, slowly.</h1>
+            <p class="hero__intro">Small, friendly forums. Read along, and join when you feel like it.</p>
 
-        <h2 class="forum-side__heading">My forums</h2>
-        <ul class="forum-side__list">
-            {% for forum in my_forums %}
-                <li>
-                    <a href="{{ forum.get_absolute_url }}">
-                        <span class="forum-dot" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
-                        <span class="forum-side__name">{{ forum.name }}</span>
-                        <span class="forum-side__count" title="Posts">{{ forum.post_count }}</span>
-                    </a>
-                </li>
-            {% empty %}
-                <li class="muted forum-side__empty">You haven't joined a forum yet.</li>
-            {% endfor %}
-        </ul>
-
-    </aside>
-
-
-    <!-- ============================== -->
-    <!-- MIDDLE: tabs, search and the feed -->
-    <!-- ============================== -->
-
-    <section class="forum-feed">
-
-        <nav class="forum-tabs" aria-label="Sort posts">
-            {% for key, label in tabs.items %}
-                <a href="?tab={{ key }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}{% if category %}&amp;category={{ category|urlencode }}{% endif %}"
-                   {% if key == tab and not near %}aria-current="page"{% endif %}>{{ label }}</a>
-            {% endfor %}
-        </nav>
-
-        <!-- GET search: name or post text, category, near a place -->
-        <div class="forum-feed__search">
-
-            <form method="get" class="forum-search" role="search">
+            <!-- GET search: name or post text, category, near a place -->
+            <form method="get" class="forum-hero__search" role="search">
 
                 <input type="hidden" name="tab" value="{{ tab }}">
 
-                <input type="search" id="forum-search" name="q" value="{{ query }}"
-                       placeholder="Search posts" aria-label="Search forums and posts">
+                <div class="forum-hero__row">
+                    <input type="search" id="forum-search" name="q" value="{{ query }}"
+                           placeholder="Search posts or forums" aria-label="Search forums and posts">
+                    <button type="submit" class="forum-hero__go">Search</button>
+                </div>
 
-                <select id="forum-category" name="category" aria-label="Category">
-                    <option value="">All categories</option>
-                    {% for value, label in categories %}
-                        <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
+                <div class="forum-hero__filters">
+                    <select id="forum-category" name="category" aria-label="Category">
+                        <option value="">All categories</option>
+                        {% for value, label in categories %}
+                            <option value="{{ value }}" {% if value == category %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
 
-                <input type="search" id="forum-near" name="near" value="{{ near }}"
-                       placeholder="Near: 61820, Chicago, UIUC" aria-label="Near a city, zip code, or landmark">
-
-                <button type="submit" class="forum-search__button" aria-label="Search">
-                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                        <circle cx="14" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2.6"/>
-                        <line x1="9.6" y1="14.4" x2="4" y2="20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                    </svg>
-                </button>
+                    <input type="search" id="forum-near" name="near" value="{{ near }}"
+                           placeholder="Near: 61820, Chicago, UIUC" aria-label="Near a city, zip code, or landmark">
+                </div>
 
             </form>
 
             {% if query or category or near %}
-                <p class="quest-search__result muted">
-                    Showing filtered results · <a href="{% url 'forum_list' %}">Clear search</a>
-                </p>
+                <p class="forum-hero__clear">Showing filtered results · <a href="{% url 'forum_list' %}">Clear search</a></p>
             {% endif %}
 
         </div>
 
+        <div class="forum-hero__side">
+            <p><b>{{ forum_total }}</b> forum{{ forum_total|pluralize }} · <b>{{ post_total }}</b> post{{ post_total|pluralize }}</p>
+            <a class="forum-hero__start" href="{% url 'forum_new' %}">+ Start a forum</a>
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block content %}
+
+<nav class="forum-tabs" aria-label="Sort posts">
+    {% for key, label in tabs.items %}
+        <a href="?tab={{ key }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}{% if category %}&amp;category={{ category|urlencode }}{% endif %}"
+           {% if key == tab and not near %}aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+</nav>
+
+
+{% if not near and tab != "forums" %}
+
+    <!-- ============================== -->
+    <!-- YOUR FORUMS: up to four tiles -->
+    <!-- ============================== -->
+
+    <section class="forum-mine">
+
+        <div class="forum-mine__head">
+            <h2>Your forums</h2>
+            <a href="?tab=forums">See all</a>
+        </div>
+
+        <div class="forum-mine__grid">
+            {% for forum in my_forums|slice:":4" %}
+                <a class="forum-tile" href="{{ forum.get_absolute_url }}">
+                    <span class="forum-tile__band" data-band="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true"><span>{{ forum.name|first|upper }}</span></span>
+                    <span class="forum-tile__body">
+                        <strong>{{ forum.name }}</strong>
+                        <small>{{ forum.member_count }} member{{ forum.member_count|pluralize }}{% if forum.location %} · {{ forum.location }}{% endif %}</small>
+                    </span>
+                </a>
+            {% empty %}
+                <a class="forum-tile forum-tile--empty" href="?tab=forums">
+                    <strong>You haven't joined a forum yet</strong>
+                    <small>Find one to join →</small>
+                </a>
+            {% endfor %}
+        </div>
+
+    </section>
+
+{% endif %}
+
+
+<div class="forum-board{% if not suggested or near %} forum-board--full{% endif %}">
+
+    <!-- ============================== -->
+    <!-- LEFT: the feed (or near-search / all forums) -->
+    <!-- ============================== -->
+
+    <section class="forum-board__feed">
+
+        <h2 class="forum-board__title">{% if near %}Forums near you{% else %}{{ tab_label }}{% endif %}</h2>
 
         {% if near %}
 
@@ -222,45 +231,34 @@
 
 
     <!-- ============================== -->
-    <!-- RIGHT: start a forum, stats, forums to discover -->
+    <!-- RIGHT: forums to discover -->
     <!-- ============================== -->
 
-    <aside class="forum-aside" aria-label="Forum overview">
+    {% if suggested and not near %}
+        <aside class="forum-board__side" aria-label="Forums to discover">
 
-        <a class="button forum-aside__start" href="{% url 'forum_new' %}">+ Start a forum</a>
+            <h2 class="forum-board__title">Forums to discover</h2>
 
-        <div class="forum-box forum-stats">
-            <div><small>Forums</small><b>{{ forum_total }}</b></div>
-            <div><small>Posts</small><b>{{ post_total }}</b></div>
-        </div>
+            <ul class="forum-discover">
+                {% for forum in suggested %}
+                    <li>
+                        <span class="forum-dot" data-band="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
+                        <div>
+                            <a href="{{ forum.get_absolute_url }}">{{ forum.name }}</a>
+                            <small>
+                                {% if forum.location %}{{ forum.location }} · {% endif %}{{ forum.member_count }} member{{ forum.member_count|pluralize }}
+                            </small>
+                        </div>
+                        <form method="post" action="{% url 'forum_join' forum.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="forum-discover__join">Join</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
 
-        {% if suggested and not near %}
-            <div class="forum-box">
-                <h2 class="forum-box__title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-                    Forums to discover
-                </h2>
-                <ul class="forum-box__list">
-                    {% for forum in suggested %}
-                        <li>
-                            <span class="forum-dot forum-dot--round" data-tone="{{ forum.pk|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ forum.name|first|upper }}</span>
-                            <div>
-                                <a href="{{ forum.get_absolute_url }}">{{ forum.name }}</a>
-                                <small>
-                                    {% if forum.location %}{{ forum.location }} · {% endif %}{{ forum.member_count }} member{{ forum.member_count|pluralize }}
-                                </small>
-                            </div>
-                            <form method="post" action="{% url 'forum_join' forum.pk %}">
-                                {% csrf_token %}
-                                <button type="submit" class="forum-box__join">Join</button>
-                            </form>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
-    </aside>
+        </aside>
+    {% endif %}
 
 </div>
 

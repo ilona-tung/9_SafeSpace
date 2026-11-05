@@ -1,3 +1,4 @@
+import calendar
 from collections import Counter
 from datetime import date
 import json
@@ -463,30 +464,124 @@ def completed_today_ids(user):
 # Journals
 # ============================================================
 
+JOURNAL_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+
+def shift_month(first_day, step):
+    """
+    The first day of the month `step` months before or after `first_day`.
+    """
+
+    month = first_day.month - 1 + step
+    return date(first_day.year + month // 12, month % 12 + 1, 1)
+
+
+def journal_mark(journal):
+    """
+    What the calendar shows on a day with a page: the page's first sticker,
+    else its background as a small swatch, else a leaf (plain pages).
+    """
+
+    for sticker in journal.stickers.all():
+        if sticker.reward.asset:
+            return {"kind": "sticker", "asset": sticker.reward.asset, "name": sticker.reward.name}
+
+    if journal.background and journal.background.asset:
+        return {"kind": "paper", "asset": journal.background.asset}
+
+    return {"kind": "leaf"}
+
+
 @regular_user_required
 def journal_list(request):
     """
-    The logged-in user's own journal entries as small cards.
-    Click a card to open the full decorated page.
+    My Journal as a month calendar. Each day the user wrote shows a mark
+    (a sticker, the paper, or a leaf). Clicking a day shows that page
+    on the right; by default the newest page of the month.
+
+    ?month=YYYY-MM picks the month (not later than this month),
+    ?day=YYYY-MM-DD picks the day.
     """
 
-    journals = (
+    today = timezone.localdate()
+    this_month = today.replace(day=1)
+
+    try:
+        year, month = (int(part) for part in request.GET.get("month", "").split("-"))
+        # Keep it between 2000 and this month (year 1 has no "previous month")
+        month_start = min(max(date(year, month, 1), date(2000, 1, 1)), this_month)
+    except ValueError:
+        month_start = this_month
+
+    next_start = shift_month(month_start, 1)
+
+    month_journals = (
         request.user.journals
-        .select_related("background")
+        .filter(
+            time__gte=timezone.make_aware(datetime(month_start.year, month_start.month, 1)),
+            time__lt=timezone.make_aware(datetime(next_start.year, next_start.month, 1)),
+        )
+        .select_related("background", "frame", "font")
         .prefetch_related("stickers__reward")
+        .order_by("-time")
     )
+
+    # Pages by local date, newest first
+    by_day = {}
+    for journal in month_journals:
+        by_day.setdefault(timezone.localtime(journal.time).date(), []).append(journal)
+
+    try:
+        selected_day = date.fromisoformat(request.GET.get("day", ""))
+    except ValueError:
+        selected_day = None
+
+    if selected_day not in by_day:
+        selected_day = max(by_day) if by_day else None
+
+    weeks = []
+    for week in calendar.Calendar(firstweekday=6).monthdatescalendar(month_start.year, month_start.month):
+        row = []
+        for day in week:
+            pages = by_day.get(day, []) if day.month == month_start.month else []
+            row.append({
+                "date": day,
+                "in_month": day.month == month_start.month,
+                "pages": pages,
+                "mark": journal_mark(pages[0]) if pages else None,
+                "is_today": day == today,
+                "is_future": day > today,
+                "is_selected": day == selected_day,
+            })
+        weeks.append(row)
+
+    selected_pages = by_day.get(selected_day, [])
 
     return render(
         request,
         "core/journal_list.html",
-        {"journals": journals}
+        {
+            "month_start": month_start,
+            "prev_month": shift_month(month_start, -1),
+            "next_month": next_start if next_start <= this_month else None,
+            "weekdays": JOURNAL_WEEKDAYS,
+            "weeks": weeks,
+            "selected_day": selected_day,
+            "selected_page": selected_pages[0] if selected_pages else None,
+            "same_day_pages": selected_pages[1:],
+            "month_count": len(month_journals),
+            "total_count": request.user.journals.count(),
+            "latest": request.user.journals.order_by("-time").first(),
+            "font_rewards": font_rewards(),
+        }
     )
 
 
 @regular_user_required
 def journal_detail(request, pk):
     """
-    One full decorated journal page. Users can only open their own.
+    One full decorated journal page, with links to the older and newer page.
+    Users can only open their own.
     """
 
     journal = get_object_or_404(
@@ -497,11 +592,16 @@ def journal_detail(request, pk):
         user=request.user,
     )
 
+    # Flip through the user's pages like a diary
+    mine = request.user.journals
+
     return render(
         request,
         "core/journal_detail.html",
         {
             "journal": journal,
+            "older": mine.filter(time__lt=journal.time).order_by("-time").first(),
+            "newer": mine.filter(time__gt=journal.time).order_by("time").first(),
             "font_rewards": font_rewards(),
         }
     )
@@ -1962,8 +2062,8 @@ FEED_SIZE = 30
 @login_required
 def forum_list(request):
     """
-    Forums page: a feed of posts in the middle, the user's forums on the left,
-    and stats and forums to discover on the right.
+    Forums page: a sage banner with the search, the user's forums as tiles,
+    then a feed of posts with "start a forum" and forums to discover beside it.
 
     Tabs: recent posts, posts with the most replies, posts in my forums,
     or all forums as cards (the ones the user joined, then the rest).
@@ -2042,8 +2142,12 @@ def forum_list(request):
         "categories": Quest.CATEGORY_CHOICES,
         "tab": tab,
         "tabs": FORUM_TABS,
+        "tab_label": FORUM_TABS[tab],
         "posts": posts,
-        "my_forums": request.user.forums.annotate(post_count=Count("posts")),
+        # Filter first, then count, so member_count includes every member
+        "my_forums": Forum.objects.filter(pk__in=joined_ids).annotate(
+            member_count=Count("members", distinct=True),
+        ),
         "suggested": discover[:4],
         "forum_total": Forum.objects.count(),
         "post_total": Post.objects.count(),

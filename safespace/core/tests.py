@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import patch
 
 import requests
@@ -312,6 +312,20 @@ class JournalTests(TestCase):
         self.assertEqual(Journal.objects.get(user=self.user).summary, "Tired but proud")
         self.assertContains(self.client.get("/journals/"), "Tired but proud")
 
+    def test_page_with_only_the_summary_line_is_saved_as_text(self):
+        self.client.login(username="writer", password="pw-12345!")
+
+        response = self.client.post("/journals/new/", {
+            "content": "",
+            "summary": "Read a book today, and it was fantastic!",
+            "layout": json.dumps({"stickers": []}),
+        })
+
+        self.assertRedirects(response, "/journals/")
+        journal = Journal.objects.get(user=self.user)
+        self.assertEqual(journal.content, "Read a book today, and it was fantastic!")
+        self.assertEqual(journal.summary, "")
+
     def test_list_shows_only_own_decorated_entries(self):
         self.earn(self.user)
         self.client.login(username="writer", password="pw-12345!")
@@ -333,6 +347,59 @@ class JournalTests(TestCase):
         detail = self.client.get(f"/journals/{journal.pk}/")
         self.assertContains(detail, "Saw a nice sunset")
         self.assertContains(detail, 'class="journal-sticker"')
+
+    def make_page_on(self, day, **fields):
+        journal = Journal.objects.create(user=self.user, content=f"Page on {day}", **fields)
+        Journal.objects.filter(pk=journal.pk).update(
+            time=timezone.make_aware(datetime(day.year, day.month, day.day, 12))
+        )
+        return journal
+
+    def test_calendar_marks_days_with_sticker_paper_or_leaf(self):
+        with_sticker = self.make_page_on(date(2026, 10, 10))
+        JournalSticker.objects.create(journal=with_sticker, reward=self.sticker, x=50, y=50)
+        self.make_page_on(date(2026, 10, 17))
+        paper = self.make_page_on(date(2026, 10, 20), background=self.background)
+        self.client.login(username="writer", password="pw-12345!")
+
+        response = self.client.get("/journals/", {"month": "2026-10"})
+
+        marks = {
+            cell["date"].day: cell["mark"]["kind"]
+            for week in response.context["weeks"] for cell in week if cell["mark"]
+        }
+        self.assertEqual(marks, {10: "sticker", 17: "leaf", 20: "paper"})
+        self.assertEqual(response.context["selected_page"], paper)
+        self.assertEqual(response.context["month_count"], 3)
+        self.assertContains(response, "journal-day__leaf")
+
+        chosen = self.client.get("/journals/", {"month": "2026-10", "day": "2026-10-10"})
+        self.assertEqual(chosen.context["selected_page"], with_sticker)
+        self.assertContains(chosen, "rewards/stickers/stay-hydrated.svg")
+
+    def test_calendar_month_stays_in_range(self):
+        this_month = timezone.localdate().replace(day=1)
+        self.client.login(username="writer", password="pw-12345!")
+
+        for value, expected in [("2999-01", this_month), ("junk", this_month), ("0001-01", date(2000, 1, 1))]:
+            with self.subTest(month=value):
+                response = self.client.get("/journals/", {"month": value})
+                self.assertEqual(response.context["month_start"], expected)
+
+        self.assertIsNone(self.client.get("/journals/").context["next_month"])
+
+    def test_page_links_to_older_and_newer_pages(self):
+        first = self.make_page_on(date(2026, 10, 1))
+        middle = self.make_page_on(date(2026, 10, 5))
+        last = self.make_page_on(date(2026, 10, 9))
+        self.client.login(username="writer", password="pw-12345!")
+
+        response = self.client.get(f"/journals/{middle.pk}/")
+
+        self.assertEqual(response.context["older"], first)
+        self.assertEqual(response.context["newer"], last)
+        self.assertContains(response, f'href="/journals/{first.pk}/"')
+        self.assertContains(response, "?month=2026-10&amp;day=2026-10-05")
 
     def test_cannot_open_or_delete_someone_elses_entry(self):
         theirs = Journal.objects.get(user=self.other)
@@ -1185,6 +1252,15 @@ class ForumTests(TestCase):
         self.assertEqual(mine, [self.post])
         self.assertEqual(by_replies, [busy, self.post])
         self.assertEqual(by_text, [busy])
+
+    def test_your_forums_tiles_count_every_member(self):
+        self.client.login(username="member", password="pw-12345!")
+
+        response = self.client.get("/forums/")
+
+        self.assertEqual([forum.member_count for forum in response.context["my_forums"]], [2])
+        self.assertContains(response, 'class="forum-tile"')
+        self.assertContains(response, "2 members")
 
     def test_feed_offers_join_for_forums_not_joined(self):
         self.client.login(username="other", password="pw-12345!")

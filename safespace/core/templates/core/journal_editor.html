@@ -3,7 +3,7 @@
 
 
 {% block title %}
-New Journal Page
+Today's page
 {% endblock %}
 
 
@@ -14,13 +14,9 @@ New Journal Page
 
 
 {% block content %}
-<h1>New Journal Page</h1>
-
-<p class="muted">
-    Write your entry, then drag stickers onto the page.
-    Click a sticker to rotate, resize, or remove it.
-    Each sticker you place uses up one copy (stickers marked ∞ never run out).
-</p>
+<p class="journal-back"><a href="{% url 'journal_list' %}">← My Journal</a></p>
+<h1 class="journal-editor__title">Today's page</h1>
+<p class="muted journal-editor__hint">Drag a sticker onto the page. Click it to turn, resize or remove it.</p>
 
 {% if form.errors %}
     <ul class="form-errors">
@@ -35,29 +31,40 @@ New Journal Page
 <div class="journal-editor">
 
     <!-- ============================== -->
-    <!-- REWARD TRAY -->
+    <!-- REWARD TRAY: one tab at a time -->
     <!-- ============================== -->
 
-    <aside class="reward-tray" aria-label="Your rewards">
-        <h2>Your rewards</h2>
-        <p class="tray-hint">Earned by completing quests.</p>
+    <aside class="reward-tray" aria-label="Decorate your page">
 
-        <h3>Stickers (drag)</h3>
-        <div class="sticker-grid" id="sticker-tray"></div>
+        <div class="tray-tabs" role="tablist" aria-label="Decorations">
+            <button type="button" role="tab" id="tab-stickers" aria-controls="panel-stickers" aria-selected="true">Stickers</button>
+            <button type="button" role="tab" id="tab-paper" aria-controls="panel-paper" aria-selected="false" tabindex="-1">Paper</button>
+            <button type="button" role="tab" id="tab-frame" aria-controls="panel-frame" aria-selected="false" tabindex="-1">Frame</button>
+            <button type="button" role="tab" id="tab-font" aria-controls="panel-font" aria-selected="false" tabindex="-1">Font</button>
+        </div>
 
-        <h3>Background</h3>
-        <div id="background-options"></div>
+        <div class="tray-panel" role="tabpanel" id="panel-stickers" aria-labelledby="tab-stickers">
+            <div class="sticker-grid" id="sticker-tray"></div>
+            <p class="tray-hint">Each sticker you place uses one copy. ∞ never runs out.</p>
+        </div>
 
-        <h3>Frame</h3>
-        <div id="frame-options"></div>
+        <div class="tray-panel" role="tabpanel" id="panel-paper" aria-labelledby="tab-paper" hidden>
+            <div class="tray-swatches" id="background-options"></div>
+        </div>
 
-        <h3>Font</h3>
-        <div id="font-options"></div>
+        <div class="tray-panel" role="tabpanel" id="panel-frame" aria-labelledby="tab-frame" hidden>
+            <div class="tray-swatches" id="frame-options"></div>
+        </div>
+
+        <div class="tray-panel" role="tabpanel" id="panel-font" aria-labelledby="tab-font" hidden>
+            <div class="tray-swatches" id="font-options"></div>
+        </div>
+
     </aside>
 
 
     <!-- ============================== -->
-    <!-- JOURNAL PAGE -->
+    <!-- JOURNAL PAGE (the one-line summary is written on the page) -->
     <!-- ============================== -->
 
     <section>
@@ -66,7 +73,14 @@ New Journal Page
                 <div class="journal-frame" id="journal-frame" hidden></div>
 
                 <p class="journal-date">{{ today|date:"l, F j, Y" }}</p>
+
+                <label class="sr-only" for="{{ form.summary.id_for_label }}">Today in one line (optional)</label>
+                <textarea class="journal-summary-input" form="journal-form" rows="1"
+                          name="{{ form.summary.html_name }}" id="{{ form.summary.id_for_label }}"
+                          maxlength="150" placeholder="Today in one line (optional)">{{ form.summary.value|default_if_none:'' }}</textarea>
+
                 <div class="journal-text" id="journal-text" contenteditable="true"
+                     role="textbox" aria-multiline="true" aria-label="How was your day?"
                      data-placeholder="How was your day?">{{ form.content.value|default_if_none:"" }}</div>
 
                 <div class="sticker-tools" id="sticker-tools" hidden>
@@ -84,12 +98,8 @@ New Journal Page
             {% csrf_token %}
             <textarea name="content" hidden></textarea>
             {{ form.layout }}
-            <label class="journal-summary-field" for="{{ form.summary.id_for_label }}">
-                {{ form.summary.label }}
-                {{ form.summary }}
-            </label>
-            <button type="submit" class="button-primary">Save entry</button>
-            <a class="button" href="{% url 'journal_list' %}">Cancel</a>
+            <button type="submit" class="journal-save">Save page</button>
+            <a class="journal-cancel" href="{% url 'journal_list' %}">Cancel</a>
         </form>
     </section>
 

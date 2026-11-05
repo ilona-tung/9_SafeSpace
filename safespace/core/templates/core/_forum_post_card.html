@@ -1,49 +1,43 @@
 <article class="forum-item" id="post-{{ post.pk }}">
 
-    {% if post.forum_id in joined_ids %}
-        <div class="forum-item__ribbon" aria-hidden="true"><span>Joined</span></div>
-    {% endif %}
-
     <span class="forum-avatar" data-tone="{{ post.user_id|stringformat:'d'|slice:'-1:' }}" aria-hidden="true">{{ post.user.username|first|upper }}</span>
 
     <div class="forum-item__body">
 
         <p class="forum-item__meta">
             <a class="forum-item__author" href="{% url 'profile_view' post.user.username %}">{{ post.user.username }}</a>
-            posted {{ post.created_at|date:"M j" }} · in
+            · {{ post.created_at|date:"M j" }} ·
             <a href="{{ post.forum.get_absolute_url }}">{{ post.forum.name }}</a>
             {% if post.location %}· {{ post.location }}{% endif %}
-            {% if post.forum_id not in joined_ids %}<span class="forum-tag">Not joined</span>{% endif %}
+            {% if post.forum_id in joined_ids %}
+                · <span class="forum-item__joined">✓ joined</span>
+            {% else %}
+                <span class="forum-tag">Not joined</span>
+            {% endif %}
         </p>
 
         <p class="forum-item__text{% if post.content|length <= 80 %} forum-item__text--lead{% endif %}">{{ post.content|truncatechars:300|linebreaksbr }}</p>
 
-        <div class="forum-item__bar">
-            <span class="forum-chip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg>
-                {% if post.reply_count %}{{ post.reply_count }} repl{{ post.reply_count|pluralize:"y,ies" }}{% else %}No replies yet{% endif %}
-            </span>
-            <span class="forum-chip">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/></svg>
-                {{ post.member_count }} member{{ post.member_count|pluralize }}
-            </span>
-
-            {% if post.forum_id in joined_ids %}
-                <a class="button forum-item__reply" href="{{ post.forum.get_absolute_url }}#post-{{ post.pk }}">Reply</a>
-            {% else %}
-                <form method="post" action="{% url 'forum_join' post.forum_id %}" class="forum-item__join">
-                    {% csrf_token %}
-                    <button type="submit" class="forum-item__reply forum-item__reply--join">Join to reply</button>
-                </form>
-            {% endif %}
-        </div>
-
         {% if post.latest_reply %}
             <p class="forum-item__preview">
-                <strong>{{ post.latest_reply.user.username }}</strong> · {{ post.latest_reply.created_at|date:"M j" }} —
+                ↳ <strong>{{ post.latest_reply.user.username }}</strong> replied:
                 {{ post.latest_reply.content|truncatechars:120 }}
             </p>
         {% endif %}
+
+        <div class="forum-item__bar">
+            <span>{% if post.reply_count %}{{ post.reply_count }} repl{{ post.reply_count|pluralize:"y,ies" }}{% else %}No replies yet{% endif %}</span>
+            <span>{{ post.member_count }} member{{ post.member_count|pluralize }}</span>
+
+            {% if post.forum_id in joined_ids %}
+                <a class="forum-item__reply" href="{{ post.forum.get_absolute_url }}#post-{{ post.pk }}">Reply</a>
+            {% else %}
+                <form method="post" action="{% url 'forum_join' post.forum_id %}" class="forum-item__join">
+                    {% csrf_token %}
+                    <button type="submit" class="forum-item__reply--join">Join to reply</button>
+                </form>
+            {% endif %}
+        </div>
 
     </div>
 

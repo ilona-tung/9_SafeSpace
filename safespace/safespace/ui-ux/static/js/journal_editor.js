@@ -11,6 +11,7 @@
   const tools = document.getElementById("sticker-tools");
   const tray = document.getElementById("sticker-tray");
   const form = document.getElementById("journal-form");
+  const summary = document.querySelector(".journal-summary-input");
 
   let placed = [];        // {sticker, x, y, rotation, scale, el}
   let selected = null;
@@ -40,7 +41,7 @@
 
       const count = document.createElement("span");
       count.className = "tray-count";
-      count.textContent = sticker.count === null ? "∞" : "×" + sticker.count;
+      count.textContent = sticker.count === null ? "∞" : sticker.count === 0 ? "used" : "×" + sticker.count;
 
       item.append(img, count);
       item.addEventListener("pointerdown", function (event) {
@@ -190,7 +191,10 @@
   });
 
   document.addEventListener("keydown", function (e) {
-    if (!selected || document.activeElement === text) return;
+    // Don't remove a sticker while the user is typing (page text or the summary line)
+    const typing = document.activeElement.isContentEditable ||
+                   ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+    if (!selected || typing) return;
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       removeSticker(selected);
@@ -201,8 +205,8 @@
   // Background / frame / font: one choice each
   // ------------------------------------------------------------
   const SLOTS = {
-    background: { container: "background-options", none: "Plain paper" },
-    frame: { container: "frame-options", none: "No frame" },
+    background: { container: "background-options", none: "Plain" },
+    frame: { container: "frame-options", none: "None" },
     font: { container: "font-options", none: "Regular" }
   };
 
@@ -216,25 +220,22 @@
       button.className = "tray-option";
       button.setAttribute("aria-pressed", String(chosen[slot] === option));
 
+      // A small picture of the choice: the paper, the frame on paper, or "Aa"
       const swatch = document.createElement("span");
-      swatch.className = "tray-swatch";
-      if (option && slot !== "font") swatch.style.backgroundImage = "url('" + option.url + "')";
-      if (option && slot === "font") {
+      swatch.className = "tray-swatch tray-swatch--" + slot;
+      if (option && slot === "background") swatch.style.backgroundImage = "url('" + option.url + "')";
+      if (option && slot === "frame") swatch.style.borderImageSource = "url('" + option.url + "')";
+      if (slot === "font") {
         swatch.textContent = "Aa";
-        swatch.style.cssText = "display:grid;place-items:center;font-family:'reward-font-" + option.id + "',cursive;font-size:1.1rem";
+        if (option) swatch.style.fontFamily = "'reward-font-" + option.id + "', cursive";
       }
 
       const label = document.createElement("span");
+      label.className = "tray-option__label";
       label.textContent = option ? option.name : SLOTS[slot].none;
+      if (option) label.textContent += option.count === null ? " · ∞" : " · ×" + option.count;
 
       button.append(swatch, label);
-
-      if (option) {
-        const count = document.createElement("span");
-        count.className = "tray-count";
-        count.textContent = option.count === null ? "∞" : "×" + option.count;
-        button.appendChild(count);
-      }
 
       button.addEventListener("click", function () {
         chosen[slot] = option;
@@ -245,6 +246,30 @@
       container.appendChild(button);
     });
   }
+
+  // ------------------------------------------------------------
+  // Tabs: Stickers / Paper / Frame / Font (arrow keys move between them)
+  // ------------------------------------------------------------
+  const tabs = Array.from(document.querySelectorAll('.tray-tabs [role="tab"]'));
+
+  function showTab(tab) {
+    tabs.forEach(function (t) {
+      const active = t === tab;
+      t.setAttribute("aria-selected", String(active));
+      t.tabIndex = active ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !active;
+    });
+  }
+
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener("click", function () { showTab(tab); });
+    tab.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+      showTab(next);
+      next.focus();
+    });
+  });
 
   function applyStyle() {
     page.style.setProperty("--page-bg", chosen.background ? "url('" + chosen.background.url + "')" : "none");
@@ -280,8 +305,27 @@
     });
   });
 
+  // ------------------------------------------------------------
+  // Summary line: grows onto the next ruled line, Enter jumps to the text
+  // ------------------------------------------------------------
+  function fitSummary() {
+    // Stays one sentence: pasted line breaks become spaces (only then, so the cursor doesn't jump)
+    if (summary.value.includes("\n")) summary.value = summary.value.replace(/\s*\n\s*/g, " ");
+    summary.style.height = "auto";
+    summary.style.height = summary.scrollHeight + "px";
+  }
+
+  summary.addEventListener("input", fitSummary);
+  summary.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      text.focus();
+    }
+  });
+
   function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
   renderTray();
   Object.keys(SLOTS).forEach(renderOptions);
+  fitSummary();
 })();
