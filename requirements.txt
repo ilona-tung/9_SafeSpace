@@ -1,0 +1,9 @@
+# Everything SafeSpace needs, in one install:
+#   pip install -r requirements.txt
+#
+# Web app (Django) and its local AI features (torch, transformers, sentence-transformers)
+-r safespace/safespace/settings/requirements.txt
+
+# A8 RAG notebook (llm-test/rag_system.ipynb)
+pandas>=3.0
+jupyter>=1.1
