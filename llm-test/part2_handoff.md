@@ -18,6 +18,33 @@
 6. RAG: bge-small embeds the input → top 3 NIH chunks; a best score < 0.55 means no tip → Qwen writes a 2–3 sentence tip from those chunks only.
 7. The result is saved in the session → redirect → quest card + tip card, shown once.
 
+## Diagram
+```mermaid
+flowchart TD
+    U["User: feeling text (≤300 chars)<br/>+ optional journal entry"] --> V["Django view quest_suggest<br/>(FeelingForm validation)"]
+    V --> C{"Crisis words?"}
+    C -- yes --> CR["988 crisis card<br/>(no AI)"]
+    C -- no --> I{"Prompt injection?"}
+    I -- yes --> IN["'I can only help with self-care quests'"]
+    I -- no --> J{"Junk or off-topic?<br/>rules + bge-small similarity < 0.62"}
+    J -- yes --> OT["'Tell me a bit more'"]
+    J -- no --> P["Prompt: persona + quest list (DB)<br/>+ 3 few-shot examples + journal context"]
+    P --> Q["Qwen2.5-0.5B-Instruct<br/>(local, greedy)"]
+    Q --> K{"Valid JSON + real quest<br/>+ safe message?"}
+    K -- no --> FB["Fallback: Take 3 deep breaths"]
+    K -- yes --> OK["Quest + message"]
+    OK --> R
+    FB --> R
+    R["RAG: embed query (bge-small)<br/>→ cosine search over NIH chunks, top 3"] --> T{"Best score ≥ 0.55?"}
+    T -- no --> NT["No tip"]
+    T -- yes --> G["Qwen writes 2–3 sentence tip<br/>from retrieved passages only"]
+    G --> S["Session → redirect → Quests page<br/>quest card + NIH tip card"]
+    NT --> S
+    CR --> S
+    IN --> S
+    OT --> S
+```
+
 ## Models
 - `Qwen/Qwen2.5-0.5B-Instruct` (0.49B, ~1 GB): writes the quest pick and the tip
 - `BAAI/bge-small-en-v1.5` (33M): embeddings for RAG and the relevance check
