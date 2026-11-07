@@ -29,8 +29,5 @@
 - **A7 P2** (`A7_P2_S4.md`): our own tiny transformer was useless without fine-tuning, which is why the app uses a pretrained model.
 - **A8** (`rag_system.ipynb`, `rag_analysis.md`): bge-small was as accurate as bge-large and about 3× faster.
 - **Relevance threshold** (`relevance_check.py`): 0.62 kept 20/20 real feelings in both test sets, blocked 20/20 off-topic in the tuning set and 18/20 in the held-out set. Nothing was trained.
-
-## Good to know
-- The AI doesn't run on PythonAnywhere (the packages are too big). Take screenshots locally.
 - The home-page welcome message is a separate feature that uses Gemini (`core/welcome.py`).
-- Tests: `python manage.py test core.tests.AIQuestSuggestionTests core.tests.HealthTipTests`
+
