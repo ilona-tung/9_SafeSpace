@@ -67,6 +67,8 @@
                             {% if ai_result.quest_url %}
                                 <p class="ai-card__kicker">Your quest for today</p>
                                 <p class="ai-card__title">{{ ai_result.quest_title }}</p>
+                            {% elif ai_result.status == "off_topic" %}
+                                <p class="ai-card__kicker">Tell me a bit more</p>
                             {% endif %}
                             <p class="ai-card__text">{{ ai_result.message }}</p>
                             {% if ai_result.quest_category %}

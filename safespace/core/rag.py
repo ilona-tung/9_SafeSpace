@@ -14,6 +14,8 @@ Built from llm-test/rag_system.ipynb (A8):
     - embeddings: BAAI/bge-small-en-v1.5 (as accurate as bge-large on our
       test questions, about 3x faster)
     - retrieval: cosine similarity, top 3, relevance threshold 0.55
+    - the same embeddings check that the input is about feelings at all
+      (is_about_feelings, used by core/ai.py before a quest is suggested)
 
 Pipeline:
     1. Build the search query from how the user feels (or the chosen journal entry).
@@ -46,6 +48,23 @@ MAX_TIP_SENTENCES = 3
 
 # BGE models expect this in front of search queries (not in front of passages)
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+
+# What real input looks like: the quest page's quick feelings, the few-shot
+# feelings in core/ai.py, and other everyday moods (good days included)
+FEELING_EXAMPLES = [
+    "I'm feeling stressed", "I can't sleep well lately", "I feel lonely", "I feel tired all the time",
+    "I feel overwhelmed", "I sat at my desk and ate junk food all day.", "My mind is racing and I can't relax.",
+    "I miss my old friends.", "I feel stuck and want to grow.", "I have been stuck inside all week.",
+    "I spent too much money this week.", "I'm anxious about my exams", "I feel sad today",
+    "I'm bored and have nothing to do", "I had a really good day and feel happy", "I'm angry at my roommate",
+    "I feel unmotivated to study", "I'm homesick", "I feel okay, just a normal day", "My body feels tense and sore",
+    "I've been scrolling on my phone too much", "I'm nervous about a job interview", "I feel burnt out from work",
+    "I argued with my family", "I don't feel like eating",
+]
+
+# Picked in llm-test/relevance_check.py: in two test sets every real feeling
+# scored 0.65 or more, while most off-topic questions stayed under 0.60
+MIN_FEELING_SCORE = 0.62
 
 TIP_SYSTEM_PROMPT = (
     "You are SafeSpace, a brief and gentle self-care assistant. "
@@ -180,6 +199,33 @@ def retrieve(query, k=TOP_K):
     scores = embeddings @ query_vector
 
     return [(float(scores[i]), chunks[i]) for i in np.argsort(scores)[::-1][:k]]
+
+
+@lru_cache(maxsize=1)
+def feeling_example_embeddings():
+    model = load_index()[0]
+    return model.encode(FEELING_EXAMPLES, normalize_embeddings=True)
+
+
+def feeling_score(text):
+    """
+    How close `text` is to the closest example feeling (cosine similarity).
+    No query prefix: this compares sentence to sentence, not query to passage.
+    """
+
+    model = load_index()[0]
+    vector = model.encode(text, normalize_embeddings=True)
+    return float((feeling_example_embeddings() @ vector).max())
+
+
+def is_about_feelings(text):
+    """
+    Whether the user wrote about how they feel, rather than something
+    unrelated ("what is the capital of France"). Checked before any
+    quest or tip, so off-topic input never gets a made-up suggestion.
+    """
+
+    return feeling_score(text) >= MIN_FEELING_SCORE
 
 
 def search_query(feeling, journal=None):

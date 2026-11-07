@@ -926,8 +926,77 @@ class AIQuestSuggestionTests(TestCase):
         retrieve.start()
         self.addCleanup(retrieve.stop)
 
+        # Every test input is about feelings unless a test says otherwise
+        score = patch("core.rag.feeling_score", return_value=0.9)
+        self.feeling_score = score.start()
+        self.addCleanup(score.stop)
+
     def fake_generate(self, answer):
         return patch("core.ai.generate", return_value=answer)
+
+    def test_junk_input_never_reaches_the_model(self):
+        with self.fake_generate("{}") as fake:
+            for feeling in ["???", "123", "aaaaaa", "asdf jkl", "qwerty", "hello", "Hi there!", "ok"]:
+                with self.subTest(feeling=feeling):
+                    result = ai.suggest_quest(self.user, feeling)
+
+                    self.assertEqual(result["status"], "off_topic")
+                    self.assertIsNone(result["quest"])
+
+        fake.assert_not_called()
+        self.feeling_score.assert_not_called()  # the rules catch these before the embeddings
+
+    def test_short_real_feelings_are_not_junk(self):
+        for feeling in ["sad", "meh", "tired", "help", "sooo tired after classes"]:
+            with self.subTest(feeling=feeling):
+                self.assertFalse(ai.is_junk(feeling))
+
+    def test_off_topic_sentence_gets_no_quest(self):
+        self.feeling_score.return_value = rag.MIN_FEELING_SCORE - 0.01
+
+        with self.fake_generate('{"quest": "Take a walk", "message": "Fresh air helps."}') as fake:
+            result = ai.suggest_quest(self.user, "What is the capital of France?")
+
+        fake.assert_not_called()
+        self.assertEqual(result["status"], "off_topic")
+        self.assertEqual(result["message"], ai.OFF_TOPIC_MESSAGE)
+
+    def test_score_at_the_threshold_counts_as_a_feeling(self):
+        self.feeling_score.return_value = rag.MIN_FEELING_SCORE
+
+        with self.fake_generate('{"quest": "Take a walk", "message": "Fresh air helps."}'):
+            result = ai.suggest_quest(self.user, "kinda meh today")
+
+        self.assertEqual(result["status"], "ok")
+
+    def test_crisis_is_checked_before_the_topic(self):
+        self.feeling_score.return_value = 0.1
+
+        result = ai.suggest_quest(self.user, "asdf I want to die")
+
+        self.assertEqual(result["status"], "crisis")
+
+    def test_chosen_journal_skips_the_topic_check(self):
+        self.feeling_score.return_value = 0.1
+        chosen = Journal.objects.create(user=self.user, content="Deadline on Friday.")
+
+        with self.fake_generate('{"quest": "Take a walk", "message": "One step at a time."}'):
+            result = ai.suggest_quest(self.user, "banana", journal=chosen)
+
+        self.assertEqual(result["status"], "ok")
+
+    def test_view_shows_the_off_topic_message_without_a_tip(self):
+        self.feeling_score.return_value = 0.3
+        self.client.login(username="feeler", password="pw-12345!")
+
+        with patch("core.rag.grounded_tip") as tip:
+            self.client.post("/quests/suggest/", {"feeling": "best pizza near me"})
+
+        tip.assert_not_called()
+        page = self.client.get("/quests/")
+        self.assertContains(page, "Tell me a bit more")
+        self.assertContains(page, "couldn&#x27;t tell how you&#x27;re feeling")
+        self.assertNotContains(page, "Your quest for today")
 
     def test_valid_answer_links_a_real_quest(self):
         with self.fake_generate('{"quest": "Take a walk", "message": "Fresh air helps."}'):
@@ -1089,6 +1158,11 @@ class HealthTipTests(TestCase):
             "url": "https://newsinhealth.nih.gov/2021/04/good-sleep-good-health",
             "body": "Stick to a sleep schedule. Limit electronics before bed.",
         }
+
+        # The topic check has its own tests (AIQuestSuggestionTests)
+        score = patch("core.rag.feeling_score", return_value=0.9)
+        score.start()
+        self.addCleanup(score.stop)
 
     def fake_retrieve(self, score):
         return patch("core.rag.retrieve", return_value=[(score, self.sleep_chunk)])

@@ -6,7 +6,9 @@ A user writes how they feel. The local Hugging Face model
 picks ONE quest from our database and writes a short, kind message.
 
 Pipeline:
-    1. Preprocess: clean the text, check for crisis words and prompt injection.
+    1. Preprocess: clean the text, check for crisis words and prompt injection,
+       then check that the text is about feelings at all (junk rules here, an
+       embeddings check in core/rag.py). Off-topic input gets no quest.
     2. Build a few-shot prompt: persona + our quest list + either the journal
        entry the user chose, or excerpts of their 3 most recent entries.
     3. Generate with the local model (loaded once, on the first request).
@@ -48,6 +50,11 @@ INJECTION_MESSAGE = (
     "Tell me how you are feeling, and I will suggest one."
 )
 
+OFF_TOPIC_MESSAGE = (
+    "I couldn't tell how you're feeling from that. "
+    "Try a sentence like \"I'm tired after classes\", or tap one of the feelings below."
+)
+
 UNAVAILABLE_MESSAGE = (
     "AI quest suggestions are only available when SafeSpace runs locally "
     "with the AI packages installed."
@@ -75,6 +82,16 @@ INJECTION_PATTERNS = [
     r"\bnew instructions\b",
     r"<\|.*?\|>",
 ]
+
+# Typing along one keyboard row ("asdf", "qwerty") is not a feeling
+KEYBOARD_ROWS = ("qwertyuiop", "asdfghjkl", "zxcvbnm")
+
+# A greeting on its own says nothing about how the user feels
+# ("help" is not here on purpose: it may be a real cry for help)
+GREETINGS = {
+    "hi", "hello", "hey", "hi there", "hello there", "yo", "ok", "okay",
+    "test", "testing", "thanks", "thank you", "good morning", "good afternoon", "good evening",
+}
 
 # A self-care app should never show these in a suggestion
 BLOCKED_OUTPUT_WORDS = [
@@ -134,6 +151,40 @@ def is_crisis(text):
 
 def is_injection(text):
     return matches_any(text, INJECTION_PATTERNS)
+
+
+def is_junk(text):
+    """
+    Input that can't be a feeling: no letters ("???", "123"), one letter
+    repeated ("aaaa"), keyboard mashing ("asdf jkl") or only a greeting.
+    Short real feelings ("sad", "meh") pass: the embeddings check decides those.
+    """
+
+    letters = re.sub(r"[\W\d_]", "", text.lower())
+    words = re.findall(r"[^\W\d_]+", text.lower())
+
+    if len(set(letters)) < 2:
+        return True
+
+    if all(len(word) >= 3 and any(word in row for row in KEYBOARD_ROWS) for word in words):
+        return True
+
+    return " ".join(words) in GREETINGS
+
+
+def is_about_feelings(text):
+    """
+    The embeddings check from core/rag.py (rag imports this module, so it is
+    imported here). Without the AI packages we can't check: the model step
+    then reports that the AI is unavailable.
+    """
+
+    from . import rag
+
+    try:
+        return rag.is_about_feelings(text)
+    except AIUnavailable:
+        return True
 
 
 def recent_journal_excerpts(user):
@@ -379,7 +430,7 @@ def suggest_quest(user, feeling, journal=None):
     Suggest one quest for how the user feels and/or a journal entry they chose.
 
     Returns a dict:
-        status:  "ok", "fallback", "crisis", "injection" or "unavailable"
+        status:  "ok", "fallback", "crisis", "injection", "off_topic" or "unavailable"
         quest:   a Quest or None
         message: the text shown to the user
     """
@@ -399,6 +450,10 @@ def suggest_quest(user, feeling, journal=None):
 
     if is_injection(user_text):
         return {"status": "injection", "quest": None, "message": INJECTION_MESSAGE}
+
+    # A chosen journal entry is what the quest is for, so only typed-only input is checked
+    if journal is None and (is_junk(feeling) or not is_about_feelings(feeling)):
+        return {"status": "off_topic", "quest": None, "message": OFF_TOPIC_MESSAGE}
 
     fallback = {"status": "fallback", "quest": fallback_quest(quests), "message": FALLBACK_MESSAGE}
 
