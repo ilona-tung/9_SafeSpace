@@ -127,7 +127,7 @@ How it works: [`safespace/core/ai.py`](safespace/core/ai.py) (quest suggestion a
 #### 5. Optional extras
 
 - **Personalized welcome messages:** copy `safespace/.env.example` to `safespace/.env` and add a `GEMINI_KEY`. This is the only feature that calls an external API. Without a key, the home page shows a friendly default.
-- **Google login:** set up your own Google OAuth client under **Admin → Social applications**.
+- **Google login:** create an OAuth client in Google Cloud Console (APIs & Services → Credentials, redirect URI `http://127.0.0.1:8000/accounts/google/login/callback/`), then add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `safespace/.env`. The keys are read from `.env` only, never stored in the database or the repo. Without them, normal sign-up and login still work.
 - **Tests for the AI feature** (no model download needed): `python manage.py test core.tests.AIQuestSuggestionTests core.tests.HealthTipTests`
 
 ## Project Structure

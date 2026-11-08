@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -145,6 +146,16 @@ LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Google login keys come from .env, never from the database, so they stay out of the repo
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
+            "secret": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+        },
+    },
+}
 
 # Local Hugging Face model for AI quest suggestions (core/ai.py).
 # Chosen in llm-test/ai_prototype.ipynb; downloaded automatically on first use.
