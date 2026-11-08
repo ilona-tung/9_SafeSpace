@@ -931,8 +931,70 @@ class AIQuestSuggestionTests(TestCase):
         self.feeling_score = score.start()
         self.addCleanup(score.stop)
 
+        # No embeddings unless a test sets similarities: no shortlist, spelling-only quest matching
+        similarities = patch("core.ai.quest_similarities", return_value=None)
+        self.quest_similarities = similarities.start()
+        self.addCleanup(similarities.stop)
+
     def fake_generate(self, answer):
         return patch("core.ai.generate", return_value=answer)
+
+    def test_reworded_title_finds_the_closest_quest_by_meaning(self):
+        call = Quest.objects.create(title="Call a family member", category="social")
+        self.quest_similarities.return_value = [0.2, 0.3, 0.73]  # walk, clouds, call
+
+        with self.fake_generate('{"quest": "Talk to someone", "message": "Reach out to someone who cares."}'):
+            result = ai.suggest_quest(self.user, "I feel lonely.")
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["quest"], call)
+        self.assertEqual(result["message"], "Reach out to someone who cares.")
+
+    def test_reworded_title_that_is_not_close_falls_back(self):
+        self.quest_similarities.return_value = [0.5, 0.4]
+
+        with self.fake_generate('{"quest": "Run a marathon", "message": "Go!"}'):
+            result = ai.suggest_quest(self.user, "I feel tired.")
+
+        self.assertEqual(result["status"], "fallback")
+        self.assertEqual(result["quest"], self.clouds)
+
+    def test_prompt_lists_only_the_closest_quests(self):
+        extra = [Quest.objects.create(title=f"Quest {n}", category="general") for n in range(10)]
+        quests = [self.walk, self.clouds, *extra]
+        # "Quest 9" is the closest, then "Quest 8", ...; walk and clouds are the least close
+        self.quest_similarities.return_value = [0.0, 0.01] + [0.1 + n / 100 for n in range(10)]
+
+        with self.fake_generate('{"quest": "Quest 9", "message": "Nice."}') as fake:
+            result = ai.suggest_quest(self.user, "I feel stressed.")
+
+        quest_list = fake.call_args.args[0][0]["content"]
+        self.assertEqual(self.quest_similarities.call_args.args[1], quests)
+        self.assertIn('"Quest 9"', quest_list)
+        self.assertIn('"Quest 2"', quest_list)
+        self.assertNotIn('"Quest 1"', quest_list)
+        self.assertNotIn('"Take a walk"', quest_list)
+        self.assertEqual(quest_list.count('"quest":'), ai.QUEST_SHORTLIST)
+        self.assertEqual(result["quest"], extra[9])
+
+    def test_few_shot_examples_start_with_common_feelings(self):
+        Quest.objects.create(title="Set a small savings goal", category="budgeting")
+        Quest.objects.create(title="Say hi to an old friend", category="social")
+
+        examples = ai.few_shot_examples(list(Quest.objects.all()))
+
+        self.assertEqual([feeling for feeling, _ in examples], [
+            ai.EXAMPLE_FEELINGS["general"], ai.EXAMPLE_FEELINGS["social"], ai.EXAMPLE_FEELINGS["diet"],
+        ])
+
+    def test_feeling_comes_after_the_journal_notes(self):
+        Journal.objects.create(user=self.user, content="Listened to a sad song today.")
+
+        messages = ai.build_messages("I'm stressed about exams.", ai.recent_journal_excerpts(self.user), [self.walk])
+        prompt = messages[-1]["content"]
+
+        self.assertLess(prompt.index("sad song"), prompt.index("I'm stressed about exams."))
+        self.assertTrue(prompt.endswith("Choose the quest for how I feel now."))
 
     def test_junk_input_never_reaches_the_model(self):
         with self.fake_generate("{}") as fake:
@@ -1216,6 +1278,15 @@ class HealthTipTests(TestCase):
             self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "ok")
 
         with self.fake_retrieve(0.7), self.fake_generate("Don't be lazy about sleep."):
+            self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "sources_only")
+
+    def test_first_person_sentences_are_removed_from_the_tip(self):
+        answer = "Social isolation makes me feel anxious. Connecting with others helps reduce loneliness."
+
+        with self.fake_retrieve(0.7), self.fake_generate(answer):
+            self.assertEqual(rag.grounded_tip("I feel lonely.")["tip"], "Connecting with others helps reduce loneliness.")
+
+        with self.fake_retrieve(0.7), self.fake_generate("I should sleep more. My bed is comfy."):
             self.assertEqual(rag.grounded_tip("I can't sleep.")["status"], "sources_only")
 
     def test_long_tips_are_cut_to_three_sentences(self):

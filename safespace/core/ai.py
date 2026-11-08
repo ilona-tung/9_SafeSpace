@@ -9,10 +9,12 @@ Pipeline:
     1. Preprocess: clean the text, check for crisis words and prompt injection,
        then check that the text is about feelings at all (junk rules here, an
        embeddings check in core/rag.py). Off-topic input gets no quest.
-    2. Build a few-shot prompt: persona + our quest list + either the journal
-       entry the user chose, or excerpts of their 3 most recent entries.
+    2. Build a few-shot prompt: persona + the 8 quests closest in meaning to
+       the feeling + either the journal entry the user chose, or excerpts of
+       their 3 most recent entries (before the feeling, as background).
     3. Generate with the local model (loaded once, on the first request).
-    4. Check the output: valid JSON, a quest that really exists, a safe message.
+    4. Check the output: valid JSON, a quest that really exists (matched by
+       spelling, or by meaning when the model rewords a title), a safe message.
        Anything else falls back to a pre-made suggestion.
 """
 
@@ -34,6 +36,14 @@ JOURNAL_COUNT = 3
 JOURNAL_EXCERPT_CHARS = 200
 CHOSEN_JOURNAL_CHARS = 400
 MAX_MESSAGE_CHARS = 250
+
+# Only the quests closest in meaning to the feeling go into the prompt:
+# a 0.5B model picks better from a short list (tested in Part 3 of A9)
+QUEST_SHORTLIST = 8
+
+# A reworded quest title ("Talk to someone") counts as the closest real quest
+# ("Call a family member") only when it is this similar (bge-small cosine)
+MIN_QUEST_SIMILARITY = 0.7
 
 FALLBACK_MESSAGE = "Try taking 3 deep breaths. Small steps still count."
 FALLBACK_QUEST_TITLE = "Take 3 deep breaths"
@@ -108,6 +118,10 @@ EXAMPLE_FEELINGS = {
     "exploration": "I have been stuck inside all week.",
     "budgeting": "I spent too much money this week.",
 }
+
+# Few-shot examples come from the most common feelings first (stress, loneliness),
+# not from whichever categories happen to come first in the database
+EXAMPLE_CATEGORY_ORDER = ["general", "social", "diet", "learning", "exploration", "budgeting"]
 
 EXAMPLE_MESSAGES = {
     "diet": "Your body will thank you for this small step.",
@@ -187,6 +201,42 @@ def is_about_feelings(text):
         return True
 
 
+def quest_similarities(text, quests, as_query=False):
+    """
+    How close `text` is in meaning to each quest title (bge-small, from
+    core/rag.py), or None when the embeddings can't be used.
+    """
+
+    from . import rag
+
+    try:
+        return rag.title_similarities(text, [quest.title for quest in quests], as_query=as_query)
+    except AIUnavailable:
+        return None
+    except Exception:
+        logger.exception("Quest similarity failed")
+        return None
+
+
+def quest_shortlist(feeling, quests):
+    """
+    The QUEST_SHORTLIST quests closest in meaning to the feeling, closest first.
+    All quests when there is no feeling, few quests, or no embeddings.
+    """
+
+    if not feeling or len(quests) <= QUEST_SHORTLIST:
+        return quests
+
+    scores = quest_similarities(feeling, quests, as_query=True)
+
+    if scores is None:
+        return quests
+
+    ranked = sorted(zip(scores, range(len(quests))), reverse=True)
+
+    return [quests[index] for _, index in ranked[:QUEST_SHORTLIST]]
+
+
 def recent_journal_excerpts(user):
     """
     Short excerpts of the user's own 3 most recent journal entries.
@@ -248,13 +298,13 @@ def few_shot_examples(quests):
     """
 
     examples = []
-    used_categories = set()
 
-    for quest in quests:
-        if quest.category in EXAMPLE_FEELINGS and quest.category not in used_categories:
-            used_categories.add(quest.category)
-            answer = {"quest": quest.title, "message": EXAMPLE_MESSAGES[quest.category]}
-            examples.append((EXAMPLE_FEELINGS[quest.category], json.dumps(answer)))
+    for category in EXAMPLE_CATEGORY_ORDER:
+        quest = next((quest for quest in quests if quest.category == category), None)
+
+        if quest is not None:
+            answer = {"quest": quest.title, "message": EXAMPLE_MESSAGES[category]}
+            examples.append((EXAMPLE_FEELINGS[category], json.dumps(answer)))
 
         if len(examples) == 3:
             break
@@ -262,13 +312,15 @@ def few_shot_examples(quests):
     return examples
 
 
-def build_messages(feeling, journal_excerpts, quests, chosen_journal=None):
+def build_messages(feeling, journal_excerpts, quests, chosen_journal=None, choices=None):
     """
     Chat messages for the model. When the user chose a journal entry,
-    that entry is the focus; otherwise recent excerpts are background.
+    that entry is the focus; otherwise recent excerpts are background,
+    placed before the feeling so the model reads the feeling last.
+    `choices` is the quest list shown in the prompt (default: all quests).
     """
 
-    messages = [{"role": "system", "content": system_prompt(quests)}]
+    messages = [{"role": "system", "content": system_prompt(choices or quests)}]
 
     for example_feeling, example_answer in few_shot_examples(quests):
         messages.append({"role": "user", "content": example_feeling})
@@ -276,17 +328,27 @@ def build_messages(feeling, journal_excerpts, quests, chosen_journal=None):
 
     parts = []
 
-    if feeling:
-        parts.append(f"How I feel now: {feeling}")
-
     if chosen_journal is not None:
+        if feeling:
+            parts.append(f"How I feel now: {feeling}")
+
         parts.append(
             "Suggest a quest based on this journal entry I wrote:\n"
             f"{chosen_journal_text(chosen_journal)}"
         )
-    elif journal_excerpts:
-        notes = "\n".join(f"- {excerpt}" for excerpt in journal_excerpts)
-        parts.append(f"My recent journal notes (background only):\n{notes}")
+    else:
+        # A small model follows what it reads last, so the feeling comes after the notes
+        if journal_excerpts:
+            notes = "\n".join(f"- {excerpt}" for excerpt in journal_excerpts)
+            parts.append(f"My recent journal notes (background only):\n{notes}")
+
+        if feeling:
+            feeling_part = f"How I feel now: {feeling}"
+
+            if journal_excerpts:
+                feeling_part += "\nChoose the quest for how I feel now."
+
+            parts.append(feeling_part)
 
     messages.append({"role": "user", "content": "\n\n".join(parts)})
 
@@ -376,16 +438,28 @@ def parse_answer(answer):
 
 def match_quest(title, quests):
     """
-    The quest whose title matches the model's answer (exactly, or very closely).
+    The quest whose title matches the model's answer: by spelling (exactly or
+    very closely), otherwise by meaning, so a reworded title ("Talk to someone")
+    still finds the closest real quest instead of the fallback.
     """
 
-    if not isinstance(title, str):
+    if not isinstance(title, str) or not title.strip() or not quests:
         return None
 
     by_title = {quest.title.lower(): quest for quest in quests}
     close = difflib.get_close_matches(title.strip().lower(), by_title, n=1, cutoff=0.8)
 
-    return by_title[close[0]] if close else None
+    if close:
+        return by_title[close[0]]
+
+    scores = quest_similarities(title.strip(), quests)
+
+    if not scores:
+        return None
+
+    best = max(range(len(quests)), key=lambda index: scores[index])
+
+    return quests[best] if scores[best] >= MIN_QUEST_SIMILARITY else None
 
 
 def safe_message(message):
@@ -461,7 +535,8 @@ def suggest_quest(user, feeling, journal=None):
         return fallback
 
     excerpts = [] if journal is not None else recent_journal_excerpts(user)
-    messages = build_messages(feeling, excerpts, quests, chosen_journal=journal)
+    choices = quest_shortlist(feeling, quests)
+    messages = build_messages(feeling, excerpts, quests, chosen_journal=journal, choices=choices)
 
     try:
         answer = generate(messages)

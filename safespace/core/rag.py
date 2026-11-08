@@ -45,6 +45,7 @@ TOP_K = 3
 MIN_SCORE = 0.55
 MAX_TIP_CHARS = 400
 MAX_TIP_SENTENCES = 3
+FIRST_PERSON = r"\b(I|me|my|I'm|I've)\b"
 
 # BGE models expect this in front of search queries (not in front of passages)
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -218,6 +219,20 @@ def feeling_score(text):
     return float((feeling_example_embeddings() @ vector).max())
 
 
+def title_similarities(text, titles, as_query=False):
+    """
+    Cosine similarity of `text` to each title, in order. core/ai.py uses it to
+    shortlist quests for a feeling (as_query=True: the BGE search prefix) and
+    to match a reworded quest title to a real one (title to title, no prefix).
+    """
+
+    model = load_index()[0]
+    vectors = model.encode(list(titles), normalize_embeddings=True)
+    vector = model.encode((BGE_QUERY_PREFIX + text) if as_query else text, normalize_embeddings=True)
+
+    return [float(score) for score in vectors @ vector]
+
+
 def is_about_feelings(text):
     """
     Whether the user wrote about how they feel, rather than something
@@ -268,8 +283,9 @@ def build_messages(query, results):
 
 def safe_tip(answer, context=""):
     """
-    The model's tip, cut to at most 3 whole sentences, or None if it is
-    empty, looks broken, or contains words a self-care app should not show.
+    The model's tip without first-person sentences, cut to at most 3 whole
+    sentences, or None if nothing is left, it looks broken, or it contains
+    words a self-care app should not show.
     A blocked word is allowed when the health information itself uses it
     (e.g. "avoid alcohol before bedtime").
     """
@@ -283,7 +299,13 @@ def safe_tip(answer, context=""):
     if not tip or re.search(r"[{}<>]|\[\d+\]|^\s*([-*#]|\d+[.)])", tip):
         return None
 
-    sentences = re.split(r"(?<=[.!?])\s+", tip)
+    # A tip speaks to the user. A sentence in the first person ("makes me feel
+    # anxious") echoes the prompt's "How I feel" and is not from the sources
+    sentences = [s for s in re.split(r"(?<=[.!?])\s+", tip) if not re.search(FIRST_PERSON, s, re.IGNORECASE)]
+
+    if not sentences:
+        return None
+
     tip = " ".join(sentences[:MAX_TIP_SENTENCES])
 
     if len(tip) > MAX_TIP_CHARS or not tip.endswith((".", "!", "?")):
