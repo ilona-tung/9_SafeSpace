@@ -71,14 +71,22 @@ UNAVAILABLE_MESSAGE = (
 )
 
 # Never sent to the model: the user is shown CRISIS_MESSAGE instead
+# Phrases are kept whole ("end my life", not "end my") so everyday sentences
+# like "end my day with a walk" or "this homework will kill me" don't match
 CRISIS_PATTERNS = [
     r"\bsuicid",
-    r"\bkill (myself|me)\b",
-    r"\bend (my|it all)\b",
+    r"\bkill(ing)? myself\b",
+    r"\b(end|take) my (own )?life\b",
+    r"\bend it all\b",
     r"\bself[- ]?harm",
-    r"\bhurt (myself|me)\b",
-    r"\bwant to die\b",
-    r"\bdon'?t want to (live|be here)\b",
+    r"\b(hurt|harm|cut)(ting)? myself\b",
+    r"\bwant(ed)? to die\b",
+    r"\bwish i (was|were) dead\b",
+    r"\bdon['’]?t want to (live|be alive|exist|be here anymore)\b",
+    r"\bbetter off without me\b",
+    r"\b(don['’]?t|do not) see the point (anymore|of living|in living)\b",
+    r"\bcan['’]?t go on\b",
+    r"\bno reason to live\b",
 ]
 
 # Attempts to make the model ignore its instructions

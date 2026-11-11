@@ -1890,3 +1890,30 @@ class RewardPageTests(TestCase):
         self.assertContains(response, 'href="/quests/%d/"' % Quest.objects.get(title="Set a small savings goal").pk)
         # Earned Sunset + the unlimited welcome sticker
         self.assertEqual(response.context["collected"], 2)
+
+
+class CrisisPatternTests(TestCase):
+    """
+    The crisis check catches direct and indirect crisis wording, but not
+    everyday sentences that share a few words with it.
+    """
+
+    def test_crisis_wording_is_caught(self):
+        for text in [
+            "I want to die.", "I want to kill myself", "I've been thinking about suicide",
+            "I want to end my life", "I want to end it all", "I've been cutting myself",
+            "I don't want to live anymore", "I don’t want to be here anymore",
+            "I don't see the point anymore", "Everyone would be better off without me",
+            "I can't go on", "I have no reason to live", "I wish I was dead",
+        ]:
+            with self.subTest(text=text):
+                self.assertTrue(ai.is_crisis(text))
+
+    def test_everyday_sentences_are_not_crisis(self):
+        for text in [
+            "I want to end my day with a walk", "At the end my exams went fine",
+            "My back hurt me all day", "This homework will kill me", "I'm dying to see my friends",
+            "I don't want to be here at this party", "I'm stressed about my exams next week.",
+        ]:
+            with self.subTest(text=text):
+                self.assertFalse(ai.is_crisis(text))
